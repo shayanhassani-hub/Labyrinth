@@ -66,6 +66,7 @@ public class DroneHoverAIV2 : MonoBehaviour
             if (lookDir.sqrMagnitude > 0.001f) // avoid zero-length errors
             {
                 Quaternion targetRot = Quaternion.LookRotation(lookDir);
+                targetRot *= Quaternion.Euler(0f, 180f, 0f);
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
                     targetRot,
