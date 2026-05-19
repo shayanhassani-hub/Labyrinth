@@ -20,8 +20,14 @@ public class DroneHoverAIV2 : MonoBehaviour
     [Header("Rotation Settings")]
     public float rotationSpeed = 3f; // how smoothly the drone rotates toward target
 
+    [Header("Shooting Settings")]
+    public GameObject projectilePrefab; // assign a sphere prefab
+    public float shootInterval = 2f;    // time between shots
+    private float shootTimer = 0f;
+    public float projectileSpeed = 5f;
+
     private Vector3 targetPoint;  // random destination inside the bounds
-    private Vector3 basePosition; // drone’s base position without sine-wave offset
+    private Vector3 basePosition; // drone's base position without sine-wave offset
 
     // ----------- PICK RANDOM POINT IN BOUNDS -----------
     private Vector3 GetRandomPointInBounds()
@@ -34,6 +40,29 @@ public class DroneHoverAIV2 : MonoBehaviour
         float randomZ = Random.Range(-size.z / 2f, size.z / 2f);
 
         return center + new Vector3(randomX, randomY, randomZ);
+    }
+
+    void Shoot()
+    {
+        if (labyrinthBall == null || projectilePrefab == null)
+            return;
+
+        // Spawn projectile at drone position
+        GameObject projectile = Instantiate(
+            projectilePrefab,
+            transform.position,
+            Quaternion.identity
+        );
+
+        // Calculate direction
+        Vector3 direction = (labyrinthBall.transform.position - transform.position).normalized;
+
+        // Give velocity
+        Rigidbody rb = projectile.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = direction * projectileSpeed;
+        }
     }
 
     // ----------- UNITY START -----------
@@ -83,5 +112,13 @@ public class DroneHoverAIV2 : MonoBehaviour
 
         // ---- DEBUG VISUALS ----
         Debug.DrawLine(transform.position, targetPoint, Color.green);
+
+        shootTimer += Time.deltaTime;
+
+        if (shootTimer >= shootInterval)
+        {
+            Shoot();
+            shootTimer = 0f;
+        }
     }
 }
