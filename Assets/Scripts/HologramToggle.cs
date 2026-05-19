@@ -1,26 +1,39 @@
 using UnityEngine;
-using UnityEngine.InputSystem; // 1. Added the modern Input System namespace
+using UnityEngine.InputSystem;
 
 public class HologramToggle : MonoBehaviour
 {
     public Material pbrMaterial;
     public Material hologramMaterial;
-    private MeshRenderer meshRenderer;
+
+    // Changed this to an array of the generic 'Renderer' class
+    private Renderer[] allRenderers;
     private bool isHologram = false;
 
     void Start()
     {
-        meshRenderer = GetComponent<MeshRenderer>();
-        meshRenderer.material = pbrMaterial; // Default to realistic look
+        // Tells Unity to find every renderer on this object and all its children
+        allRenderers = GetComponentsInChildren<Renderer>();
+
+        // Set the default material for every part found
+        ApplyMaterial(pbrMaterial);
     }
 
     void Update()
     {
-        // 2. Updated to the new Input System keyboard check
         if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
         {
             isHologram = !isHologram;
-            meshRenderer.material = isHologram ? hologramMaterial : pbrMaterial;
+            ApplyMaterial(isHologram ? hologramMaterial : pbrMaterial);
+        }
+    }
+
+    // A small helper method to swap the material on every part of the drone
+    private void ApplyMaterial(Material mat)
+    {
+        foreach (Renderer r in allRenderers)
+        {
+            r.material = mat;
         }
     }
 }
