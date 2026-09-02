@@ -76,7 +76,7 @@ public class DroneHoverAIV2 : MonoBehaviour
         basePosition = transform.position;
 
         // Initialize the MaterialPropertyBlock. 
-        // We use this instead of modifying the material directly so Unity doesn't 
+        // I use this instead of modifying the material directly so Unity doesn't 
         // accidentally create a duplicate material in memory, which would hurt VR performance.
         propBlock = new MaterialPropertyBlock();
 
@@ -192,7 +192,7 @@ public class DroneHoverAIV2 : MonoBehaviour
         // 1. Instantly spike the emission brightness to maximum
         currentEmission = peakEmissionIntensity;
 
-        // 2. Fire the radial spark particle system we built
+        // 2. Fire the radial spark particle system
         if (ringSparks != null) ringSparks.Play();
 
         // --- FIRE PROJECTILE ---
