@@ -47,6 +47,11 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the locked drone.
 - Put temporary files (eval scripts etc.) in `Temp/` (git-ignored), never in the project root.
 - Active build target is Android (switched 2026-09-22). Editor Play Mode still uses the Standalone XR settings.
 
+## Blender CLI
+- Headless: `"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b --factory-startup --python-expr "..."`
+- `-b --factory-startup` is the default for generator/validator runs.
+- Scripts live in `Tools/Blender/`.
+
 ## Known Android build side effects (verified 2026-09-22 — don't re-investigate)
 - NullReferenceException in OpenXR `MetaQuestFeature.cs:554` during build preprocess: Unity package bug
   (rule reads `selectedBuildTargetGroup` = Standalone). Non-fatal; build still succeeds.
