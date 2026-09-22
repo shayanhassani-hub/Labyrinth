@@ -41,6 +41,11 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the locked drone.
 - After a C# change: recompile, poll `recompile_status`, then `unity status` before continuing.
 - Editing .cs files with the file tools can log an import-timestamp warning; harmless.
 - The package hooks into builds. If a Quest build fails oddly, it is a suspect.
+- Some commands change settings/assets only in memory (e.g. `eval` with PlayerSettings, `attach_script`
+  on a prefab). After such changes run `AssetDatabase.SaveAssets()` and confirm with `git diff`.
+  SaveAssets does not save scenes.
+- Put temporary files (eval scripts etc.) in `Temp/` (git-ignored), never in the project root.
+- Active build target is Android (switched 2026-09-22). Editor Play Mode still uses the Standalone XR settings.
 
 ## Naming and contracts
 - New environment assets go under `Assets/Environment/` (Git LFS tracks binaries there only).
