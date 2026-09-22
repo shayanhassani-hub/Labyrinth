@@ -1,2 +1,13 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Git LFS: only for NEW art assets. Existing binaries stay in normal Git history.
+# All new environment assets go under Assets/Environment/.
+Assets/Environment/**/*.fbx filter=lfs diff=lfs merge=lfs -text
+Assets/Environment/**/*.png filter=lfs diff=lfs merge=lfs -text
+Assets/Environment/**/*.tga filter=lfs diff=lfs merge=lfs -text
+Assets/Environment/**/*.exr filter=lfs diff=lfs merge=lfs -text
+Assets/Environment/**/*.psd filter=lfs diff=lfs merge=lfs -text
+Assets/Environment/**/*.wav filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.spp filter=lfs diff=lfs merge=lfs -text

@@ -1,5 +1,34 @@
 {
   "enabledPlugins": {
     "unity@unity-agent-plugin": true
+  },
+  "env": {
+    "MSYS_NO_PATHCONV": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(unity status)",
+      "Bash(unity status *)",
+      "Bash(unity list *)",
+      "Bash(unity pipeline list *)",
+      "Bash(unity command find_gameobjects *)",
+      "Bash(unity command get_*)",
+      "Bash(unity command console_status *)",
+      "Bash(unity command recompile_status *)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean *)",
+      "Bash(rm -rf *)",
+      "Edit(/Assets/Drone_Asset/**)",
+      "Edit(/Assets/Materials/Drone_Mat_*/**)",
+      "Edit(/Assets/Shaders/Holographic Mode/**)",
+      "Edit(/Assets/Shaders/Scanner Light/**)",
+      "Edit(/Assets/Scripts/DroneHoverAIV2.cs*)",
+      "Edit(/Assets/Scripts/PropellerSpin.cs*)",
+      "Edit(/Assets/Scripts/HologramToggle.cs*)"
+    ]
   }
 }
