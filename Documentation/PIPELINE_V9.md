@@ -873,7 +873,7 @@ Replaces V8's "First Production Day". Do not start by developing the Technical A
 | # | Step | Status (22 Sep 2026) |
 |---|---|---|
 | 1 | Connect Claude to Unity: plugin, Pipeline package, tests 1–5, tag unity-working | Done (tag unity-working) |
-| 2 | CLAUDE.md + permission rules (incl. drone deny rules) + DroneBaseline.md + turn on Git LFS | In progress |
+| 2 | CLAUDE.md + permission rules (incl. drone deny rules) + DroneBaseline.md + turn on Git LFS | Done (commit e3a0edf) |
 | 3 | First Quest build + performance baseline: add BasicScene to build, change package ID, build, fix, measure, tag quest-baseline | Needs the headset |
 | 4 | Connect Blender to Claude Code; decide art-file backup (second repo or backups) | Open |
 | 5 | Test Meshy (standard vs Smart Topology on one prop) | Open |

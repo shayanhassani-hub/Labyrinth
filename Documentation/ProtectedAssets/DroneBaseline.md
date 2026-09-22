@@ -105,3 +105,11 @@ per instruction not to open/save scenes).
   (via MAT_FakeBloom.mat) is actually referenced by the drone, on the inactive `ScannerGlow` child.
   SG_DroneScanner and SG_PulseScanner (MAT_DroneScanner.mat / MAT_PulseScanner.mat) are not referenced
   anywhere in BasicScene.unity.
+
+## Owner decisions (Shayan, 2026-09-22)
+- PropellerSpin is attached only in RenderScene. It will be attached to the propellers in
+  BasicScene later. This is an approved drone change; update this baseline when it's done.
+- Holographic Mode (SH_Hologram / MAT_Hologram) was an experimental Shader Graph. Stays
+  protected; its use in the final game is not decided.
+- Scanner Light: several glow variants exist (SG_FakeBloom, SG_DroneScanner, SG_PulseScanner).
+  Which one ships is decided later. Whole folder stays protected until then.
