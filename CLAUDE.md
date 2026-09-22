@@ -47,6 +47,16 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the locked drone.
 - Put temporary files (eval scripts etc.) in `Temp/` (git-ignored), never in the project root.
 - Active build target is Android (switched 2026-09-22). Editor Play Mode still uses the Standalone XR settings.
 
+## Known Android build side effects (verified 2026-09-22 — don't re-investigate)
+- NullReferenceException in OpenXR `MetaQuestFeature.cs:554` during build preprocess: Unity package bug
+  (rule reads `selectedBuildTargetGroup` = Standalone). Non-fatal; build still succeeds.
+- `m_optimizeBufferDiscards` 0→1 in OpenXRPackageSettings: set by the Meta Quest feature on every Android build.
+- URP Config prefilter flags, DefaultVolumeProfile, URP GlobalSettings runtime list, and XR entries in
+  `preloadedAssets`: normal build output. Commit once; only investigate if something else changes.
+- Warning "Pipeline will be disabled in Player builds": expected and wanted.
+- 29 CS0618 warnings from XRI 3.0.x sample scripts: known, harmless.
+- First IL2CPP build ≈18 min on this HDD; APK goes to `Builds/` (git-ignored).
+
 ## Naming and contracts
 - New environment assets go under `Assets/Environment/` (Git LFS tracks binaries there only).
 - Asset IDs: `LAB_ENV_<Name>_<Var>_<NN>` (e.g. LAB_ENV_Wall_A_01), `LAB_PROP_<Name>_<NN>`.
