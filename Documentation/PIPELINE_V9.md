@@ -422,7 +422,7 @@ Git LFS tracks binaries (fbx, png, tga, exr, psd, wav) only under Assets/Environ
 
 #### Art files
 
-Blender generator scripts live in UnityProject/Tools/Blender/ (text, versioned). Generated and exported files can be recreated from the scripts. Hand-made art (hero .blend files, Substance projects) gets a small second repo with LFS at the Blender step, or a regular backup to Backups\ plus an off-machine copy. Decide at production step 4.
+Blender generator scripts live in UnityProject/Tools/Blender/ (text, versioned). Generated and exported files can be recreated from the scripts. **Decision (22 Sep 2026): no second Git repo.** Hand-made art (hero .blend files, Substance projects) is copied to a second physical disk (G:) with a small script at the end of a work session, optionally to OneDrive as well. Reason: GitHub's free LFS quota (~1 GB) is too small for Substance projects. Watch the LFS quota for Assets/Environment/ too; if GitHub warns, stop using LFS for new files.
 
 #### Checkpoints
 
@@ -465,7 +465,9 @@ Use Blender's official MCP server as the Blender connection and add it to **Clau
 
 `Blender → Edit > Preferences > Add-ons → Blender MCP → Start MCP Server → Add server to Claude Code → Test`
 
-For generation and batch work, Claude prefers headless runs (blender -b -P script.py). The MCP connection is used for inspection, screenshots and interactive corrections. Claude Desktop's Blender connector is the fallback.
+For generation and batch work, Claude prefers headless runs (blender -b --factory-startup -P script.py). The MCP connection is used for inspection, screenshots and interactive corrections. Claude Desktop's Blender connector is the fallback.
+
+**Verified setup (22 Sep 2026):** the server is the one shipped with the Claude desktop extension. Its .exe launcher fails from that folder, so Claude Code starts it through the extension's own Python with PYTHONPATH set to the extension folder, registered at local scope. If a desktop-app update moves the extension, register it again.
 
 ## 16. Blender Safety
 
@@ -875,7 +877,7 @@ Replaces V8's "First Production Day". Do not start by developing the Technical A
 | 1 | Connect Claude to Unity: plugin, Pipeline package, tests 1–5, tag unity-working | Done (tag unity-working) |
 | 2 | CLAUDE.md + permission rules (incl. drone deny rules) + DroneBaseline.md + turn on Git LFS | Done (commit e3a0edf) |
 | 3 | First Quest build + performance baseline: add BasicScene to build, change package ID, build, fix, measure, tag quest-baseline | Needs the headset |
-| 4 | Connect Blender to Claude Code; decide art-file backup (second repo or backups) | Open |
+| 4 | Connect Blender to Claude Code; decide art-file backup | Done 22 Sep: headless Blender 5.2.2 works; Blender MCP registered in Claude Code (local scope) |
 | 5 | Test Meshy (standard vs Smart Topology on one prop) | Open |
 | 6 | One modular wall from the Python generator | Open |
 | 7 | One AI prop through Golden Path 2 | Open |
