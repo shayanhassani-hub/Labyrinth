@@ -15,12 +15,12 @@ change them without re-verifying mesh bounds and transform in the Editor.
 
 Blender is Z-up / -Y-forward; Unity is Y-up / +Z-forward. Two things must line up:
 
-1. **Author vertices with a pre-negated depth axis.** In the generator, a point given in
-   spec (Unity) coordinates is written into Blender as:
+1. **Author vertices with pre-negated X and depth axes.** In the generator, a point given
+   in spec (Unity) coordinates is written into Blender as:
 
    | Spec (Unity) | Blender |
    |---|---|
-   | X | X |
+   | X | **−X** |
    | Y (up) | Z |
    | Z (depth) | **−Y** |
 
@@ -28,7 +28,25 @@ Blender is Z-up / -Y-forward; Unity is Y-up / +Z-forward. Two things must line u
 
 Without step 2 the Z-up→Y-up rotation and the cm/m scale end up on the root node and Unity
 imports the asset with rotation (270, 0, 0) and scale (100, 100, 100). Without step 1 the
-depth axis is mirrored. Both are wrong; both are silent.
+geometry is mirrored. Both are wrong; both are silent.
+
+**Why X is negated.** Blender is right-handed, Unity is left-handed. The conversion cannot
+be a pure rotation — one axis must be mirrored, and Unity mirrors **X** on FBX import
+(flipping triangle winding to compensate, which is why imported meshes are not inside-out).
+The exporter's `-90°` rotation about X gives Unity = (Bx, Bz, −By); Unity's own mirror makes
+it (−Bx, Bz, −By). Pre-negating spec X in the authoring cancels it.
+
+**This row was wrong until 2026-09-23 (pass 2).** The original table said spec X → Blender X.
+It was only ever checked against `LAB_ENV_Wall_A_01`, whose X bounds are −1 … +1 —
+**symmetric, so a sign error on X is invisible**. `LAB_ENV_Wall_Corner_01` (X 0 … 0.2) is the
+first asymmetric-X module and imported mirrored, (−0.2, 0, 0) … (0, 4, 0.2). Lesson: **every
+verification batch must include at least one module that is asymmetric on each axis**, or the
+check proves nothing.
+
+**Side effect:** because authoring pre-negates X, the geometry inside `LAB_ENV_kit.blend` is
+mirrored in X relative to the spec. That is harmless for procedural work — the generator is
+the source of truth, not the .blend — but do not hand-model in that file expecting Blender X
+to read as spec X.
 
 ## FBX export settings (verified)
 
@@ -64,7 +82,9 @@ Model tab:
 - Mesh Compression Off, **Read/Write off**, Optimize Mesh on
 - Generate Colliders off (colliders are added per-instance in the scene)
 
-Rig tab: Animation Type **None**.
+Rig tab: Animation Type **None**. (Checked live 2026-09-23: Wall_A had imported as Generic
+with BlendShapes/Visibility/Cameras/Lights on — the defaults, not these settings. Applying
+them is a real step, not something the importer does on its own. All 8 modules corrected.)
 Animation tab: Import Animation **off**.
 Materials tab: Material Creation Mode **None** — materials are assigned in Unity, never
 imported from the FBX.
@@ -95,17 +115,34 @@ left wall x = −4.0, right wall x = +4.0. Stacked panels repeat at y = 0 and y 
 ## Verification checklist (run for every new module)
 
 1. Import the FBX into `Assets/Environment/Kit/`.
-2. Live-read the mesh bounds through the Editor and compare to the spec dimensions.
-3. Confirm the imported root transform is identity (rotation 0, scale 1).
-4. Confirm triangle count is within the greybox budget (~100 tris for a plain panel).
-5. Place one instance with the yaw from the table above and confirm the body goes into the
+2. Apply the importer settings above — they are NOT the defaults.
+3. Live-read the mesh bounds through the Editor and compare to the spec dimensions.
+4. Confirm the imported root transform is identity (rotation 0, scale 1).
+5. Confirm triangle count is within the greybox budget (~100 tris for a plain panel).
+6. Confirm normals: the module must not read inside-out in the Scene view. The authoring
+   mirror reverses winding, so `recalc_face_normals` must run before export.
+7. Place one instance with the yaw from the table above and confirm the body goes into the
    wall, not into the room.
 
-## Known-good reference
+A batch verification is only meaningful if it contains a module that is asymmetric on X, on
+Y and on Z. Symmetric boxes hide sign errors — see the axis-conversion note above.
 
-`LAB_ENV_Wall_A_01` — 8 verts, 12 tris, material `M_Greybox`, Unity mesh bounds
-(−1, 0, 0) … (1, 2, 0.2), transform identity. If a new module misbehaves, diff its export
-call against this one.
+## Known-good reference — greybox kit, verified 2026-09-23
+
+All bounds live-read from the Editor, all transforms identity, all material `M_Greybox`.
+
+| Module | Verts | Tris | Unity bounds (min … max) |
+|---|---|---|---|
+| LAB_ENV_Wall_A_01 | 8 | 12 | (−1, 0, 0) … (1, 2, 0.2) |
+| LAB_ENV_Wall_Panel_01 | 16 | 28 | (−1, 0, 0) … (1, 2, 0.2) |
+| LAB_ENV_Wall_Corner_01 | 8 | 12 | (0, 0, 0) … (0.2, 4, 0.2) |
+| LAB_ENV_Wall_Door_01 | 24 | 36 | (−1, 0, 0) … (1, 4, 0.2) |
+| LAB_ENV_Floor_A_01 | 8 | 12 | (−1, −0.1, −1) … (1, 0, 1) |
+| LAB_ENV_Ceiling_A_01 | 8 | 12 | (−1, 0, −1) … (1, 0.1, 1) |
+| LAB_ENV_Pillar_A_01 | 8 | 12 | (−0.2, 0, −0.2) … (0.2, 4, 0.2) |
+| LAB_ENV_Trim_A_01 | 8 | 12 | (−1, 0, 0) … (1, 0.15, 0.05) |
+
+If a new module misbehaves, diff its registry entry against these.
 
 ## Git LFS
 

@@ -42,7 +42,10 @@ regenerate the kit rather than editing meshes by hand.
 | Pipe_Junction | T-piece | same two diameters |
 
 Other constants: wall thickness 0.2 · doorway 1.6 × 2.4 · pipe clearance from wall face 0.35 ·
-trim height 0.15.
+trim height 0.15 · Wall_Panel recess 1.6 × 1.6, depth 0.05, centered (0.2 border all round).
+
+Wall height: 4.0, built as **two stacked 2.0 m Wall_A / Wall_Panel modules** (seam at
+y = 2.0). Decided 2026-09-23; Wall_Corner and Wall_Door are authored at the full 4.0 m.
 
 ## Pivot and orientation rules
 
