@@ -53,6 +53,7 @@ WALL_A_SIZE = (2.0, 2.0, WALL_THICKNESS)
 WALL_PANEL_SIZE = (2.0, 2.0, WALL_THICKNESS)
 WALL_CORNER_SIZE = (WALL_THICKNESS, 4.0, WALL_THICKNESS)
 WALL_DOOR_SIZE = (2.0, 4.0, WALL_THICKNESS)
+WALL_CORRIDOR_SIZE = (2.0, 3.0, WALL_THICKNESS)
 FLOOR_A_SIZE = (2.0, 0.1, 2.0)
 CEILING_A_SIZE = (2.0, 0.1, 2.0)
 PILLAR_A_SIZE = (0.4, 4.0, 0.4)
@@ -296,6 +297,7 @@ MODULES = {
     "LAB_ENV_Wall_Panel_01": build_wall_panel,
     "LAB_ENV_Wall_Corner_01": build_box_module("LAB_ENV_Wall_Corner_01", WALL_CORNER_SIZE, bounds_corner),
     "LAB_ENV_Wall_Door_01": build_multi_box_module("LAB_ENV_Wall_Door_01", WALL_DOOR_SIZE, bounds_door_parts),
+    "LAB_ENV_Wall_Corridor_01": build_box_module("LAB_ENV_Wall_Corridor_01", WALL_CORRIDOR_SIZE, bounds_wall),
     "LAB_ENV_Floor_A_01": build_box_module("LAB_ENV_Floor_A_01", FLOOR_A_SIZE, bounds_floor),
     "LAB_ENV_Ceiling_A_01": build_box_module("LAB_ENV_Ceiling_A_01", CEILING_A_SIZE, bounds_ceiling),
     "LAB_ENV_Pillar_A_01": build_box_module("LAB_ENV_Pillar_A_01", PILLAR_A_SIZE, bounds_pillar),

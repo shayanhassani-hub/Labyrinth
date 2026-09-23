@@ -137,6 +137,7 @@ All bounds live-read from the Editor, all transforms identity, all material `M_G
 | LAB_ENV_Wall_Panel_01 | 16 | 28 | (−1, 0, 0) … (1, 2, 0.2) |
 | LAB_ENV_Wall_Corner_01 | 8 | 12 | (0, 0, 0) … (0.2, 4, 0.2) |
 | LAB_ENV_Wall_Door_01 | 24 | 36 | (−1, 0, 0) … (1, 4, 0.2) |
+| LAB_ENV_Wall_Corridor_01 | 8 | 12 | (−1, 0, 0) … (1, 3, 0.2) |
 | LAB_ENV_Floor_A_01 | 8 | 12 | (−1, −0.1, −1) … (1, 0, 1) |
 | LAB_ENV_Ceiling_A_01 | 8 | 12 | (−1, 0, −1) … (1, 0.1, 1) |
 | LAB_ENV_Pillar_A_01 | 8 | 12 | (−0.2, 0, −0.2) … (0.2, 4, 0.2) |

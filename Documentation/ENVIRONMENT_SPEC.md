@@ -15,7 +15,7 @@ regenerate the kit rather than editing meshes by hand.
 | Grid | 2.0 m modules → 4 × 5 modules, walls 2 panels high |
 | Player | at (0, 0, 0), eye height 1.36 |
 | Labyrinth panel | 1.4 × 1.4, top at y ≈ 1.1, center (0.2, 1.05, 1.4) |
-| Corridor | 2.0 wide × 3.0 high × 6.0 long, beyond the far wall (+Z), centered on X = 0 |
+| Corridor | 2.0 wide × 3.0 high × 6.0 long, beyond the far wall (+Z), centered on X = −1 |
 
 ## Protected free volumes (no geometry, no props)
 
@@ -63,6 +63,18 @@ y = 2.0). Decided 2026-09-23; Wall_Corner and Wall_Door are authored at the full
 `LAB_ENV_<Module>_<Variant>_<NN>`, e.g. `LAB_ENV_Wall_A_01`, `LAB_ENV_Pipe_Straight_01`.
 The same name is used for the Blender object, the FBX file and the Unity asset.
 
+## Corridor (built 2026-09-23)
+
+Interior x −2.0 … 0.0, y 0 … 3.0, z 8.2 … 14.2. Walls are `Wall_Corridor` (2.0 × 3.0 × 0.2)
+at x = −2.0 yaw 270 and x = 0.0 yaw 90, z centers 9.2 / 11.2 / 13.2, plus one end cap at
+(−1, 0, 14.2) yaw 0.
+
+Floor and ceiling tiles sit at z centers **9, 11, 13 and 15** — four, not three. Three tiles
+span only z 8.0 … 14.0 and leave an open 0.2 m strip at z 14.0 … 14.2, in front of the end
+cap where the player can stand. The fourth tile overhangs past the end cap into dead space,
+which is correct: tiles must extend to where a wall body *starts*, not where the interior
+ends.
+
 ## Greybox stage (pass 1)
 
 - No textures. One grey material for everything; emissive strips come later.
@@ -72,7 +84,10 @@ The same name is used for the Blender object, the FBX file and the Unity asset.
 ## Layout (first pass)
 
 - Walls on all four sides, 2 panels high, with `Wall_Corner` at the four corners.
-- **Facility door (Hero 03)** in the far wall (+Z), centered on X, corridor behind it.
+- **Facility door (Hero 03)** in the far wall (+Z) at **x = −1**, corridor behind it.
+  The 8 m wall is 4 modules wide, so module centers fall at x = −3, −1, +1, +3 and no module
+  is centered on x = 0. The door sits one grid cell left of center, balancing Hero 01's mass
+  on the +X side. Decided 2026-09-23.
 - **Hero 01, large machine / drone dock gantry**: right side (+X), Z 5.5 … 7.5, reaching over
   from the wall but staying outside the drone volume.
 - **Hero 02, control terminal**: left wall (−X), near Z ≈ −1, facing the player.
