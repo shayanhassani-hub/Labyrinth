@@ -66,7 +66,8 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the locked drone.
 - New environment assets go under `Assets/Environment/` (Git LFS tracks binaries there only).
 - Asset IDs: `LAB_ENV_<Name>_<Var>_<NN>` (e.g. LAB_ENV_Wall_A_01), `LAB_PROP_<Name>_<NN>`.
   Same name in Blender and Unity.
-- 1 Unity unit = 1 m. Details: `Documentation/EXPORT_CONTRACT.md` (when it exists).
+- 1 Unity unit = 1 m. Blender->Unity export/import settings, axis conversion and the wall yaw
+  table: `Documentation/EXPORT_CONTRACT.md` (verified 2026-09-23 - follow it, don't re-derive it).
 - Color textures sRGB; normal/metallic/roughness/AO/masks linear.
 
 ## Visual direction (short)
