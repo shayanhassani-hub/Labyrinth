@@ -110,3 +110,8 @@ The whole greybox (room + corridor) is rebuilt from one data table by
 `Assets/Environment/Editor/GreyboxBuilder.cs` → menu **Tools → Labyrinth → Rebuild Greybox**.
 It replaces kit instances only; lights and anything else under `ENV_Greybox` are left alone.
 If a layout number changes here, change it in the builder's table too.
+
+**Teleport floor** (`ENV_Greybox/NAV_TeleportFloor`, added 2026-09-24): one TeleportationArea with two
+BoxColliders, tops at y = 0 - room X −4 … 4, Z −2 … 8; corridor X −2 … 0, Z 8 … 14. The builder does NOT
+generate it (it only replaces kit instances), so if the room or corridor extents change, update these
+two colliders by hand. Walls have no colliders yet: the teleport ray and bullets pass through them.

@@ -49,6 +49,12 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the locked drone.
   on a prefab). After such changes run `AssetDatabase.SaveAssets()` and confirm with `git diff`.
   SaveAssets does not save scenes.
 - Put temporary files (eval scripts etc.) in `Temp/` (git-ignored), never in the project root.
+  Unity deletes `Temp/` when it closes: anything worth keeping goes in the repo (e.g. `Assets/Environment/Editor/`).
+- XRI 3.3 lookups (verified 2026-09-24 - don't search again): interaction layer names are in
+  `Assets/XRI/Settings/Resources/InteractionLayerSettings.asset` (`m_LayerNames`; bit 31 = Teleport).
+  Each hand has an XRRayInteractor "Teleport Interactor". Teleport surface = `ENV_Greybox/NAV_TeleportFloor`.
+- `GreyboxBuilder.Rebuild()` regenerates every kit instance's ID, so each run is a ~10k-line BasicScene diff.
+  Run it only when the layout actually changes - never as a verification step.
 - Active build target is Android (switched 2026-09-22). Editor Play Mode still uses the Standalone XR settings.
 
 ## Blender CLI
