@@ -30,6 +30,10 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the locked drone.
   validator output short (PASS/FAIL lines).
 - Say clearly what you confirmed versus what you expect.
 - Don't commit or push unless asked. Never force-push, never `git reset --hard`.
+- Commit messages: NEVER include Claude session links. Add the trailer
+  `Co-Authored-By: Claude <noreply@anthropic.com>` only when Claude wrote substantial code
+  (generators, builder/Editor scripts, non-trivial fixes). No trailer on docs, settings, small
+  edits, or the owner's own work. No model name in the trailer.
 - Don't install packages or change Project/XR/Player settings without asking first.
 - Quest is the runtime authority; Editor results are not proof of Quest behavior.
 

@@ -15,7 +15,7 @@ regenerate the kit rather than editing meshes by hand.
 | Grid | 2.0 m modules → 4 × 5 modules, walls 2 panels high |
 | Player | at (0, 0, 0), eye height 1.36 |
 | Labyrinth panel | 1.4 × 1.4, top at y ≈ 1.1, center (0.2, 1.05, 1.4) |
-| Corridor | 2.0 wide × 3.0 high × 6.0 long, beyond the far wall (+Z), centered on X = −1 |
+| Corridor | 2.0 wide × 3.0 high × 5.8 long, beyond the far wall (+Z), centered on X = −1 |
 
 ## Protected free volumes (no geometry, no props)
 
@@ -65,15 +65,22 @@ The same name is used for the Blender object, the FBX file and the Unity asset.
 
 ## Corridor (built 2026-09-23)
 
-Interior x −2.0 … 0.0, y 0 … 3.0, z 8.2 … 14.2. Walls are `Wall_Corridor` (2.0 × 3.0 × 0.2)
-at x = −2.0 yaw 270 and x = 0.0 yaw 90, z centers 9.2 / 11.2 / 13.2, plus one end cap at
-(−1, 0, 14.2) yaw 0.
+Interior x −2.0 … 0.0, y 0 … 3.0, z 8.2 … **14.0** (5.8 m long — see below). Walls are
+`Wall_Corridor` (2.0 × 3.0 × 0.2) at x = −2.0 yaw 270 and x = 0.0 yaw 90, z centers
+9.2 / 11.2 / 13.2, plus one end cap at (−1, 0, **14.0**) yaw 0. Floor and ceiling: 3 tiles
+each at z centers 9, 11, 13. Overall extents X −2.2 … 0.2, Y −0.1 … 3.1, Z 8.0 … 14.2.
 
-Floor and ceiling tiles sit at z centers **9, 11, 13 and 15** — four, not three. Three tiles
-span only z 8.0 … 14.0 and leave an open 0.2 m strip at z 14.0 … 14.2, in front of the end
-cap where the player can stand. The fourth tile overhangs past the end cap into dead space,
-which is correct: tiles must extend to where a wall body *starts*, not where the interior
-ends.
+**Why 5.8 and not the 6.0 first specified.** Tiles are 2.0 m and cannot be part-placed, so
+the corridor length has to resolve against both ends at once. The near end is fixed: floor
+must start at z = 8.0 so it runs unbroken under the doorway, where the player walks through.
+That puts the last tile's far edge at z = 14.0, so the end cap goes there — tiles meet its
+inner face, side walls end flush with its outer face, nothing overhangs and no strip is left
+open. Reaching a true 6.0 would mean either padding with tiles that hang 1.6 m into dead
+space (visibly wrong from outside) or sliding the tiles to 8.2 … 14.2, which reopens the gap
+at the threshold — the one place it would be walked over. 20 cm is the cheaper loss.
+
+General rule this produced: a floor or ceiling run must reach where a wall body *starts*, and
+both ends must be checked. Getting the near end right does not make the far end right.
 
 ## Greybox stage (pass 1)
 
@@ -92,3 +99,14 @@ ends.
   from the wall but staying outside the drone volume.
 - **Hero 02, control terminal**: left wall (−X), near Z ≈ −1, facing the player.
 - Pipes run along the ceiling edges and the upper wall band; light panels in the ceiling grid.
+- **Trim** sits on the wall's inner face and protrudes 0.05 m into the room, so its yaw is the
+  wall's yaw **+ 180°** (back 0°, far 180°, left 90°, right 270°). Placing trim with the wall's
+  own yaw buries it inside the wall body — invisible, and it was built that way on 2026-09-23
+  until the greybox builder corrected it on 2026-09-24.
+
+## Rebuilding
+
+The whole greybox (room + corridor) is rebuilt from one data table by
+`Assets/Environment/Editor/GreyboxBuilder.cs` → menu **Tools → Labyrinth → Rebuild Greybox**.
+It replaces kit instances only; lights and anything else under `ENV_Greybox` are left alone.
+If a layout number changes here, change it in the builder's table too.
