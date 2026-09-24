@@ -14,15 +14,15 @@ regenerate the kit rather than editing meshes by hand.
 | Ceiling height | 4.0 |
 | Grid | 2.0 m modules → 4 × 5 modules, walls 2 panels high |
 | Player | at (0, 0, 0), eye height 1.36 |
-| Labyrinth panel | 1.4 × 1.4, top at y ≈ 1.1, center (0.2, 1.05, 1.4) |
+| Labyrinth panel | 1.05 × 1.05, top at y = 1.075, center (0.03, 1.04, 1.23) — updated 2026-09-24 after owner's hand rescale, read live from renderer bounds |
 | Corridor | 2.0 wide × 3.0 high × 5.8 long, beyond the far wall (+Z), centered on X = −1 |
 
 ## Protected free volumes (no geometry, no props)
 
 | Volume | Extents |
 |---|---|
-| Drone flight (DroneBounds + 0.5 margin) | X −2.96 … +2.93, Y 0.77 … 3.80, Z 2.69 … 7.04 |
-| Labyrinth | cylinder r = 1.5 around (0.2, ·, 1.4), y 0 … 2.5 |
+| Drone flight (DroneBounds + 0.5 margin) | X −2.45 … +2.39, Y 1.19 … 3.48, Z 2.84 … 6.32 — updated 2026-09-24, DroneBounds rescaled by owner (Y re-read live a second time same session, Y range shrank further as the owner kept tuning) |
+| Labyrinth | cylinder r = 1.24 around (0.03, ·, 1.23), y 0 … 2.5 — updated 2026-09-24, radius = panel XZ half-diagonal (renderer bounds) + 0.5 m margin |
 | Player | cylinder r = 1.0 around (0, ·, 0), y 0 … 2.5 |
 
 ## Module dimensions
