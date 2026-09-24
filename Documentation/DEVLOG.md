@@ -50,3 +50,24 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   then Claude Code re-reads everything live and rewrites DroneBaseline.md + the protected
   volume table; then HERO_SPEC.md and the Hero 01 blockout.
   Hours today: ~6
+
+## 2026-09-24
+- Done: stripped Claude session links from history (rewrite + force-push, backup branch kept);
+  attribution kept on the 4 code-heavy commits. GreyboxBuilder (Tools > Labyrinth > Rebuild
+  Greybox) replaces the layout scripts Unity wiped from Temp/. First Quest test of the greybox:
+  room scale good, drone and labyrinth too big, teleport broken. Teleport floor added. Owner
+  rescale: drone 0.59, labyrinth panel 1.05 m, projectile 0.17, DroneBounds reduced; baseline and
+  protected volumes re-read live.
+- Decisions: attribution "Co-Authored-By: Claude <noreply@anthropic.com>" only on commits with
+  substantial Claude code, never session links; scale drone_low, not DroneAI2; ring sparks on
+  Hierarchy scaling; teleport surface = one NAV_TeleportFloor object, not per-tile colliders;
+  owner tunes scale/gameplay values by hand, baseline re-read after each change.
+- Problems: re-sending a file under the same name delivered stale copies - last night's CLAUDE.md
+  rule and corridor spec never landed (now fresh names + read-back check). Trim was buried inside
+  the walls since 09-23. Deactivating the old Plane silently removed teleport. URP auto-edits
+  to M_Drone and FresnelHighlight (harmless). Rebuild() used as a check = 10k-line scene diffs.
+- Next: HERO_SPEC.md for the docking cradle + ceiling arm against the final volumes (open-state
+  limit y 1.19, +X bay 1.61 m, ceiling gap 0.52 m, cradle the drone BODY, 0.228 m below DroneAI2).
+  Next build confirms the last DroneBounds tweak. Performance baseline (release build) still open.
+  Delete backup/pre-rewrite branch after a few days.
+  Hours today: ~5
