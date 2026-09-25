@@ -242,7 +242,10 @@ def build_spec_object(name, add_fn):
 
     This function then maps every vertex spec->Blender per
     EXPORT_CONTRACT.md (Blender X = -spec X, Y = -spec Z, Z = spec Y),
-    recalculates normals and returns the finished object. Box modules keep
+    recalculates normals and returns the finished object. The mapping is a
+    mirror, so the cached face normals are stale (inside-out) afterwards:
+    they must be refreshed with normal_update() before recalc_face_normals,
+    which otherwise keeps the inverted orientation. Box modules keep
     using add_box_geometry, which bakes the same mapping into a cube
     scale+translate instead of a post-hoc vertex pass.
     """
@@ -251,6 +254,8 @@ def build_spec_object(name, add_fn):
     for v in bm.verts:
         sx, sy, sz = v.co
         v.co = (-sx, -sz, sy)
+    bm.normal_update()
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return new_object_from_bmesh(bm, name)
 
 
@@ -430,10 +435,14 @@ def build_wall_panel():
 def build_labyrinth_panel():
     """
     LAB_PROP_LabyrinthPanel_01 -- HERO_SPEC.md section 8. Origin = pivot =
-    underside centre of the base plate. Base plate + outer rim + inner maze
-    walls are all boxes, merged into one bmesh via add_box_geometry (already
-    Blender-space, mapping baked in). The round goal hole is not a box, so it
-    is cut with an EXACT boolean against a cylinder built via build_spec_object.
+    underside centre of the base plate. Built in two parts, then joined:
+    1. The base plate alone (one closed box). The round goal hole is cut from
+       it with an EXACT boolean against a cylinder built via build_spec_object.
+    2. Outer rim + inner maze walls, boxes merged into one bmesh via
+       add_box_geometry (already Blender-space, mapping baked in).
+    The boolean must run on the plate only: rim/wall boxes merely touch the
+    plate, so plate+rim+walls is not a closed volume and the EXACT solver
+    discards faces from it (v2 lost most of the rim and several walls).
     """
     maze = load_maze_data()
     interior = maze["I"]
@@ -441,23 +450,10 @@ def build_labyrinth_panel():
     goal_cx, goal_cz = maze["goal"]["c"]
     goal_radius = maze["goal"]["d"] / 2.0
 
-    bm = bmesh.new()
-    add_box_geometry(bm, -PANEL_HALF_XZ, PANEL_HALF_XZ, 0.0, PANEL_PLATE_THICKNESS,
-                      -PANEL_HALF_XZ, PANEL_HALF_XZ)
-
-    rim_y0, rim_y1 = PANEL_PLATE_THICKNESS, PANEL_RIM_TOP_Y
-    add_box_geometry(bm, -PANEL_HALF_XZ, PANEL_HALF_XZ, rim_y0, rim_y1, interior, PANEL_HALF_XZ)     # +Z rail
-    add_box_geometry(bm, -PANEL_HALF_XZ, PANEL_HALF_XZ, rim_y0, rim_y1, -PANEL_HALF_XZ, -interior)   # -Z rail
-    add_box_geometry(bm, interior, PANEL_HALF_XZ, rim_y0, rim_y1, -interior, interior)               # +X rail
-    add_box_geometry(bm, -PANEL_HALF_XZ, -interior, rim_y0, rim_y1, -interior, interior)             # -X rail
-    assert math.isclose(PANEL_HALF_XZ - interior, PANEL_RIM_THICKNESS, abs_tol=1e-9), \
-        "rim thickness drifted from the JSON interior"
-
-    wall_y0, wall_y1 = PANEL_PLATE_THICKNESS, PANEL_PLATE_THICKNESS + wall_height
-    for x0, x1, z0, z1 in maze["walls"].values():
-        add_box_geometry(bm, x0, x1, wall_y0, wall_y1, z0, z1)
-
-    panel_obj = new_object_from_bmesh(bm, "LAB_PROP_LabyrinthPanel_01")
+    plate_bm = bmesh.new()
+    add_box_geometry(plate_bm, -PANEL_HALF_XZ, PANEL_HALF_XZ, 0.0, PANEL_PLATE_THICKNESS,
+                     -PANEL_HALF_XZ, PANEL_HALF_XZ)
+    plate_obj = new_object_from_bmesh(plate_bm, "LAB_PROP_LabyrinthPanel_01")
 
     cutter_y0 = -PANEL_GOAL_CUTTER_MARGIN
     cutter_y1 = PANEL_PLATE_THICKNESS + PANEL_GOAL_CUTTER_MARGIN
@@ -470,7 +466,30 @@ def build_labyrinth_panel():
         )
 
     cutter_obj = build_spec_object("_GoalHoleCutter", add_cutter)
-    apply_boolean_difference(panel_obj, cutter_obj)
+    apply_boolean_difference(plate_obj, cutter_obj)
+
+    bm = bmesh.new()
+    rim_y0, rim_y1 = PANEL_PLATE_THICKNESS, PANEL_RIM_TOP_Y
+    add_box_geometry(bm, -PANEL_HALF_XZ, PANEL_HALF_XZ, rim_y0, rim_y1, interior, PANEL_HALF_XZ)     # +Z rail
+    add_box_geometry(bm, -PANEL_HALF_XZ, PANEL_HALF_XZ, rim_y0, rim_y1, -PANEL_HALF_XZ, -interior)   # -Z rail
+    add_box_geometry(bm, interior, PANEL_HALF_XZ, rim_y0, rim_y1, -interior, interior)               # +X rail
+    add_box_geometry(bm, -PANEL_HALF_XZ, -interior, rim_y0, rim_y1, -interior, interior)             # -X rail
+    assert math.isclose(PANEL_HALF_XZ - interior, PANEL_RIM_THICKNESS, abs_tol=1e-9), \
+        "rim thickness drifted from the JSON interior"
+
+    wall_y0, wall_y1 = PANEL_PLATE_THICKNESS, PANEL_PLATE_THICKNESS + wall_height
+    for x0, x1, z0, z1 in maze["walls"].values():
+        add_box_geometry(bm, x0, x1, wall_y0, wall_y1, z0, z1)
+    rim_walls_obj = new_object_from_bmesh(bm, "_PanelRimWalls")
+
+    panel_obj = join_objects([plate_obj, rim_walls_obj], "LAB_PROP_LabyrinthPanel_01")
+    bm = bmesh.new()
+    bm.from_mesh(panel_obj.data)
+    bm.normal_update()
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(panel_obj.data)
+    bm.free()
+    panel_obj.data.update()
     return panel_obj
 
 
