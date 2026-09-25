@@ -71,3 +71,25 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   Next build confirms the last DroneBounds tweak. Performance baseline (release build) still open.
   Delete backup/pre-rewrite branch after a few days.
   Hours today: ~5
+
+## 2026-09-25
+- Done: HERO_SPEC.md v1-v6 - the full launch sequence (corridor spawn, gate + button, terminal
+  arms the room, lever releases the drone), cradle sized from a live drone measurement, ceiling
+  service arm, terminal, lever, gate, all decisions resolved. Labyrinth v2 built end to end: maze
+  traced from the owner's layout (goal channel widened so the ball fits), panel/handle/cone stand
+  generated from JSON, assembled around a fixed pivot (LabyrinthBuilder), physics layers + ball-only
+  lid + goal trigger, pan-style tilt control (LabyrinthTilt, 7 tests), goal reset, functional
+  lighting v0 (task spot, no sun shadows), handle ray fix. Drone/gameplay lock removed.
+- Decisions: pan model (lift = forward/back, wrist twist = sideways, spin locked, 12 deg cone,
+  holds on release); invisible lid stops only the ball so bullets still hit it; alarm-pulse lighting
+  after release; see-through terminal display; hero parts = one FBX per rigid part, pivot on hinge.
+- Problems: panel boolean ran on touching boxes and dropped the rim/walls (164 tris); spec-built
+  meshes came out inside-out (normals refreshed too late) - the stand's cone, and the hole cutter,
+  so the hole never cut. Both fixed at the root; export contract gained non-box rules (expected tri
+  range, inward-face count, render checked by a human). Test Runner save dialog jammed the Pipeline
+  command channel - fixed by saving + restarting Unity; rule in CLAUDE.md. First headset test
+  exposed the shadow circle (2.5 m shadow distance) and the ray snapping to the board centre.
+- Next: headset test of the labyrinth (visibility at intensity 8, ray hidden while held, 12 deg feel,
+  speed, goal reset, bullets knocking the ball) and tune; then hero blockouts (cradle, service arm,
+  terminal, lever, gate) and the sequence wiring.
+  Hours today: ~8
