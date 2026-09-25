@@ -21,6 +21,8 @@ D:/AI_Labyrinth/Blender/Export. Does not touch the Unity project's Assets folder
 
 import bpy
 import bmesh
+import json
+import math
 import os
 import sys
 
@@ -76,6 +78,38 @@ MATERIAL_ROUGHNESS = 0.6
 
 EXPORT_DIR = "D:/AI_Labyrinth/Blender/Export"
 BLEND_FILENAME = "LAB_ENV_kit.blend"
+
+# ---------------------------------------------------------------------------
+# Labyrinth v2 props -- Documentation/HERO_SPEC.md section 8, approved
+# 2026-09-25. Maze layout (walls, ball, goal) is read from
+# Tools/Blender/labyrinth_maze_v1.json at build time, never copied by hand.
+# ---------------------------------------------------------------------------
+
+MAZE_JSON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "labyrinth_maze_v1.json")
+
+PANEL_HALF_XZ = 0.525            # 1.05 x 1.05 footprint, origin at the centre
+PANEL_PLATE_THICKNESS = 0.025
+PANEL_RIM_THICKNESS = 0.05
+PANEL_RIM_TOP_Y = 0.105
+PANEL_GOAL_SEGMENTS = 32
+PANEL_GOAL_CUTTER_MARGIN = 0.01  # cutter pokes this far past each plate face
+
+HANDLE_BAR_DIA = 0.035
+HANDLE_BAR_LENGTH = 0.25
+HANDLE_BAR_CENTER = (0.0, 0.065, -0.605)
+HANDLE_BAR_SEGMENTS = 24
+HANDLE_BRACKET_SIZE = 0.02
+HANDLE_BRACKET_X = (0.10, -0.10)
+
+STAND_BASE_ACROSS_FLATS = 0.40
+STAND_BASE_THICKNESS = 0.04
+STAND_CONE_DIA_BOTTOM = 0.36
+STAND_CONE_DIA_TOP = 0.04
+STAND_CONE_Y0 = STAND_BASE_THICKNESS
+STAND_CONE_Y1 = 0.97
+STAND_CONE_SEGMENTS = 16
+STAND_SPHERE_DIA = 0.06
+STAND_SPHERE_CENTER_Y = 0.97
 
 
 # ---------------------------------------------------------------------------
@@ -197,6 +231,107 @@ def add_recessed_wall_face(bm, bounds, rect_size, depth):
         bm.faces.new(loop)
 
 
+def build_spec_object(name, add_fn):
+    """
+    General helper for non-box modules (cones, cylinders, spheres, n-gons --
+    anything a box helper can't build). `add_fn(bm)` adds geometry into a
+    fresh bmesh using any bmesh primitive/op or hand-placed bm.verts.new(...)
+    call, with vertex coordinates authored directly in SPEC space (Unity
+    axes: X width, Y up, Z depth) -- see build_cylinder_spec/build_sphere_spec
+    below for the primitive builders used by the labyrinth props.
+
+    This function then maps every vertex spec->Blender per
+    EXPORT_CONTRACT.md (Blender X = -spec X, Y = -spec Z, Z = spec Y),
+    recalculates normals and returns the finished object. Box modules keep
+    using add_box_geometry, which bakes the same mapping into a cube
+    scale+translate instead of a post-hoc vertex pass.
+    """
+    bm = bmesh.new()
+    add_fn(bm)
+    for v in bm.verts:
+        sx, sy, sz = v.co
+        v.co = (-sx, -sz, sy)
+    return new_object_from_bmesh(bm, name)
+
+
+def build_cylinder_spec(bm, axis, center, radius1, radius2, length, segments, angle_offset=0.0):
+    """
+    Add a capped cylinder/cone (spec space, before the spec->Blender mapping)
+    whose axis of revolution is the given spec axis ('X' or 'Y'), centered at
+    `center` (spec x, y, z) and spanning `length` along that axis. `angle_offset`
+    (radians) rotates the cross-section about the axis before placement -- used
+    to turn the stand's octagon so its flats face the cardinal spec axes
+    instead of its vertices.
+
+    bmesh.ops.create_cone always builds along its own local Z with the
+    cross-section in local X/Y; this relabels those native axes onto whichever
+    spec axis was asked for, then hands off to build_spec_object's mapping.
+    """
+    ret = bmesh.ops.create_cone(
+        bm, cap_ends=True, cap_tris=False, segments=segments,
+        radius1=radius1, radius2=radius2, depth=length,
+    )
+    cx, cy, cz = center
+    cos_a, sin_a = math.cos(angle_offset), math.sin(angle_offset)
+    for v in ret['verts']:
+        nx, ny, nz = v.co
+        if angle_offset:
+            nx, ny = nx * cos_a - ny * sin_a, nx * sin_a + ny * cos_a
+        if axis == 'Y':
+            v.co = (nx + cx, nz + cy, ny + cz)
+        elif axis == 'X':
+            v.co = (nz + cx, nx + cy, ny + cz)
+        else:
+            raise ValueError(f"build_cylinder_spec: unsupported axis {axis!r}")
+    return ret['verts']
+
+
+def build_sphere_spec(bm, center, radius, segments=16, ring_count=8):
+    """Add a UV sphere (spec space, before the spec->Blender mapping) at `center`."""
+    ret = bmesh.ops.create_uvsphere(bm, u_segments=segments, v_segments=ring_count, radius=radius)
+    cx, cy, cz = center
+    for v in ret['verts']:
+        nx, ny, nz = v.co
+        v.co = (nx + cx, nz + cy, ny + cz)
+    return ret['verts']
+
+
+def apply_boolean_difference(obj, cutter_obj):
+    """Cut `cutter_obj` out of `obj` with an EXACT boolean modifier, applied and
+    baked into the mesh, then remove the (now-unused) cutter object."""
+    mod = obj.modifiers.new(name="BooleanCut", type='BOOLEAN')
+    mod.operation = 'DIFFERENCE'
+    mod.solver = 'EXACT'
+    mod.object = cutter_obj
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.data.objects.remove(cutter_obj, do_unlink=True)
+
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.update()
+
+
+def join_objects(objects, name):
+    """Join `objects` into the first one (bpy.ops.object.join) and rename it."""
+    for o in bpy.data.objects:
+        o.select_set(False)
+    for o in objects:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = objects[0]
+    bpy.ops.object.join()
+    objects[0].name = name
+    return objects[0]
+
+
+def load_maze_data():
+    with open(MAZE_JSON_PATH, "r") as f:
+        return json.load(f)
+
+
 def new_object_from_bmesh(bm, name):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     mesh = bpy.data.meshes.new(name)
@@ -292,6 +427,110 @@ def build_wall_panel():
     return new_object_from_bmesh(bm, "LAB_ENV_Wall_Panel_01")
 
 
+def build_labyrinth_panel():
+    """
+    LAB_PROP_LabyrinthPanel_01 -- HERO_SPEC.md section 8. Origin = pivot =
+    underside centre of the base plate. Base plate + outer rim + inner maze
+    walls are all boxes, merged into one bmesh via add_box_geometry (already
+    Blender-space, mapping baked in). The round goal hole is not a box, so it
+    is cut with an EXACT boolean against a cylinder built via build_spec_object.
+    """
+    maze = load_maze_data()
+    interior = maze["I"]
+    wall_height = maze["H"]
+    goal_cx, goal_cz = maze["goal"]["c"]
+    goal_radius = maze["goal"]["d"] / 2.0
+
+    bm = bmesh.new()
+    add_box_geometry(bm, -PANEL_HALF_XZ, PANEL_HALF_XZ, 0.0, PANEL_PLATE_THICKNESS,
+                      -PANEL_HALF_XZ, PANEL_HALF_XZ)
+
+    rim_y0, rim_y1 = PANEL_PLATE_THICKNESS, PANEL_RIM_TOP_Y
+    add_box_geometry(bm, -PANEL_HALF_XZ, PANEL_HALF_XZ, rim_y0, rim_y1, interior, PANEL_HALF_XZ)     # +Z rail
+    add_box_geometry(bm, -PANEL_HALF_XZ, PANEL_HALF_XZ, rim_y0, rim_y1, -PANEL_HALF_XZ, -interior)   # -Z rail
+    add_box_geometry(bm, interior, PANEL_HALF_XZ, rim_y0, rim_y1, -interior, interior)               # +X rail
+    add_box_geometry(bm, -PANEL_HALF_XZ, -interior, rim_y0, rim_y1, -interior, interior)             # -X rail
+    assert math.isclose(PANEL_HALF_XZ - interior, PANEL_RIM_THICKNESS, abs_tol=1e-9), \
+        "rim thickness drifted from the JSON interior"
+
+    wall_y0, wall_y1 = PANEL_PLATE_THICKNESS, PANEL_PLATE_THICKNESS + wall_height
+    for x0, x1, z0, z1 in maze["walls"].values():
+        add_box_geometry(bm, x0, x1, wall_y0, wall_y1, z0, z1)
+
+    panel_obj = new_object_from_bmesh(bm, "LAB_PROP_LabyrinthPanel_01")
+
+    cutter_y0 = -PANEL_GOAL_CUTTER_MARGIN
+    cutter_y1 = PANEL_PLATE_THICKNESS + PANEL_GOAL_CUTTER_MARGIN
+
+    def add_cutter(cbm):
+        build_cylinder_spec(
+            cbm, axis='Y', center=(goal_cx, (cutter_y0 + cutter_y1) / 2.0, goal_cz),
+            radius1=goal_radius, radius2=goal_radius, length=cutter_y1 - cutter_y0,
+            segments=PANEL_GOAL_SEGMENTS,
+        )
+
+    cutter_obj = build_spec_object("_GoalHoleCutter", add_cutter)
+    apply_boolean_difference(panel_obj, cutter_obj)
+    return panel_obj
+
+
+def build_labyrinth_handle():
+    """
+    LAB_PROP_LabyrinthPanel_Handle_01 -- origin also at the panel pivot, so it
+    sits at identity under the same parent as the panel. The bar is a cylinder
+    (build_spec_object); the two brackets joining it to the rim are boxes,
+    built separately with add_box_geometry and then joined into one mesh.
+    """
+    bar_radius = HANDLE_BAR_DIA / 2.0
+
+    def add_bar(bbm):
+        build_cylinder_spec(
+            bbm, axis='X', center=HANDLE_BAR_CENTER,
+            radius1=bar_radius, radius2=bar_radius, length=HANDLE_BAR_LENGTH,
+            segments=HANDLE_BAR_SEGMENTS,
+        )
+
+    bar_obj = build_spec_object("_HandleBar", add_bar)
+
+    bm = bmesh.new()
+    bh = HANDLE_BRACKET_SIZE / 2.0
+    bar_cx, bar_cy, bar_cz = HANDLE_BAR_CENTER
+    y0, y1 = bar_cy - bh, bar_cy + bh
+    z0, z1 = -PANEL_HALF_XZ, bar_cz  # rim's outer face to the bar centre
+    for bx in HANDLE_BRACKET_X:
+        add_box_geometry(bm, bx - bh, bx + bh, y0, y1, z0, z1)
+    brackets_obj = new_object_from_bmesh(bm, "_HandleBrackets")
+
+    return join_objects([bar_obj, brackets_obj], "LAB_PROP_LabyrinthPanel_Handle_01")
+
+
+def build_labyrinth_stand():
+    """
+    LAB_PROP_LabyrinthStand_01 -- origin at floor centre. Octagon base +
+    tapered cone body + joint sphere, all non-box primitives built in spec
+    space and merged into one object via build_spec_object.
+    """
+    base_apothem = STAND_BASE_ACROSS_FLATS / 2.0
+    base_radius = base_apothem / math.cos(math.radians(22.5))
+    cone_r0, cone_r1 = STAND_CONE_DIA_BOTTOM / 2.0, STAND_CONE_DIA_TOP / 2.0
+    sphere_radius = STAND_SPHERE_DIA / 2.0
+
+    def add_geo(bm):
+        build_cylinder_spec(
+            bm, axis='Y', center=(0.0, STAND_BASE_THICKNESS / 2.0, 0.0),
+            radius1=base_radius, radius2=base_radius, length=STAND_BASE_THICKNESS,
+            segments=8, angle_offset=math.radians(22.5),  # flats on the axes, not the verts
+        )
+        build_cylinder_spec(
+            bm, axis='Y', center=(0.0, (STAND_CONE_Y0 + STAND_CONE_Y1) / 2.0, 0.0),
+            radius1=cone_r0, radius2=cone_r1, length=STAND_CONE_Y1 - STAND_CONE_Y0,
+            segments=STAND_CONE_SEGMENTS,
+        )
+        build_sphere_spec(bm, center=(0.0, STAND_SPHERE_CENTER_Y, 0.0), radius=sphere_radius)
+
+    return build_spec_object("LAB_PROP_LabyrinthStand_01", add_geo)
+
+
 MODULES = {
     "LAB_ENV_Wall_A_01": build_box_module("LAB_ENV_Wall_A_01", WALL_A_SIZE, bounds_wall),
     "LAB_ENV_Wall_Panel_01": build_wall_panel,
@@ -302,6 +541,9 @@ MODULES = {
     "LAB_ENV_Ceiling_A_01": build_box_module("LAB_ENV_Ceiling_A_01", CEILING_A_SIZE, bounds_ceiling),
     "LAB_ENV_Pillar_A_01": build_box_module("LAB_ENV_Pillar_A_01", PILLAR_A_SIZE, bounds_pillar),
     "LAB_ENV_Trim_A_01": build_box_module("LAB_ENV_Trim_A_01", TRIM_A_SIZE, bounds_trim),
+    "LAB_PROP_LabyrinthPanel_01": build_labyrinth_panel,
+    "LAB_PROP_LabyrinthPanel_Handle_01": build_labyrinth_handle,
+    "LAB_PROP_LabyrinthStand_01": build_labyrinth_stand,
 }
 
 
