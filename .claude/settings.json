@@ -21,14 +21,7 @@
       "Bash(git push -f *)",
       "Bash(git reset --hard *)",
       "Bash(git clean *)",
-      "Bash(rm -rf *)",
-      "Edit(/Assets/Drone_Asset/**)",
-      "Edit(/Assets/Materials/Drone_Mat_*/**)",
-      "Edit(/Assets/Shaders/Holographic Mode/**)",
-      "Edit(/Assets/Shaders/Scanner Light/**)",
-      "Edit(/Assets/Scripts/DroneHoverAIV2.cs*)",
-      "Edit(/Assets/Scripts/PropellerSpin.cs*)",
-      "Edit(/Assets/Scripts/HologramToggle.cs*)"
+      "Bash(rm -rf *)"
     ]
   }
 }

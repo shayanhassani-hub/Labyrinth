@@ -13,7 +13,7 @@ regenerate the kit rather than editing meshes by hand.
 | Floor level | y = 0 |
 | Ceiling height | 4.0 |
 | Grid | 2.0 m modules → 4 × 5 modules, walls 2 panels high |
-| Player | at (0, 0, 0), eye height 1.36 |
+| Player | spawns at the corridor end (−1, 0, 13.0) facing −Z (the gate); labyrinth operating position (0, 0, 0); eye height 1.36 |
 | Labyrinth panel | 1.05 × 1.05, top at y = 1.075, center (0.03, 1.04, 1.23) — updated 2026-09-24 after owner's hand rescale, read live from renderer bounds |
 | Corridor | 2.0 wide × 3.0 high × 5.8 long, beyond the far wall (+Z), centered on X = −1 |
 
@@ -23,7 +23,7 @@ regenerate the kit rather than editing meshes by hand.
 |---|---|
 | Drone flight (DroneBounds + 0.5 margin) | X −2.45 … +2.39, Y 1.19 … 3.48, Z 2.84 … 6.32 — updated 2026-09-24, DroneBounds rescaled by owner (Y re-read live a second time same session, Y range shrank further as the owner kept tuning) |
 | Labyrinth | cylinder r = 1.24 around (0.03, ·, 1.23), y 0 … 2.5 — updated 2026-09-24, radius = panel XZ half-diagonal (renderer bounds) + 0.5 m margin |
-| Player | cylinder r = 1.0 around (0, ·, 0), y 0 … 2.5 |
+| Player | labyrinth operating position: cylinder r = 1.0 around (0, ·, 0); spawn: r = 0.6 around (−1, ·, 13.0); both y 0 … 2.5 |
 
 ## Module dimensions
 
@@ -95,9 +95,8 @@ both ends must be checked. Getting the near end right does not make the far end 
   The 8 m wall is 4 modules wide, so module centers fall at x = −3, −1, +1, +3 and no module
   is centered on x = 0. The door sits one grid cell left of center, balancing Hero 01's mass
   on the +X side. Decided 2026-09-23.
-- **Hero 01, large machine / drone dock gantry**: right side (+X), Z 5.5 … 7.5, reaching over
-  from the wall but staying outside the drone volume.
-- **Hero 02, control terminal**: left wall (−X), near Z ≈ −1, facing the player.
+- **Heroes** (cradle, service arm, terminal, lever, gate, labyrinth stand): placement and design
+  in `HERO_SPEC.md`, which supersedes the first-pass hero notes that were here.
 - Pipes run along the ceiling edges and the upper wall band; light panels in the ceiling grid.
 - **Trim** sits on the wall's inner face and protrudes 0.05 m into the room, so its yaw is the
   wall's yaw **+ 180°** (back 0°, far 180°, left 90°, right 270°). Placing trim with the wall's

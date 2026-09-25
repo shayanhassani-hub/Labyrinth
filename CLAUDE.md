@@ -12,18 +12,16 @@ product. Full plan: `Documentation/PIPELINE_V9.md` (read only the section you ne
 - Git repo = this folder; GitHub `shayanhassani-hub/Labyrinth`. Tags: baseline, unity-working
 - Outside this repo: `D:\AI_Labyrinth\` Blender\ (Source, Working, Generated, Export), Meshy\, Gemini\, Logs\
 
-## Locked drone — do not modify
-BasicScene / `DroneAI2` / `drone_low`: `Assets/Drone_Asset/drone_low.fbx`, `M_Drone.mat`,
-Shader Graph `Assets/Materials/Drone_Mat_V2/SG_DroneOptimized`, scripts `DroneHoverAIV2`,
-`PropellerSpin`, `HologramToggle`. No changes to its geometry, materials, textures, shader,
-prefab structure, scripts or behavior unless the user explicitly decides it.
-File edits are blocked in `.claude/settings.json`; Editor commands are NOT blocked, so never
-change these objects through `unity command` either. Facts: `Documentation/ProtectedAssets/DroneBaseline.md`.
-Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the locked drone.
-The owner tunes scale and gameplay values by hand in the Editor (drone_low scale, DroneBounds size,
-DroneHoverAIV2 numbers, labyrinth panel/ball, projectile). After any such change, re-read them LIVE and
-update DroneBaseline.md and the protected-volume table in ENVIRONMENT_SPEC.md - never carry old numbers
-forward, and never change these values yourself unless asked.
+## Drone and gameplay (no lock - owner decision 2026-09-25)
+The drone (`DroneAI2` / `drone_low`, `DroneHoverAIV2`, `PropellerSpin`, `HologramToggle`, `M_Drone`,
+`SG_DroneOptimized`), the labyrinth and all gameplay code are normal, editable project code. Pipeline V9's
+locked-drone rules are superseded. Change them when a task asks for it, and say what you changed.
+The owner often tunes values by hand in the Editor - don't overwrite hand-tuned values unless asked.
+`Documentation/ProtectedAssets/DroneBaseline.md` = reference of the last verified state (not a lock):
+after any change to scale, bounds or gameplay values, re-read LIVE and update it and the protected-volume
+table in ENVIRONMENT_SPEC.md - never carry old numbers forward.
+Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the game drone. Source-model name typo:
+`Engline2_low` (search both spellings). Launch-sequence heroes: `Documentation/HERO_SPEC.md`.
 
 ## Working rules
 - Read Inspector values LIVE through the Editor (`unity command ...`), never infer them from
