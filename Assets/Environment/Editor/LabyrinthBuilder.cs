@@ -1,5 +1,7 @@
 // LabyrinthBuilder.cs - assembles the Labyrinth v2 tilt mechanic (stand, pivot, panel,
-// handle, ball lid, goal trigger) under "LAB_Labyrinth" in the open scene, sets the three
+// handle, ball lid, goal trigger) under "LAB_Labyrinth" in the open scene, adds the runtime
+// components (LabyrinthTilt on the pivot, XRSimpleInteractable on the handle, LabyrinthGoal on
+// the goal trigger) with their settings, sets the three
 // physics layers and their collision matrix, places the ball, deactivates the old panel,
 // and switches the projectile prefab to Continuous collision.
 //
@@ -18,9 +20,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using LabyrinthVR.Gameplay;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace LabyrinthVR.EnvironmentTools
 {
@@ -50,6 +54,13 @@ namespace LabyrinthVR.EnvironmentTools
         static readonly Vector3 BallOffset = new Vector3(-0.304f, 0f, -0.390f); // y handled separately
         const float PlateTopLocalY = 0.025f;
         const float BallClearance = 0.002f;
+
+        // Runtime settings (HERO_SPEC section 8; tune on Quest, then update here).
+        const float MaxTilt = 12f;
+        const float MaxAngularSpeed = 90f;
+        const float GrabRadius = 0.25f;
+        const float GoalResetDelay = 2f;
+        const float BallFallY = 0.5f;
 
         static readonly Vector3 ExpectedPanelMin = new Vector3(-0.5f, 1.00f, 0.70f);
         static readonly Vector3 ExpectedPanelMax = new Vector3(0.55f, 1.105f, 1.75f);
@@ -151,6 +162,14 @@ namespace LabyrinthVR.EnvironmentTools
             cap.center = handleBounds.center;
             cap.radius = Mathf.Max(handleBounds.extents.y, handleBounds.extents.z);
             cap.height = handleBounds.size.x;
+            var interactable = handle.AddComponent<XRSimpleInteractable>();
+
+            var tilt = pivotGo.AddComponent<LabyrinthTilt>();
+            tilt.maxTilt = MaxTilt;
+            tilt.maxAngularSpeed = MaxAngularSpeed;
+            tilt.grabRadius = GrabRadius;
+            tilt.handle = interactable;
+            tilt.handleCollider = cap;
 
             var ballLid = new GameObject("BallLid");
             Undo.RegisterCreatedObjectUndo(ballLid, UndoName);
@@ -189,6 +208,13 @@ namespace LabyrinthVR.EnvironmentTools
             ball.transform.position = targetCenter - posToWorldCenter;
             ball.layer = ballLayer;
             var actualCenter = ball.transform.TransformPoint(ballSphere.center);
+
+            var goal = goalTrigger.AddComponent<LabyrinthGoal>();
+            goal.ball = ball.GetComponent<Rigidbody>();
+            goal.board = pivotGo.transform;
+            goal.ballStartLocal = pivotGo.transform.InverseTransformPoint(targetCenter);
+            goal.resetDelay = GoalResetDelay;
+            goal.fallY = BallFallY;
             r.AppendLine($"ball world collider centre {F(actualCenter)}, radius {worldRadius:0.0000}"
                 + (uniformCheck > 0.0001f ? " WARN non-uniform ball scale, radius approximate" : ""));
 
@@ -221,6 +247,10 @@ namespace LabyrinthVR.EnvironmentTools
             var goalXZ = new Vector2(goalWorld.x, goalWorld.z);
             var goalOk = (goalXZ - ExpectedGoalXZ).magnitude < Tol; pass &= goalOk;
             r.AppendLine($"{(goalOk ? "PASS" : "FAIL")} goal hole world centre x,z ({goalWorld.x:0.000}, {goalWorld.z:0.000}) (expect {ExpectedGoalXZ.x:0.000}, {ExpectedGoalXZ.y:0.000})");
+
+            var compsOk = tilt.handle == interactable && tilt.handleCollider == cap && goal.ball != null; pass &= compsOk;
+            r.AppendLine($"{(compsOk ? "PASS" : "FAIL")} LabyrinthTilt (maxTilt {tilt.maxTilt}, maxAngularSpeed {tilt.maxAngularSpeed}, grabRadius {tilt.grabRadius}), "
+                + $"XRSimpleInteractable on handle, LabyrinthGoal (ball start local {F(goal.ballStartLocal)})");
 
             var envRoot = scene.GetRootGameObjects().FirstOrDefault(g => g.name == "ENV_Greybox");
             var teleport = envRoot != null ? envRoot.transform.Find("NAV_TeleportFloor")
