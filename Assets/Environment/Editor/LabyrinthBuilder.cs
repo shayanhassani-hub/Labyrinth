@@ -1,7 +1,8 @@
 // LabyrinthBuilder.cs - assembles the Labyrinth v2 tilt mechanic (stand, pivot, panel,
-// handle, ball lid, goal trigger) under "LAB_Labyrinth" in the open scene, adds the runtime
-// components (LabyrinthTilt on the pivot, XRSimpleInteractable on the handle, LabyrinthGoal on
-// the goal trigger) with their settings, sets the three
+// handle with its GrabPoint, ball lid, goal trigger, task spot light) under "LAB_Labyrinth" in
+// the open scene, adds the runtime components (LabyrinthTilt on the pivot,
+// LabyrinthHandleInteractable on the handle, LabyrinthGoal on the goal trigger) with their
+// settings, sets the three
 // physics layers and their collision matrix, places the ball, deactivates the old panel,
 // and switches the projectile prefab to Continuous collision.
 //
@@ -54,6 +55,14 @@ namespace LabyrinthVR.EnvironmentTools
         static readonly Vector3 BallOffset = new Vector3(-0.304f, 0f, -0.390f); // y handled separately
         const float PlateTopLocalY = 0.025f;
         const float BallClearance = 0.002f;
+        static readonly Vector3 GrabPointPivotLocal = new Vector3(0f, 0.065f, -0.605f); // handle bar centre
+
+        const string TaskLightName = "LIGHT_Labyrinth_Task";
+        static readonly Vector3 TaskLightPos = new Vector3(0.025f, 3.9f, 1.225f);
+        const float TaskLightSpotAngle = 60f;
+        const float TaskLightInnerAngle = 40f;
+        const float TaskLightRange = 5f;
+        const float TaskLightIntensity = 8f;
 
         // Runtime settings (HERO_SPEC section 8; tune on Quest, then update here).
         const float MaxTilt = 12f;
@@ -162,7 +171,13 @@ namespace LabyrinthVR.EnvironmentTools
             cap.center = handleBounds.center;
             cap.radius = Mathf.Max(handleBounds.extents.y, handleBounds.extents.z);
             cap.height = handleBounds.size.x;
-            var interactable = handle.AddComponent<XRSimpleInteractable>();
+            var grabPoint = new GameObject("GrabPoint");
+            Undo.RegisterCreatedObjectUndo(grabPoint, UndoName);
+            grabPoint.transform.SetParent(handle.transform, false);
+            grabPoint.transform.position = pivotGo.transform.TransformPoint(GrabPointPivotLocal);
+            grabPoint.transform.localRotation = Quaternion.identity;
+            var interactable = handle.AddComponent<LabyrinthHandleInteractable>();
+            interactable.grabPoint = grabPoint.transform;
 
             var tilt = pivotGo.AddComponent<LabyrinthTilt>();
             tilt.maxTilt = MaxTilt;
@@ -190,6 +205,22 @@ namespace LabyrinthVR.EnvironmentTools
             goalBox.isTrigger = true;
             goalBox.center = GoalCenter;
             goalBox.size = GoalSize;
+
+            // Task light over the board (functional lighting v0: realtime, no shadows).
+            var lightGo = new GameObject(TaskLightName);
+            Undo.RegisterCreatedObjectUndo(lightGo, UndoName);
+            lightGo.transform.SetParent(root.transform, false);
+            lightGo.transform.position = TaskLightPos;
+            lightGo.transform.rotation = Quaternion.LookRotation(Vector3.down, Vector3.forward);
+            var taskLight = lightGo.AddComponent<Light>();
+            taskLight.type = LightType.Spot;
+            taskLight.lightmapBakeType = LightmapBakeType.Realtime;
+            taskLight.spotAngle = TaskLightSpotAngle;
+            taskLight.innerSpotAngle = TaskLightInnerAngle;
+            taskLight.range = TaskLightRange;
+            taskLight.color = Color.white;
+            taskLight.intensity = TaskLightIntensity;
+            taskLight.shadows = LightShadows.None;
 
             // 4. Ball: reuse the existing object, place it by its (offset) collider centre.
             var ball = GameObject.Find("Labyrinth Ball");
@@ -250,7 +281,16 @@ namespace LabyrinthVR.EnvironmentTools
 
             var compsOk = tilt.handle == interactable && tilt.handleCollider == cap && goal.ball != null; pass &= compsOk;
             r.AppendLine($"{(compsOk ? "PASS" : "FAIL")} LabyrinthTilt (maxTilt {tilt.maxTilt}, maxAngularSpeed {tilt.maxAngularSpeed}, grabRadius {tilt.grabRadius}), "
-                + $"XRSimpleInteractable on handle, LabyrinthGoal (ball start local {F(goal.ballStartLocal)})");
+                + $"LabyrinthHandleInteractable on handle, LabyrinthGoal (ball start local {F(goal.ballStartLocal)})");
+
+            var grabLocal = pivotGo.transform.InverseTransformPoint(grabPoint.transform.position);
+            var grabOk = Near(grabLocal, GrabPointPivotLocal) && interactable.GetAttachTransform(null) == grabPoint.transform; pass &= grabOk;
+            r.AppendLine($"{(grabOk ? "PASS" : "FAIL")} GrabPoint pivot-local {F(grabLocal)} (expect {F(GrabPointPivotLocal)}), returned as attach transform");
+
+            var lightOk = Near(lightGo.transform.position, TaskLightPos) && Vector3.Angle(lightGo.transform.forward, Vector3.down) < 0.01f
+                && taskLight.shadows == LightShadows.None; pass &= lightOk;
+            r.AppendLine($"{(lightOk ? "PASS" : "FAIL")} {TaskLightName} spot {taskLight.spotAngle}/{taskLight.innerSpotAngle} deg, range {taskLight.range}, "
+                + $"intensity {taskLight.intensity}, shadows {taskLight.shadows}, at {F(lightGo.transform.position)} pointing down");
 
             var envRoot = scene.GetRootGameObjects().FirstOrDefault(g => g.name == "ENV_Greybox");
             var teleport = envRoot != null ? envRoot.transform.Find("NAV_TeleportFloor")
@@ -319,10 +359,13 @@ namespace LabyrinthVR.EnvironmentTools
             var contents = PrefabUtility.LoadPrefabContents(ProjectilePath);
             contents.layer = projLayer;
             var rb = contents.GetComponent<Rigidbody>();
-            if (rb != null) rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            // Read before unloading: UnloadPrefabContents destroys rb, and a destroyed
+            // component compares equal to null.
+            var hasRb = rb != null;
+            if (hasRb) rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             PrefabUtility.SaveAsPrefabAsset(contents, ProjectilePath);
             PrefabUtility.UnloadPrefabContents(contents);
-            r.AppendLine($"projectile prefab: layer={projLayer}, collisionDetectionMode={(rb != null ? "ContinuousDynamic" : "no Rigidbody found")}");
+            r.AppendLine($"projectile prefab: layer={projLayer}, collisionDetectionMode={(hasRb ? "ContinuousDynamic" : "no Rigidbody found")}");
         }
 
         static bool Near(Vector3 a, Vector3 b) => (a - b).sqrMagnitude < Tol * Tol * 3f;
