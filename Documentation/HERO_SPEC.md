@@ -1,6 +1,6 @@
 # Hero Spec — Launch Sequence Assets
 
-Status: **DRAFT v4, 2026-09-25**. Design direction set by the owner; cradle sized from the live
+Status: **v6, 2026-09-25 — all design decisions resolved**. Design direction set by the owner; cradle sized from the live
 drone measurement (2026-09-25). All values in meters, Unity axes (+Y up, +Z toward the far wall
 and corridor), 1 unit = 1 m.
 
@@ -87,7 +87,7 @@ ceiling. Mount **(0, 4.0, 5.30)**, 0.61 behind the body centre, so it never bloc
 
 ## 5. Hero 02 — Control terminal (`Terminal`)
 
-Against the back wall, left of centre (read from the owner's top-down sketch). Origin
+Against the back wall, left of centre (read from the owner's top-down sketch; position confirmed). Origin
 **(−2.2, 0, −2.0)** on the wall's inner face, yaw 0: the body extends +Z into the room and the
 player operates it facing the wall. Reference: a console with end pillars, sloped desk and a
 display rising behind.
@@ -101,9 +101,9 @@ display rising behind.
 | Button | Ø 0.12 × 0.04 in a guard ring Ø 0.20, desk centre; press travel 0.015 |
 | Indicators | 6 emissive strips on the desk, cyan; 3 of them switch to red on Armed |
 
-- **Display:** plan for the *transparent* holo screen. On Quest a transparent emissive quad this
-  size is cheap to render; the effort is authoring the UI texture, not the effect. Fallback:
-  opaque screen, same size. Greybox: plain emissive quad.
+- **Display: see-through holo screen** (owner decision). On Quest a transparent emissive quad this
+  size is cheap to render; the effort is authoring the UI texture, not the effect. Greybox: plain
+  emissive quad.
 - Footprint x −3.4 … −1.0, z −2.0 … −1.2. The player reaches it by teleporting along the −X side
   of the room, clear of the cradle and the drone's path.
 
@@ -146,21 +146,41 @@ turns it about that corner. Panel and control are **replaced**, keeping the size
 headset test (1.05 × 1.05) and the same place in the room.
 
 **Panel** `LAB_PROP_LabyrinthPanel_01`
-- Base plate 1.05 × 0.025 × 1.05, maze walls on top, outer rim. **Origin at the underside
-  centre** — that point is the pivot. Placed with the pivot at **(0.025, 1.00, 1.225)**.
-- Ball Ø 0.11 (current ball): inner walls ≥ 0.06 high, outer rim ≥ 0.08 (tuned with the tilt limit).
+- Base plate 1.05 × 0.025 × 1.05, maze walls on top, outer rim 0.05 thick × 0.08 high.
+  **Origin at the underside centre** — that point is the pivot. Placed with the pivot at
+  **(0.025, 1.00, 1.225)**. Plate top at panel-local y = 0.025.
 - Maze layout: open decision (owner sketch, or generated from a grid in Blender like the kit).
 - **Handle** `LAB_PROP_LabyrinthPanel_Handle_01`: bar Ø 0.035 × 0.25 on the front edge (player
   side, −Z), standing 0.08 off the rim. It is the only grab point. Dark metal with a cyan cap;
   not amber, because the palette keeps amber for drone-handling equipment.
-- **Goal:** a hole at the end of the maze route (Ø 0.14, larger than the ball) with a trigger
-  under it; the ball dropping through it is the win condition.
-- **Ball-only lid:** an invisible BoxCollider covering the maze just above the rim, on its own
+- **Maze v1** (from the owner's reference, 2026-09-25). Panel-local metres, +Z = far edge,
+  −Z = player/handle edge. Interior x, z −0.475 … 0.475. Inner walls 0.03 thick × 0.07 high.
+  Data: `Tools/Blender/labyrinth_maze_v1.json`; picture: `Documentation/Images/labyrinth_v1_layout.png`.
+
+  | Wall | x | z | Note |
+  |---|---|---|---|
+  | W1 | −0.105 … −0.075 | 0.109 … 0.475 | from the far rim |
+  | W2 | 0.295 … 0.325 | 0.199 … 0.475 | from the far rim, left side of the goal channel |
+  | W3 | 0.095 … 0.125 | −0.075 … 0.325 | rises from W5, 0.15 short of the far rim |
+  | W4 | −0.305 … −0.275 | −0.105 … 0.244 | rises from W5, L-corner |
+  | W5 | −0.305 … 0.475 | −0.105 … −0.075 | from W4 to the right rim |
+  | W6 | −0.475 … 0.254 | −0.305 … −0.275 | from the left rim |
+
+  - Ball start (−0.304, −0.390); **goal hole Ø 0.14 at (0.400, 0.400)**, through the plate, with a
+    trigger under it — the ball dropping in is the win condition.
+  - Changes from the reference, needed at our ball size (Ø 0.11): walls thinned to 0.03 and the goal
+    channel widened from ~0.09 (too narrow for the ball) to 0.15. Topology and route unchanged.
+    Every passage ≥ 0.15 (most 0.17). If the ball feels cramped on Quest, it can shrink to
+    ~Ø 0.08 without changing the maze.
+  - Look (after greybox): steel in the room's language — dark gunmetal plate, brushed steel walls,
+    thin cyan emissive line on the rim, cyan ring around the goal.
+- **Ball-only lid:** an invisible BoxCollider covering the maze **0.12 above the plate top**, on its own
   physics layer (`LabyrinthLid`) that collides **only** with the ball's layer (`LabyrinthBall`).
   The ball can never leave the board; drone bullets (`Projectile` layer) pass through the lid and
   still hit the ball. No renderer. Needs three new physics layers and collision-matrix entries
-  (a Project Settings change).
-- **Maze layout:** provided by the owner; built in Blender from that layout.
+  (Project Settings change **approved** by the owner)
+  (a Project Settings change). Lid height must stay below *wall height + ball Ø* (0.07 + 0.11):
+  then the ball can never cross a wall under the lid, even when a bullet kicks it upward.
 
 **Stand** `LAB_PROP_LabyrinthStand_01` — a simple prop, minimal detail
 - A **cone**: base octagon 0.40 across flats × 0.04, then a tapered body narrowing to Ø 0.04 at
@@ -198,7 +218,7 @@ headset test (1.05 × 1.05) and the same place in the room.
 |---|---|---|---|
 | Arrival / Gate open / Standby | cyan / blue | cyan | calm lab |
 | Armed | cyan → orange over 2.5 s | 3 indicators red + beacon | the facility wakes up |
-| Released | orange (owner to decide: steady or slow alarm pulse) | red | combat |
+| Released | orange, **slow alarm pulse** (owner decision) | red | combat |
 
 Implementation constraint: a runtime colour change rules out fully baked lighting for the accent
 lights. Plan: emissive strips and panels change colour via MaterialPropertyBlock (cheap), plus at
@@ -219,16 +239,21 @@ most 2–3 realtime lights whose colour lerps, plus an ambient/probe tint. Every
 - Teleport: `NAV_TeleportFloor`'s room collider is disabled until the gate opens. The corridor
   collider stays on. The cradle, terminal and stand footprints may need excluding later.
 - XR Origin moves to the spawn point (§7).
-- Before building, remove the inactive leftovers around the drone: `Ruller`, `Ruller (1)`,
-  `Plane`, `DroneAI`, `Drone` (Tripo). They overlap the cradle area and pollute every
-  automated check. Git history keeps them.
+- The inactive leftovers (`Ruller`, `Ruller (1)`, `Plane`, `DroneAI`, `Drone` (Tripo)) were
+  deleted by the owner on 2026-09-25.
 
-## 11. Open decisions (owner)
+## 11. Decisions (all resolved 2026-09-25)
 
-1. Released lighting: steady orange or slow alarm pulse.
-2. Terminal display: transparent (default) or opaque.
-3. Confirm the terminal position read from the sketch: x −3.4 … −1.0 against the back wall.
-4. Confirm the route: "teleport through the left wall" = teleport *along* the −X side of the room.
-5. Maze layout — owner to provide.
-6. Approve the Project Settings change for the three physics layers (§8).
-7. Delete the five inactive leftovers listed in §10.
+| Question | Decision |
+|---|---|
+| Released lighting | slow alarm pulse |
+| Terminal display | see-through holo screen |
+| Terminal position | back wall, x −3.4 … −1.0 — confirmed |
+| Route to the terminal | teleport along the −X side of the room — confirmed |
+| Labyrinth control | pan model: lift = forward/back, wrist twist = sideways, spin locked |
+| Labyrinth on release | keeps its tilt |
+| Ball containment | invisible ball-only lid; bullets pass through it |
+| Maze layout | owner's reference, traced to v1 grid — approved |
+| Physics layers | approved |
+| Inactive leftovers | deleted |
+| Drone and gameplay lock | removed |
