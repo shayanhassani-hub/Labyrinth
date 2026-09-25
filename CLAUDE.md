@@ -58,6 +58,11 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the game drone. Source-
 - `GreyboxBuilder.Rebuild()` regenerates every kit instance's ID, so each run is a ~10k-line BasicScene diff.
   Run it only when the layout actually changes - never as a verification step.
 - Active build target is Android (switched 2026-09-22). Editor Play Mode still uses the Standalone XR settings.
+- Run tests only on a SAVED scene and with --async_tests. A synchronous run_tests on a dirty
+  scene opens Unity's save dialog, which blocks the Editor and jams the Pipeline command
+  channel for good.
+- If every command times out after a dialog: the owner saves the scene (Ctrl+S) and fully
+  restarts Unity. Don't try to drain or debug the queue - cancel_tests is stuck behind it too.
 
 ## Blender CLI
 - Headless: `"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b --factory-startup --python-expr "..."`
