@@ -68,8 +68,10 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the game drone. Source-
 - NullReferenceException in OpenXR `MetaQuestFeature.cs:554` during build preprocess: Unity package bug
   (rule reads `selectedBuildTargetGroup` = Standalone). Non-fatal; build still succeeds.
 - `m_optimizeBufferDiscards` 0→1 in OpenXRPackageSettings: set by the Meta Quest feature on every Android build.
-- URP Config prefilter flags, DefaultVolumeProfile, URP GlobalSettings runtime list, and XR entries in
-  `preloadedAssets`: normal build output. Commit once; only investigate if something else changes.
+- URP Config prefilter flags, DefaultVolumeProfile, URP GlobalSettings runtime list: normal build output.
+- `ProjectSettings.asset` `preloadedAssets` FLIPS between `[]` and two XR entries on its own (a build adds
+  them, Unity later drops them). Harmless either way: commit whatever state is there, never investigate.
+  Do check the rest of any ProjectSettings diff - package ID and product settings live in the same file.
 - Warning "Pipeline will be disabled in Player builds": expected and wanted.
 - 29 CS0618 warnings from XRI 3.0.x sample scripts: known, harmless.
 - First IL2CPP build ≈18 min on this HDD; APK goes to `Builds/` (git-ignored).
