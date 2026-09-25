@@ -127,6 +127,23 @@ left wall x = −4.0, right wall x = +4.0. Stacked panels repeat at y = 0 and y 
 A batch verification is only meaningful if it contains a module that is asymmetric on X, on
 Y and on Z. Symmetric boxes hide sign errors — see the axis-conversion note above.
 
+## Non-box geometry rules (learned 2026-09-25, Labyrinth v2)
+
+Everything that isn't a plain box goes through `build_spec_object` (cylinders, cones, spheres,
+cutters). Three rules, each from a real bug:
+
+1. **Mirror ⇒ refresh normals.** The spec→Blender mapping is a mirror. After it, call
+   `bm.normal_update()` *before* `recalc_face_normals`, or the mesh stays inside-out (the stand's
+   cone was, and so was the goal-hole cutter). `build_spec_object` does this; don't bypass it.
+2. **Booleans only on one closed mesh, before joining.** Cut holes from a single closed part
+   (the plate), *then* join the rest. Boxes that merely touch are not a closed volume: the EXACT
+   solver silently discards faces (the first panel lost most of its rim and walls).
+3. **Numbers alone don't prove a shape.** Bounds stay correct when faces go missing inside, and a
+   budget ("≤ 1500 tris") passes a broken mesh. Every generated asset is verified with:
+   - an **expected triangle range**, not only a ceiling;
+   - an **inward-face count** per part (face normal vs. part centre) — must be 0;
+   - a **Workbench render** (top and/or 3/4 view) that a human looks at before commit.
+
 ## Known-good reference — greybox kit, verified 2026-09-23
 
 All bounds live-read from the Editor, all transforms identity, all material `M_Greybox`.
