@@ -567,10 +567,56 @@ MODULES = {
 
 
 # ---------------------------------------------------------------------------
+# UVs -- Documentation/EXPORT_CONTRACT.md "UVs"
+# ---------------------------------------------------------------------------
+
+UV_MAP_NAME = "UVMap"
+
+
+def apply_box_uv(obj):
+    """
+    Replace every UV map on `obj` with one world-scale box projection named
+    UV_MAP_NAME (1 UV unit = 1 m). Geometry is not touched.
+
+    Per face, the dominant axis of the face normal picks the projection plane,
+    worked out in SPEC space (Blender X = -spec X, Y = -spec Z, Z = spec Y):
+      +-X faces: U = +-spec Z, V = spec Y
+      +-Z faces: U = -+spec X, V = spec Y
+      +-Y faces: U = spec X,   V = +-spec Z
+    The sign of U (V on horizontal faces) follows the normal, so every face reads
+    unmirrored when viewed from outside, with V = up on all vertical faces. The
+    authoring mapping is a mirror in coordinates but a 180-degree yaw in
+    appearance, and Unity's import mirror only touches positions, so the same
+    UVs read the same way in Blender and in Unity.
+    """
+    assert tuple(obj.location) == (0.0, 0.0, 0.0) and tuple(obj.scale) == (1.0, 1.0, 1.0), obj.name
+    mesh = obj.data
+    while mesh.uv_layers:
+        mesh.uv_layers.remove(mesh.uv_layers[0])
+    uv_data = mesh.uv_layers.new(name=UV_MAP_NAME).data
+
+    for poly in mesh.polygons:
+        bnx, bny, bnz = poly.normal
+        nx, ny, nz = -bnx, bnz, -bny  # spec-space normal
+        ax, ay, az = abs(nx), abs(ny), abs(nz)
+        for li in poly.loop_indices:
+            bx, by, bz = mesh.vertices[mesh.loops[li].vertex_index].co
+            sx, sy, sz = -bx, bz, -by
+            if ay >= ax and ay >= az:
+                uv = (sx, sz if ny >= 0.0 else -sz)
+            elif ax >= az:
+                uv = (sz if nx >= 0.0 else -sz, sy)
+            else:
+                uv = (-sx if nz >= 0.0 else sx, sy)
+            uv_data[li].uv = uv
+
+
+# ---------------------------------------------------------------------------
 # Export
 # ---------------------------------------------------------------------------
 
 def export_fbx(obj, export_dir, filename):
+    apply_box_uv(obj)
     os.makedirs(export_dir, exist_ok=True)
     for o in bpy.data.objects:
         o.select_set(False)
@@ -614,18 +660,20 @@ def main():
         assert tuple(obj.scale) == (1.0, 1.0, 1.0), name
         objects.append(obj)
 
-    os.makedirs(out_dir, exist_ok=True)
-    blend_path = os.path.join(out_dir, BLEND_FILENAME)
-    bpy.ops.wm.save_as_mainfile(filepath=blend_path)
-    print(f"[env_kit_generator] saved blend: {blend_path}")
-
     for obj in objects:
         mesh = obj.data
         mesh.calc_loop_triangles()
         fbx_path = export_fbx(obj, EXPORT_DIR, f"{obj.name}.fbx")
         print(f"[env_kit_generator] exported fbx: {fbx_path}")
         print(f"[env_kit_generator] {obj.name}: "
-              f"{len(mesh.vertices)} verts, {len(mesh.loop_triangles)} tris")
+              f"{len(mesh.vertices)} verts, {len(mesh.loop_triangles)} tris, "
+              f"uv maps {[uv.name for uv in mesh.uv_layers]}")
+
+    # Saved after export so the .blend carries the same UVs as the FBX files.
+    os.makedirs(out_dir, exist_ok=True)
+    blend_path = os.path.join(out_dir, BLEND_FILENAME)
+    bpy.ops.wm.save_as_mainfile(filepath=blend_path)
+    print(f"[env_kit_generator] saved blend: {blend_path}")
 
 
 if __name__ == "__main__":

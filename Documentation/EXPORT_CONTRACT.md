@@ -84,12 +84,33 @@ Model tab:
 
 Rig tab: Animation Type **None**. (Checked live 2026-09-23: Wall_A had imported as Generic
 with BlendShapes/Visibility/Cameras/Lights on — the defaults, not these settings. Applying
-them is a real step, not something the importer does on its own. All 8 modules corrected.)
+them is a real step, not something the importer does on its own. The 2026-09-23 correction
+was not persisted on 7 of the 9 kit modules — they still had Import Animation on and Material
+Creation Mode "Import via Material Description". Settings re-applied, saved to the `.meta`
+files and verified live on 2026-09-26; confirm with `git diff` on the `.meta` after any importer change.)
 Animation tab: Import Animation **off**.
 Materials tab: Material Creation Mode **None** — materials are assigned in Unity, never
 imported from the FBX.
 
 Normals: Import; Tangents: Calculate Mitchell (default) unless the asset ships tangents.
+
+## UVs (added 2026-09-26)
+
+Every mesh gets exactly one UV map, `UVMap`, from `apply_box_uv(obj)` in
+`Tools/Blender/env_kit_generator.py`. It runs inside `export_fbx`, so kit modules, labyrinth
+props and future heroes all get it without extra calls. No lightmap UV2: Unity generates that at
+bake time (the importer's Generate Lightmap UVs stays off until a bake needs it).
+
+- **Box projection per face**, picked by the dominant axis of the face normal, in spec axes:
+  ±X faces → U = ±Z, V = Y · ±Z faces → U = ∓X, V = Y · ±Y faces → U = X, V = ±Z.
+- **World scale: 1 UV unit = 1 m**, so tiling materials line up across modules.
+- **V = up (spec +Y) on every vertical face**, so a texture never lies sideways.
+- **No mirrored faces.** The sign of U (V on horizontal faces) follows the normal, so every face
+  reads correctly from outside. Verified live 2026-09-26: all triangles of all 12 assets have the
+  same UV winding. The authoring mapping mirrors coordinates but only yaws the model 180° in
+  appearance, and Unity's X mirror only touches positions, so UVs read the same in Blender and Unity.
+- Seams sit on every edge where the dominant axis changes (all box edges; every few segments on
+  cylinders, cones and spheres). Adding UVs did not change any Unity vertex or triangle count.
 
 ## Pivot rules
 
@@ -148,17 +169,17 @@ cutters). Three rules, each from a real bug:
 
 All bounds live-read from the Editor, all transforms identity, all material `M_Greybox`.
 
-| Module | Verts | Tris | Unity bounds (min … max) |
-|---|---|---|---|
-| LAB_ENV_Wall_A_01 | 8 | 12 | (−1, 0, 0) … (1, 2, 0.2) |
-| LAB_ENV_Wall_Panel_01 | 16 | 28 | (−1, 0, 0) … (1, 2, 0.2) |
-| LAB_ENV_Wall_Corner_01 | 8 | 12 | (0, 0, 0) … (0.2, 4, 0.2) |
-| LAB_ENV_Wall_Door_01 | 24 | 36 | (−1, 0, 0) … (1, 4, 0.2) |
-| LAB_ENV_Wall_Corridor_01 | 8 | 12 | (−1, 0, 0) … (1, 3, 0.2) |
-| LAB_ENV_Floor_A_01 | 8 | 12 | (−1, −0.1, −1) … (1, 0, 1) |
-| LAB_ENV_Ceiling_A_01 | 8 | 12 | (−1, 0, −1) … (1, 0.1, 1) |
-| LAB_ENV_Pillar_A_01 | 8 | 12 | (−0.2, 0, −0.2) … (0.2, 4, 0.2) |
-| LAB_ENV_Trim_A_01 | 8 | 12 | (−1, 0, 0) … (1, 0.15, 0.05) |
+| Module | Blender verts | Unity verts | Tris | Unity bounds (min … max) |
+|---|---|---|---|---|
+| LAB_ENV_Wall_A_01 | 8 | 24 | 12 | (−1, 0, 0) … (1, 2, 0.2) |
+| LAB_ENV_Wall_Panel_01 | 16 | 48 | 28 | (−1, 0, 0) … (1, 2, 0.2) |
+| LAB_ENV_Wall_Corner_01 | 8 | 24 | 12 | (0, 0, 0) … (0.2, 4, 0.2) |
+| LAB_ENV_Wall_Door_01 | 24 | 72 | 36 | (−1, 0, 0) … (1, 4, 0.2) |
+| LAB_ENV_Wall_Corridor_01 | 8 | 24 | 12 | (−1, 0, 0) … (1, 3, 0.2) |
+| LAB_ENV_Floor_A_01 | 8 | 24 | 12 | (−1, −0.1, −1) … (1, 0, 1) |
+| LAB_ENV_Ceiling_A_01 | 8 | 24 | 12 | (−1, 0, −1) … (1, 0.1, 1) |
+| LAB_ENV_Pillar_A_01 | 8 | 24 | 12 | (−0.2, 0, −0.2) … (0.2, 4, 0.2) |
+| LAB_ENV_Trim_A_01 | 8 | 24 | 12 | (−1, 0, 0) … (1, 0.15, 0.05) |
 
 If a new module misbehaves, diff its registry entry against these.
 

@@ -212,6 +212,18 @@ headset test (1.05 × 1.05) and the same place in the room.
 - Clearances: at 12° the panel edges move ≤ 0.11 up or down; the lever stand (0.15 from the +X
   edge) and the stand column stay clear. The labyrinth protected cylinder is unchanged.
 
+### Backlog (owner, 2026-09-26, parked)
+
+- **L1. Panel bigger, ball size unchanged** (Ø 0.1096). Scale the maze table, lid, goal trigger,
+  handle and GrabPoint together. Re-check the labyrinth protected cylinder and the LeverStand
+  clearance (currently 0.15 from the +X edge); the lever stand may need to move.
+- **L2. Tiny shakes while tilting** (likely hand tremor). Smooth the hand input before
+  `ComputeTargetRotation` (e.g. a One Euro filter or low-pass, plus a small dead-zone), keeping the
+  existing tests green.
+- **L3. Lower walls and rim** so bullets reach the ball more easily (H 0.07 now; ball Ø 0.11). Walls
+  must still contain a rolling ball at 12° tilt. Re-check the lid rule: the lid must stay below
+  wall height + ball Ø so the ball can't jump a wall.
+
 ## 9. Atmosphere states (brief for the lighting pass)
 
 | State | Room accent lights | Terminal | Notes |
