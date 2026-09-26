@@ -93,3 +93,26 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   speed, goal reset, bullets knocking the ball) and tune; then hero blockouts (cradle, service arm,
   terminal, lever, gate) and the sequence wiring.
   Hours today: ~8
+
+## 2026-09-26
+- Done: labyrinth v2 tested on Quest, works; three adjustments parked as backlog L1-L3
+  (HERO_SPEC §8). UVs for everything the generator exports (world-scale box projection,
+  1 unit = 1 m); kit + labyrinth regenerated, verified live (bounds/tris unchanged,
+  0 mirrored faces). 7 kit importers fixed. ASSET_RULES.md written (tiers: hero strict,
+  secondary, architecture kit, greybox). Hero export mode (triangulated, custom
+  normals, MikkTSpace). Cradle Part 1: production low-poly built by construction
+  (748 tris, clean quads, clevis hub with pins), CradleBuilder + live sweep verify.
+- Decisions: from now on every non-greybox asset follows professional standalone-VR
+  standards (topology, UVs, bakes, PBR), strict for heroes, lighter for secondary;
+  kit uses tiling materials + trim sheet; Cradle built directly at production quality,
+  no greybox; packed mask R metallic / G AO / A smoothness.
+- Problems: the 2026-09-23 importer fix had never persisted on 7 modules; Code couldn't
+  view renders outside the project (renders now in UnityProject/Renders, git-ignored);
+  capture_scene_view writes into Assets/; Pipeline eval 5 s limit on the hinge sweep
+  (run via delayCall); .gitignore line endings rewritten by a script.
+- Open: Cradle silhouette is weak (thin post on a big plinth, stick-like arms) -
+  silhouette pass by Code vs Meshy for the static body, decide next session. Meshy
+  test (V9 step 5) still open. STYLE_GUIDE.md missing. Hero budget (12 h) likely too
+  small for five heroes at this standard - re-plan after timing the Cradle.
+- Next: decide Cradle direction; then Part 2 (UVs, high-poly, bake exports).
+  Hours today: ~6

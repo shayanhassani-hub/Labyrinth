@@ -92,14 +92,17 @@ Animation tab: Import Animation **off**.
 Materials tab: Material Creation Mode **None** — materials are assigned in Unity, never
 imported from the FBX.
 
-Normals: Import; Tangents: Calculate Mitchell (default) unless the asset ships tangents.
+Normals: Import; Tangents: Calculate Mikktspace (default) unless the asset ships tangents
+(hero mode does - see "Hero mode").
 
 ## UVs (added 2026-09-26)
 
-Every mesh gets exactly one UV map, `UVMap`, from `apply_box_uv(obj)` in
-`Tools/Blender/env_kit_generator.py`. It runs inside `export_fbx`, so kit modules, labyrinth
-props and future heroes all get it without extra calls. No lightmap UV2: Unity generates that at
-bake time (the importer's Generate Lightmap UVs stays off until a bake needs it).
+**Kit mode only** (`export_fbx(..., mode="kit")`, the default): every mesh gets exactly one UV
+map, `UVMap`, from `apply_box_uv(obj)` in `Tools/Blender/env_kit_generator.py`. It runs inside
+`export_fbx`, so kit modules and labyrinth props get it without extra calls. **Hero mode** does
+not touch UVs: it exports the mesh's own unwrap (ASSET_RULES.md, hero UVs) - see "Hero mode".
+No lightmap UV2 in either mode: Unity generates that at bake time (the importer's Generate
+Lightmap UVs stays off until a bake needs it).
 
 - **Box projection per face**, picked by the dominant axis of the face normal, in spec axes:
   ±X faces → U = ±Z, V = Y · ±Z faces → U = ∓X, V = Y · ±Y faces → U = X, V = ±Z.
@@ -111,6 +114,38 @@ bake time (the importer's Generate Lightmap UVs stays off until a bake needs it)
   appearance, and Unity's X mirror only touches positions, so UVs read the same in Blender and Unity.
 - Seams sit on every edge where the dominant axis changes (all box edges; every few segments on
   cylinders, cones and spheres). Adding UVs did not change any Unity vertex or triangle count.
+
+## Hero mode (verified 2026-09-26, LAB_HERO_Cradle_*)
+
+For heroes (ASSET_RULES.md, Hero tier): `export_fbx(obj, dir, name, mode="hero")`. Axis, scale
+and bake settings are the same as above; what differs:
+
+- **Triangulated on export, quads stay in the .blend.** `triangulated_export_copy(obj)` takes the
+  evaluated mesh (modifiers applied), stores every corner normal in a corner attribute,
+  triangulates (bmesh, BEAUTY), then writes the stored normals back with
+  `normals_split_custom_set`. The per-corner normals therefore survive triangulation exactly,
+  independent of how Blender re-encodes custom normals when new edges appear. The copy is
+  exported under the object's own name (node and mesh = asset ID) and deleted afterwards.
+- **UVs from the mesh as they are** (no `apply_box_uv`).
+- Exporter differences: `mesh_smooth_type='OFF'` (Normals Only - the custom normals),
+  `use_tspace=True` (MikkTSpace tangents, computed on the triangulated mesh),
+  `use_triangles=False` (already triangulated), `use_mesh_modifiers=False`,
+  `add_leaf_bones=False`, `bake_anim=False`.
+- The object must be at identity transform (asserted), origin on its hinge/pivot.
+- The same triangulated file is the Substance low-poly and the Unity mesh.
+
+Unity importer, hero mode (`CradleBuilder.ApplyImportSettings()`): everything from "Unity
+importer settings" above, plus **Normals: Import, Tangents: Import** (the FBX ships MikkTSpace
+tangents). Confirmed in the `.meta` files: `normalImportMode: 0`, `tangentImportMode: 0`.
+
+Verification on the Cradle (Base / Arm / Pad):
+- root transforms identity, bounds equal Blender's, Unity tris = Blender export tris
+  (540 / 68 / 36);
+- every Unity vertex (position, normal) matches a corner of the Blender export and vice versa,
+  worst component difference 5e-5 - so shading is identical, no faceting and no smoothing
+  across sharp edges; tangents present on every vertex;
+- X-asymmetric check: Hinge_L's arm/pad land on -X (the meshes are X-symmetric, so the sign is
+  checked through the hinge placement).
 
 ## Pivot rules
 

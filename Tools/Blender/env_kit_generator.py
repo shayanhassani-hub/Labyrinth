@@ -615,16 +615,51 @@ def apply_box_uv(obj):
 # Export
 # ---------------------------------------------------------------------------
 
-def export_fbx(obj, export_dir, filename):
-    apply_box_uv(obj)
-    os.makedirs(export_dir, exist_ok=True)
-    for o in bpy.data.objects:
-        o.select_set(False)
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+def triangulated_export_copy(obj):
+    """
+    Hero mode: a new object with obj's evaluated mesh (modifiers applied), triangulated,
+    carrying the SAME per-corner normals the quad mesh shows in Blender. Custom normals
+    are copied through the triangulation explicitly (as a corner attribute), so they
+    don't depend on how Blender re-encodes them when new edges appear. The caller
+    deletes the copy after export.
+    """
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    mesh = bpy.data.meshes.new_from_object(obj.evaluated_get(depsgraph), preserve_all_data_layers=True,
+                                           depsgraph=depsgraph)
+    normals = [tuple(cn.vector) for cn in mesh.corner_normals]
+    attr = mesh.attributes.new("_export_normal", 'FLOAT_VECTOR', 'CORNER')
+    attr.data.foreach_set("vector", [c for n in normals for c in n])
 
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.triangulate(bm, faces=bm.faces, quad_method='BEAUTY', ngon_method='BEAUTY')
+    bm.to_mesh(mesh)
+    bm.free()
+
+    attr = mesh.attributes["_export_normal"]
+    flat = [0.0] * (len(mesh.loops) * 3)
+    attr.data.foreach_get("vector", flat)
+    mesh.attributes.remove(attr)
+    mesh.normals_split_custom_set([flat[i:i + 3] for i in range(0, len(flat), 3)])
+
+    copy = bpy.data.objects.new(obj.name + "_export", mesh)
+    bpy.context.collection.objects.link(copy)
+    return copy
+
+
+def export_fbx(obj, export_dir, filename, mode="kit"):
+    """
+    mode "kit":  kit modules and props -- world-scale box UVs (apply_box_uv), face smoothing.
+    mode "hero": ASSET_RULES.md hero standard -- UVs taken from the mesh as they are,
+                 modifiers applied, triangulated on export (quads stay in the .blend),
+                 custom normals ("Normals Only") and MikkTSpace tangents exported.
+    Both use the verified axis/scale settings of EXPORT_CONTRACT.md.
+    """
+    if mode not in ("kit", "hero"):
+        raise ValueError(f"export_fbx: unknown mode {mode!r}")
+    os.makedirs(export_dir, exist_ok=True)
     filepath = os.path.join(export_dir, filename)
-    bpy.ops.export_scene.fbx(
+    settings = dict(
         filepath=filepath,
         check_existing=False,
         use_selection=True,
@@ -634,10 +669,40 @@ def export_fbx(obj, export_dir, filename):
         apply_scale_options='FBX_SCALE_NONE',
         use_space_transform=True,
         bake_space_transform=True,
-        mesh_smooth_type='FACE',
         axis_forward='-Z',
         axis_up='Y',
     )
+
+    if mode == "kit":
+        apply_box_uv(obj)
+        target = obj
+        settings.update(mesh_smooth_type='FACE')
+    else:
+        assert tuple(obj.location) == (0.0, 0.0, 0.0), obj.name
+        assert tuple(obj.rotation_euler) == (0.0, 0.0, 0.0), obj.name
+        assert tuple(obj.scale) == (1.0, 1.0, 1.0), obj.name
+        target = triangulated_export_copy(obj)
+        name, mesh_name = obj.name, obj.data.name
+        obj.name = name + "_src"      # the FBX node and mesh must carry the asset ID
+        obj.data.name = mesh_name + "_src"
+        target.name = name
+        target.data.name = name
+        settings.update(mesh_smooth_type='OFF', use_tspace=True, use_triangles=False,
+                        use_mesh_modifiers=False, add_leaf_bones=False, bake_anim=False)
+
+    for o in bpy.data.objects:
+        o.select_set(False)
+    target.select_set(True)
+    bpy.context.view_layer.objects.active = target
+    try:
+        bpy.ops.export_scene.fbx(**settings)
+    finally:
+        if target is not obj:
+            mesh = target.data
+            bpy.data.objects.remove(target, do_unlink=True)
+            bpy.data.meshes.remove(mesh)
+            obj.name = name
+            obj.data.name = mesh_name
     return filepath
 
 

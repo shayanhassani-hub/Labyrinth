@@ -35,7 +35,8 @@ until the service arm is fully stowed, so the drone can never launch into it.
 - **Palette rule:** amber-yellow marks equipment that *handles the drone* (yoke pads, service-arm
   tool head, lever grip). Everything else: dark painted metal, black polymer, cyan emissive.
   Red is reserved for the Armed state.
-- **Greybox budget:** ≤ 500 tris per hero, M_Greybox plus one emissive placeholder material.
+- **Quality:** Hero tier in `ASSET_RULES.md`. Heroes whose dimensions are fully specified (the
+  Cradle) are built directly at production quality, no separate greybox.
 
 ## 3. Hero 01 — Docking cradle (`Cradle`)
 
@@ -56,6 +57,21 @@ Cradle origin: **(0, 0, 4.69)** (under the body centre, not under `DroneAI2`), y
 | Hub | 0.40 × 0.08 × 0.30 | (0, 1.00, 0) | no | — | — |
 | Arm_L / Arm_R | 0.06 × 0.50 × 0.18 | hinge (∓0.13, 1.04, 0), axis Z | yes | vertical | 100° outward: tip y ≈ 0.95, highest point ≈ 1.08 |
 | Pad_L / Pad_R (amber) | 0.10 × 0.025 × 0.22 | top of arm | with arm | top face at y 1.565, 3 mm under the body's lower edges (x ±0.08 … 0.18) | — |
+
+**Hub = clevis (2026-09-26).** Two cheeks at z ±0.095 … ±0.15 joined by a centre block for
+|x| < 0.095; one slot per arm, open to the outside, so the arm clears the hub over its whole
+0–100° sweep. A hinge pin Ø 0.02 along Z runs through each hinge (∓0.13, 1.04), visible in the
+cheeks; it is part of the Base mesh. Built (2026-09-26): pin heads 3 mm proud of each cheek
+(hub depth 0.306 at the pins); no pin in the 5 mm cheek-boss gaps (only visible through the slit
+at grazing angles, partly fully hidden). The arm root is a rounded boss (r 0.03 about Z, centred on
+the hinge) so it reads as turning on the pin; the pin passing through the boss is intended.
+One arm mesh (`LAB_HERO_Cradle_Arm_01`, origin on the hinge = its bottom centre) serves both
+sides. The pad (`LAB_HERO_Cradle_Pad_01`) is a separate mesh with its origin on the same hinge
+point, geometry at local y 0.50 … 0.525. Base_T1 … Hub form one static mesh
+(`LAB_HERO_Cradle_Base_01`, origin at floor centre).
+
+Measured live 2026-09-26 (CradleBuilder.Verify): pad tops at 1.5650, **pad-to-body gap 2.8 mm**
+(live `Body_low` min y 1.5678, not 1.568), 85 mm from the pads to the drone arms (y 1.65).
 
 Checks: static parts top out at 1.08; released arms stay below 1.19. In standby the arms
 (x 0.10 … 0.16, up to y 1.565) stay clear of the drone arms (y ≥ 1.65).

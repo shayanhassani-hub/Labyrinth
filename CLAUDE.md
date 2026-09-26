@@ -50,6 +50,8 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the game drone. Source-
 - Some commands change settings/assets only in memory (e.g. `eval` with PlayerSettings, `attach_script`
   on a prefab). After such changes run `AssetDatabase.SaveAssets()` and confirm with `git diff`.
   SaveAssets does not save scenes.
+- capture_scene_view saves into Assets/ whatever path is given; move the image to Renders/ and
+  delete the Assets copy via AssetDatabase.
 - Put temporary files (eval scripts etc.) in `Temp/` (git-ignored), never in the project root.
   Unity deletes `Temp/` when it closes: anything worth keeping goes in the repo (e.g. `Assets/Environment/Editor/`).
 - XRI 3.3 lookups (verified 2026-09-24 - don't search again): interaction layer names are in
