@@ -116,3 +116,34 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   small for five heroes at this standard - re-plan after timing the Cradle.
 - Next: decide Cradle direction; then Part 2 (UVs, high-poly, bake exports).
   Hours today: ~6
+
+## 2026-09-27
+- Done: researched AI 3D tools (Meshy, Tripo, Hunyuan3D: latest features, licensing).
+  Hunyuan global site (hy3d.tencent.ai / 3d.hunyuanglobal.com) is usable from the EU and
+  assigns output rights to the user (ToS §6.3); the mainland site 3d.hunyuan.tencent.com
+  is China-only. Cradle redesigned from the owner's reference image with Gemini (drone,
+  monitor posts, cables and floor plate removed; flat rest plates on the U-yoke; details
+  simplified; symmetry fixed) plus orthographic views (front; back = mirrored front;
+  side view plate fixed by hand; right = mirrored left; top). Hunyuan 3D Studio test on
+  the Cradle: 3.1 multi-view geometry (1.5M faces, clean hard surface), Texture Painting
+  (image- and text-based), Component Splitting (3 complete parts: static body, left arm +
+  plate, right arm + plate), Retopology Low/Quads (5,710 faces). Meshy remesh of the same
+  high-poly for comparison (11,091 quads). Downloads in D:\AI_Labyrinth\Hunyuan\Downloads\Cradle\.
+- Decisions: Pipeline V9's time budget is no longer used (the project needs more time).
+  Hero workflow v1 = AI transfer workflow: Hunyuan high-poly, parts and textures as the
+  detail source; Claude Code builds the clean hero low-poly to the AI shape; transfer
+  bake; finish in Substance. Fallback: the more hand-made workflow if the result is not
+  good enough. Hunyuan chosen over Meshy for hard-surface work (generation and retopo);
+  Meshy kept as backup / organic props. New Cradle design: the drone rests on two of its
+  arms on the yoke plates (docked with a yaw rotation); yoke halves still fold for release.
+- Problems: Gemini ignored some symmetry/proportion edits (side view plate fixed by
+  hand); Hunyuan Repaint replaces the texture with no history, and textured 1.5M downloads
+  failed until the browser was restarted; split parts interpenetrate and leave thin shards;
+  Hunyuan retopo has fans/slivers and a modelled underside; Meshy remesh loses hard edges.
+- Open: HERO_SPEC §3 must be rewritten for the new Cradle (docking pose, contact points on
+  the plates, hinge positions, release fold) from live drone measurements; Cradle Part 1
+  procedural model is superseded; ASSET_RULES.md to record the AI workflow, tool choice and
+  AI reference rules; STYLE_GUIDE.md still missing.
+- Next: Claude Code imports the Hunyuan files, fits them to the spec, measures the drone
+  contact, compares, and runs a trial transfer bake.
+  Hours today: ~7
