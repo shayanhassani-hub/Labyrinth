@@ -131,8 +131,12 @@ plane (x, y):
   diagonal from the tier-1 faces), a 20 mm slope, then a **sunken ring at y 0.176** down to the tier-2 wall
   (tier-2 wall now starts at 0.176). The trays are cut 14 mm deeper into that ring (floor 0.162, vertical
   walls). The ring shows between the trays as the eight corner pockets (28 mm below the band).
-- *Turntable*: four notches centred at ±35° / ±145°, 26° wide: top cut from y 0.333 down to 0.300 and in
-  to r 0.485, rim face recessed to r 0.497 below.
+- *Turntable*: **no notches** (owner decision, Step 3c). The AI's four rim notches (±35° / ±145°) read as
+  damage rather than design, and modelled they broke the ring's edge flow. The turntable is a clean
+  continuous ring; the AI notches (and the thin rim fins) are AI junk, excluded from the bake.
+- *Trays* (Step 3c): straight ends; the AI's end bulge is only 14 mm deep in the sunken ring, so it goes to
+  the normal map. The diagonal trays end on the tier-1 facet corners (one end moves ~5 cm) so every
+  corner region is two quads.
 - *Arm inner face*: two rails (inner edge x 0.417 → 0.375 from y 0.995 to 1.50, 15 mm edge chamfer) with a
   **channel** z ±0.067, 35-40 mm deep, y 0.99 … 1.54. Root full depth (±0.151) up to the boss, strip
   depth ±0.110 from y ~0.84.
