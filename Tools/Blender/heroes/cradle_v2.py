@@ -43,11 +43,18 @@ RELEASE_DEG = 75.0
 
 # tier 1: 16-gon plan (+x+z quadrant, CCW), mirrored to all quadrants
 T1_Q = [(1.214, 0.442), (1.027, 0.608), (0.632, 1.028), (0.490, 1.214)]
-T1_RINGS = [(0.016, 0.000), (0.000, 0.016), (0.000, 0.162), (0.036, 0.203)]   # (inset, y)
+T1_RINGS = [(0.016, 0.000), (0.000, 0.016), (0.000, 0.162), (0.036, 0.203)]   # (inset, y); last = band outer edge
 T1_TOP, TRAY_FLOOR = 0.203, 0.162
+# tier-1 top (Step 3b, AI height map): an outer band at y 0.203, a 20 mm slope, then a sunken ring at y 0.176
+# down to the tier-2 wall; the trays are cut 14 mm deeper into that ring. Band inner edge inset per T1 edge type.
+T1_EDGE_TYPES = ["F", "D", "F", "Z", "F", "D", "F", "X", "F", "D", "F", "Z", "F", "D", "F", "X"]   # edge i: vertex i -> i+1
+BAND_IN = {"X": 0.130, "Z": 0.110, "D": 0.134, "F": 0.130}
+BAND_SLOPE, RING_Y = 0.020, 0.176
+SECTOR_EDGE = {0: 15, 1: 1, 2: 3, 3: 5, 4: 7, 5: 9, 6: 11, 7: 13}          # tier-2 face k -> parallel tier-1 edge
+SECTOR_START = {0: 15, 1: 0, 2: 3, 3: 4, 4: 7, 5: 8, 6: 11, 7: 12}         # first tier-1 vertex of each sector
 
 # tier 2 and inner octagons: (flat X, flat Z, flat diagonal, y); all carry the tray-end points
-T2_RINGS = [(0.863, 0.843, 0.850, 0.203), (0.863, 0.843, 0.850, 0.246), (0.842, 0.827, 0.818, 0.274),
+T2_RINGS = [(0.863, 0.843, 0.850, 0.176), (0.863, 0.843, 0.850, 0.246), (0.842, 0.827, 0.818, 0.274),
             (0.769, 0.763, 0.757, 0.288), (0.744, 0.740, 0.737, 0.318), (0.738, 0.733, 0.729, 0.318),
             (0.738, 0.733, 0.729, 0.300), (0.662, 0.654, 0.636, 0.300), (0.644, 0.636, 0.614, 0.290),
             (0.642, 0.634, 0.612, 0.253)]
@@ -59,7 +66,10 @@ TRAY_END = {"X": (0.311, 0.357, 0.128, 0.327, 0.330), "Z": (0.282, 0.341, 0.153,
 TRAY_W = {"X": (0.167, 0.221), "Z": (0.206, 0.261), "D": (0.114, 0.182)}
 
 # turntable, rings, column, collar, hub cap
-CIRCLES = [((0.516, 0.516), 0.253), ((0.515, 0.515), 0.301), ((0.497, 0.497), 0.333), ((0.385, 0.385), 0.333),
+# turntable: rim r 0.516 (y 0.253 .. 0.301), top chamfer to r 0.497 at y 0.333; four notches (Step 3b) centred at
+# +-35 / +-145 deg, 26 deg wide, cut from the top down to y 0.300 and in to r 0.485
+NOTCH_C, NOTCH_HALF, NOTCH_EPS, NOTCH_R, NOTCH_FLOOR = (35.0, 145.0, 215.0, 325.0), 13.0, 0.3, 0.485, 0.300
+CIRCLES = [((0.385, 0.385), 0.333),
            ((0.385, 0.385), 0.356), ((0.293, 0.267), 0.356), ((0.293, 0.267), 0.384), ((0.285, 0.259), 0.392)]
 COL_Q = [(0.258, 0.052), (0.180, 0.085), (0.174, 0.149), (0.118, 0.224)]
 COL_YS = [0.392, 0.440, 0.600, 0.700, 0.724]
@@ -69,28 +79,37 @@ LEDGE_Y, COLLAR_Y1 = 0.761, 0.810
 HUB = [((0.150, 0.150), 0.812), ((0.150, 0.150), 0.860), ((0.130, 0.130), 0.884)]
 
 # hinge beam (right side; mirrored), stations along x: (x, bottom y); section bands in z
-BEAM_ST = [(0.120, 0.500), (0.322, 0.502), (0.400, 0.508)]   # underside ~y 0.50 (plan/z-sections at x 0.22)
+BEAM_ST = [(0.120, 0.500, 0.090), (0.270, 0.500, 0.090), (0.322, 0.502, 0.120), (0.400, 0.508, 0.120)]   # (x, underside y, lower-band half depth): band widens under the drum (Step 3b)
 BEAM_TOP = 0.755
 # drums and pin caps: (radius, z) rings along the pin axis, front (-z) to back (+z)
 DRUM_R, DRUM_SEG = 0.118, 16
 DRUM_PROFILE = [(0.065, -0.2404), (0.080, -0.228), (0.080, -0.190), (0.110, -0.190), (0.118, -0.182),
-                (0.118, -0.153), (0.118, 0.153),            # split at the beam depth: the buried part is deleted
+                (0.118, -0.153), (0.118, -0.120), (0.118, -0.090), (0.118, 0.090), (0.118, 0.120),
+                (0.118, 0.153),                             # split at the beam band depths: buried parts are deleted
                 (0.118, 0.195), (0.110, 0.203), (0.100, 0.203), (0.085, 0.2219)]
 
 # arm (right side, cradle-local), stations (inner edge, step, outer edge) in the front plane
 def _arc(r, deg):
     return (PIN_X + r * math.cos(math.radians(deg)), PIN_Y + r * math.sin(math.radians(deg)))
+STRIP_Z, BODY_Z, CH_IN, CH_OUT = 0.110, 0.151, 0.015, 0.015       # rail edge chamfer 15 mm (AI bevel)
+CHANNEL_Z = 0.067                          # inner-face channel half width (Step 3b), between two rails
+_S0 = (_arc(0.140, 97), _arc(0.140, 62), _arc(0.160, 6.5))           # outer: on the boss rim, AI outer contour
+_S1 = ((0.421, 0.901), (0.509, 0.898), (0.671, 0.819))
+_S0B = tuple(((a[0] + b[0]) / 2, (a[1] + b[1]) / 2) for a, b in zip(_S0, _S1))
+# (inner edge = rail face, step, outer edge, strip half depth, channel depth). Root full depth up to y ~0.84;
+# inner edge on the rails (Step 3 had traced the channel floor); channel y 0.99 .. 1.54, 35-40 mm deep.
 ARM_ST = [
-    (_arc(0.140, 97), _arc(0.140, 62), _arc(0.160, 6.5)),        # outer: on the boss rim, AI outer contour
-    ((0.421, 0.901), (0.509, 0.898), (0.671, 0.819)),
-    ((0.424, 0.981), (0.524, 0.983), (0.709, 1.009)),
-    ((0.422, 1.126), (0.489, 1.126), (0.689, 1.126)),
-    ((0.420, 1.271), (0.454, 1.271), (0.666, 1.271)),
-    ((0.411, 1.372), (0.430, 1.372), (0.654, 1.372)),
-    ((0.409, 1.500), (0.433, 1.500), (0.640, 1.500)),
-    ((0.405, 1.550), (0.435, 1.550), (0.592, 1.550)),
+    (*_S0, BODY_Z, 0.0),
+    (*_S0B, STRIP_Z, 0.0),                     # full depth only at the root: AI step ~y 0.78 (inner) .. 0.86 (outer)
+    (*_S1, STRIP_Z, 0.0),
+    ((0.424, 0.981), (0.524, 0.983), (0.709, 1.009), STRIP_Z, 0.0),
+    ((0.417, 0.995), (0.521, 0.997), (0.708, 1.017), STRIP_Z, 0.040),
+    ((0.397, 1.126), (0.489, 1.126), (0.689, 1.126), STRIP_Z, 0.037),
+    ((0.385, 1.271), (0.454, 1.271), (0.666, 1.271), STRIP_Z, 0.036),
+    ((0.377, 1.372), (0.430, 1.372), (0.654, 1.372), STRIP_Z, 0.035),
+    ((0.375, 1.500), (0.433, 1.500), (0.640, 1.500), STRIP_Z, 0.035),
+    ((0.398, 1.550), (0.435, 1.550), (0.592, 1.550), STRIP_Z, 0.0),
 ]
-STRIP_Z, BODY_Z, CH_IN, CH_OUT = 0.110, 0.151, 0.008, 0.015
 BOSS_R0, BOSS_R1, BOSS_Z, BOSS_A0, BOSS_A1, BOSS_SEG, BOSS_CH = 0.124, 0.160, 0.160, 0.0, 98.0, 5, 0.008
 WEB = [(0.398, 1.545), (0.600, 1.545), (0.600, 1.400), (0.651, 1.410), (0.681, 1.437), (0.905, 1.508),
        (0.942, 1.588), (0.940, 1.600), (0.398, 1.600)]            # top 12 mm inside the plate: deleted as hidden
@@ -283,6 +302,34 @@ def poly_offset(poly, d):
     return out
 
 
+def poly_offset_var(poly, ds):
+    """CCW polygon (x, z), edge i (vertex i -> i+1) offset inward by ds[i]"""
+    n = len(poly); lines = []
+    for i in range(n):
+        p = np.array(poly[i], float); q = np.array(poly[(i + 1) % n], float)
+        e = q - p; e /= np.linalg.norm(e)
+        lines.append((p + np.array([-e[1], e[0]]) * ds[i], e))
+    out = []
+    for i in range(n):
+        p1, e1 = lines[i - 1]; p2, e2 = lines[i]
+        t, _ = np.linalg.solve(np.array([e1, -e2]).T, p2 - p1)
+        out.append(tuple(p1 + t * e1))
+    return out
+
+
+def turntable_angles():
+    """16 even angles plus two vertices at each notch edge (outside / inside), sorted"""
+    angs = [11.25 + 22.5 * k for k in range(16)]
+    for c in NOTCH_C:
+        for a in (c - NOTCH_HALF, c - NOTCH_HALF + NOTCH_EPS, c + NOTCH_HALF - NOTCH_EPS, c + NOTCH_HALF):
+            angs = [x for x in angs if abs((x - a + 180) % 360 - 180) > 1.0] + [a % 360]
+    return sorted(angs)
+
+
+def in_notch(a):
+    return any(abs((a - c + 180) % 360 - 180) < NOTCH_HALF - NOTCH_EPS / 2 for c in NOTCH_C)
+
+
 def ellipse16(rx, rz, y, off=11.25):
     return [(rx * math.cos(math.radians(off + 22.5 * k)), y, rz * math.sin(math.radians(off + 22.5 * k))) for k in range(16)]
 
@@ -334,48 +381,93 @@ def t2_ring(fx, fz, fd, y):
 
 def build_base():
     sm = SpecMesh()
-    # tier 1 (16-gon, bottom chamfer, wall, top chamfer)
-    t1 = mirror_quadrants(T1_Q)
-    t1_rings = [ring3(poly_offset(t1, d) if d else t1, y) for d, y in T1_RINGS]
-    for a, b in zip(t1_rings, t1_rings[1:]):
-        sm.bridge(a, b)
-    outer = t1_rings[-1]                       # top outer edge, y 0.203, 16 points
-    # tier 2 / inner octagon rings (24)
+    # tier 1: 16-gon walls with extra vertical edge lines at the tray ends (all quads), outer band, slope,
+    # sunken ring at y 0.176 with the tray pockets (Step 3b)
     t2 = [t2_ring(*r) for r in T2_RINGS]
     for a, b in zip(t2, t2[1:]):
         sm.bridge(a, b)
-    # tier-1 top: 8 sectors, each with a tray pocket against the tier-2 wall
     base = t2[0]
-    O = outer
-    sector_outer = {0: [O[15], O[0]], 1: [O[0], O[1], O[2], O[3]], 2: [O[3], O[4]], 3: [O[4], O[5], O[6], O[7]],
-                    4: [O[7], O[8]], 5: [O[8], O[9], O[10], O[11]], 6: [O[11], O[12]], 7: [O[12], O[13], O[14], O[15]]}
     C = octa_corners(*T2_RINGS[0][:3])
+    t1 = mirror_quadrants(T1_Q)
+    trays = {}; inserts = {}
     for k in range(8):
-        A = base[3 * k]; a = base[3 * k + 1]; b = base[3 * k + 2]; Bn = base[(3 * k + 3) % 24]
         e = np.array(C[(k + 1) % 8]) - np.array(C[k]); e /= np.linalg.norm(e)
-        n = np.array([e[1], -e[0]])            # outward normal (right of the CCW edge)
+        n = np.array([e[1], -e[0]])
         kind = "D" if FACE_TYPES[k].startswith("D") else FACE_TYPES[k]
-        wf, wt = TRAY_W[kind]
+        wf = TRAY_W[kind][0]
         L = float(np.linalg.norm(np.array(C[(k + 1) % 8]) - np.array(C[k])))
         ea, eb = tray_ends(k, L)
         A2 = np.array(C[k])
-        def pt(t, w, y):
-            q = A2 + e * t + n * w
-            return (float(q[0]), y, float(q[1]))
+        pt = lambda t, w, y, A2=A2, e=e, n=n: (float((A2 + e * t + n * w)[0]), y, float((A2 + e * t + n * w)[1]))
+        trays[k] = dict(e=e, n=n, a_m=(ea[1], ea[2]), b_m=(eb[1], eb[2]), a_o=ea[3], b_o=eb[3], wf=wf, pt=pt)
+        # tray-end corners projected along n onto the parallel tier-1 edge -> extra vertices on every tier-1 ring
+        ei = SECTOR_EDGE[k]; v0 = np.array(t1[ei]); v1 = np.array(t1[(ei + 1) % 16])
+        fr = []
+        for tt in (ea[3], eb[3]):
+            q = A2 + e * tt + n * wf
+            M2 = np.array([v1 - v0, -n]).T
+            f, _ = np.linalg.solve(M2, q - v0)
+            fr.append(float(f))
+        t = FACE_TYPES[k]
+        if t in ("X", "Z"): use = fr                    # both ends get a vertex
+        elif t == "D+": use = [fr[1]]                   # X-side end meets the facet corner (edge start vertex)
+        else: use = [fr[0]]                             # D-: X-side end is the edge end vertex
+        inserts.setdefault(ei, []).extend(use)
+        trays[k]["kind_ends"] = t
+
+    def t1_ring(ds, y):
+        off = poly_offset_var(t1, ds)
+        out = []; tags = []
+        for i in range(16):
+            out.append((off[i][0], y, off[i][1])); tags.append(("v", i))
+            p0, p1 = np.array(off[i]), np.array(off[(i + 1) % 16])
+            for f in sorted(inserts.get(i, [])):
+                q = p0 + f * (p1 - p0); out.append((q[0], y, q[1])); tags.append(("p", i, f))
+        return out, tags
+    rings = [t1_ring([d] * 16, y)[0] for d, y in T1_RINGS]
+    band_in, tags = t1_ring([BAND_IN[t] for t in T1_EDGE_TYPES], T1_TOP)
+    ledge, _ = t1_ring([BAND_IN[t] + BAND_SLOPE for t in T1_EDGE_TYPES], RING_Y)
+    rings += [band_in, ledge]
+    for a, b in zip(rings, rings[1:]):
+        sm.bridge(a, b)
+    pos = {tg: i for i, tg in enumerate(tags)}
+    N = len(ledge)
+    for k in range(8):
+        tr = trays[k]; pt = tr["pt"]; ei = SECTOR_EDGE[k]
+        A = base[3 * k]; a = base[3 * k + 1]; b = base[3 * k + 2]; Bn = base[(3 * k + 3) % 24]
+        i0 = pos[("v", SECTOR_START[k])]; i1 = pos[("v", SECTOR_START[(k + 1) % 8])]
+        idx = [(i0 + j) % N for j in range(((i1 - i0) % N) + 1)]
+        Lr = [ledge[i] for i in idx]
+        ins = [j for j, i in enumerate(idx) if tags[i][0] == "p" and tags[i][1] == ei]
+        if tr["kind_ends"] in ("X", "Z"): ja, jb = ins[0], ins[1]
+        elif tr["kind_ends"] == "D+": ja, jb = idx.index(pos[("v", ei)]), ins[0]
+        else: ja, jb = ins[0], idx.index(pos[("v", (ei + 1) % 16)])
+        a_m, b_m = pt(*tr["a_m"], RING_Y), pt(*tr["b_m"], RING_Y)
+        a_t, b_t = pt(tr["a_o"], tr["wf"], RING_Y), pt(tr["b_o"], tr["wf"], RING_Y)
         a_f, b_f = (a[0], TRAY_FLOOR, a[2]), (b[0], TRAY_FLOOR, b[2])
-        am_f, bm_f = pt(ea[1], ea[2], TRAY_FLOOR), pt(eb[1], eb[2], TRAY_FLOOR)      # bulge, floor
-        am_t, bm_t = pt(ea[1], ea[2], T1_TOP), pt(eb[1], eb[2], T1_TOP)              # bulge, top (end walls vertical)
-        a_ff, b_ff = pt(ea[3], wf, TRAY_FLOOR), pt(eb[3], wf, TRAY_FLOOR)            # floor outer corners
-        a_t, b_t = pt(ea[4], wt, T1_TOP), pt(eb[4], wt, T1_TOP)                      # top outer corners
-        sm.f(*(sector_outer[k] + [Bn, b, bm_t, b_t, a_t, am_t, a, A]))              # tier-1 top around the tray
-        sm.f(a_f, b_f, bm_f, b_ff, a_ff, am_f)                                       # tray floor (hexagon)
-        sm.f(a_ff, b_ff, b_t, a_t)                                                   # sloped outer wall
-        sm.f(a, a_f, am_f, am_t); sm.f(am_t, am_f, a_ff, a_t)                        # end walls
-        sm.f(b, bm_t, bm_f, b_f); sm.f(bm_t, b_t, b_ff, bm_f)
-        sm.f(a, b, b_f, a_f)                                                         # tier-2 wall down to the floor
-    # trough floor (24 -> 16) and the turntable / rings
+        am_f, bm_f = pt(*tr["a_m"], TRAY_FLOOR), pt(*tr["b_m"], TRAY_FLOOR)
+        a_ff, b_ff = pt(tr["a_o"], tr["wf"], TRAY_FLOOR), pt(tr["b_o"], tr["wf"], TRAY_FLOOR)
+        sm.f(*(Lr[:ja + 1] + [a_t, a_m, a, A]))                     # sunken ring, start corner
+        sm.f(*(Lr[ja:jb + 1] + [b_t, a_t]))                         # strip outside the tray
+        sm.f(*(Lr[jb:] + [Bn, b, b_m, b_t]))                        # sunken ring, end corner
+        sm.f(a_f, b_f, bm_f, b_ff, a_ff, am_f)                      # tray floor (hexagon)
+        sm.f(a_ff, b_ff, b_t, a_t)                                  # tray walls (14 mm, vertical)
+        sm.f(a, a_f, am_f, a_m); sm.f(a_m, am_f, a_ff, a_t)
+        sm.f(b, b_m, bm_f, b_f); sm.f(b_m, b_t, b_ff, bm_f)
+        sm.f(a, b, b_f, a_f)                                        # tier-2 wall continues down to the floor
+    # turntable with four notches, then the rings
+    angs = turntable_angles()
+    notch = [in_notch(a) for a in angs]
+    def tt(r_fn, y_fn):
+        return [(r_fn(i) * math.cos(math.radians(a)), y_fn(i), r_fn(i) * math.sin(math.radians(a))) for i, a in enumerate(angs)]
+    r14 = tt(lambda i: 0.497 if notch[i] else 0.516, lambda i: 0.253)     # notch also recesses the rim face
+    r15 = tt(lambda i: 0.497 if notch[i] else 0.515, lambda i: 0.301)
+    r16 = tt(lambda i: NOTCH_R if notch[i] else 0.497, lambda i: NOTCH_FLOOR if notch[i] else 0.333)
+    r17 = tt(lambda i: NOTCH_R, lambda i: 0.333)
+    sm.zipper(t2[-1], r14)
+    sm.bridge(r14, r15); sm.bridge(r15, r16); sm.bridge(r16, r17)
     circles = [ellipse16(r[0], r[1], y) for r, y in CIRCLES]
-    sm.zipper(t2[-1], circles[0])
+    sm.zipper(r17, circles[0])
     for a, b in zip(circles, circles[1:]):
         sm.bridge(a, b)
     # column (16), ledge, collar, hub cap
@@ -401,14 +493,14 @@ def build_base():
     return sm.finish(f"{HERO}_Base_01")
 
 
-def beam_section(yb):
-    zb, zm = 0.090, 0.153
+def beam_section(yb, zb=0.090):
+    zm = 0.153
     return [(-zb, yb), (zb, yb), (zb, 0.560), (zm, 0.600), (zm, 0.700), (zb, 0.720), (zb, BEAM_TOP),
             (-zb, BEAM_TOP), (-zb, 0.720), (-zm, 0.700), (-zm, 0.600), (-zb, 0.560)]
 
 
 def add_beam(sm, sx):
-    rings = [[(sx * x, y, z) for z, y in beam_section(yb)] for x, yb in BEAM_ST]
+    rings = [[(sx * x, y, z) for z, y in beam_section(yb, zb)] for x, yb, zb in BEAM_ST]
     for a, b in zip(rings, rings[1:]):
         sm.bridge(a, b)
     for r in (rings[0], rings[-1]):
@@ -444,13 +536,15 @@ def add_drum(sm, sx):
 
 
 def arm_section(st):
-    """12-point stepped section at one station, loop order"""
-    pin, pst, pout = (np.array(p, float) for p in st)
+    """16-point stepped section at one station: 12-point strip/body loop + 4 channel points on the inner face"""
+    pin, pst, pout = (np.array(p, float) for p in st[:3])
+    sz, ch = st[3], st[4]
     n = pout - pin; n /= np.linalg.norm(n)
     I0, Ip = pin, pin + n * CH_IN
     Op, O0 = pout - n * CH_OUT, pout
-    top = [(I0, STRIP_Z - CH_IN), (Ip, STRIP_Z), (pst, STRIP_Z), (pst, BODY_Z), (Op, BODY_Z), (O0, BODY_Z - CH_OUT)]
+    top = [(I0, sz - CH_IN), (Ip, sz), (pst, sz), (pst, BODY_Z), (Op, BODY_Z), (O0, BODY_Z - CH_OUT)]
     loop = top + [(p, -z) for p, z in reversed(top)]
+    loop += [(I0, -CHANNEL_Z), (I0 + n * ch, -CHANNEL_Z), (I0 + n * ch, CHANNEL_Z), (I0, CHANNEL_Z)]
     return [(p[0], p[1], z) for p, z in loop]
 
 
@@ -459,7 +553,7 @@ def add_arm_body(sm):
     for a, b in zip(secs, secs[1:]):
         sm.bridge(a, b)
     for q in (secs[0], secs[-1]):                    # end caps across the depth (sections are bent, not one plane)
-        sm.f(q[0], q[1], q[10], q[11]); sm.f(q[1], q[2], q[9], q[10])
+        sm.f(q[0], q[1], q[10], q[11], q[12], q[15]); sm.f(q[1], q[2], q[9], q[10])
         sm.f(q[2], q[4], q[7], q[9]); sm.f(q[4], q[5], q[6], q[7])
         sm.f(q[2], q[3], q[4]); sm.f(q[9], q[7], q[8])   # the strip/body step closes with two triangles
 

@@ -221,6 +221,17 @@ def deviation(args):
                               max_mm=round(1e3 * d2.max(), 1))
         # clusters over the limit (5 cm bins)
         over = ((d > LIMIT_EDGE) & edge) | ((d > LIMIT_FLAT) & ~edge)
+        cats = {}
+        for pt, dv, e in zip(p[over], d[over], edge[over]):
+            q = pt - np.array([0, 0, V.CZ])
+            lab = categorize(q, dv, bool(e), key)
+            c = cats.setdefault(lab, [0, 0.0, None]); c[0] += 1
+            if dv > c[1]: c[1] = dv; c[2] = np.round(q, 3).tolist()
+        n_vis = len(p)
+        r["categories"] = {k: dict(share_of_visible_pct=round(100 * v[0] / n_vis, 2), max_mm=round(1e3 * v[1], 1), at=v[2])
+                           for k, v in sorted(cats.items())}
+        for k, v in r["categories"].items():
+            print(f"   CAT {key} | {k}: {v['share_of_visible_pct']}% of visible surface, max {v['max_mm']} mm at {v['at']}")
         bins = {}
         for pt, dv, e in zip(p[over], d[over], edge[over]):
             k = tuple(np.floor(pt / 0.05).astype(int))
@@ -510,6 +521,114 @@ def renders(args):
     cam(views[1][1]); shot("cradle_v2_s3_release_34.png")
 
 
+# --------------------------------------------------------------------------- deviation categories (Step 3b)
+PIN = (0.385, 0.637)
+
+
+def _diag(p):
+    """distance along the diagonal normal and along-face coordinate, in the point's quadrant (cradle-local x, z)"""
+    ax, az = abs(p[0]), abs(p[2])
+    return (ax + az) / math.sqrt(2), (ax - az) / math.sqrt(2)
+
+
+def _rpin(p):
+    return math.hypot(abs(p[0]) - PIN[0], p[1] - PIN[1])
+
+
+# c) AI junk that must not be baked (tested on AI geometry and on low-poly samples)
+def _tt_fin(p):
+    a = math.degrees(math.atan2(abs(p[2]), abs(p[0])))
+    return 0.25 < p[1] < 0.30 and 0.49 < math.hypot(p[0], p[2]) < 0.63 and 50 < a < 68
+
+
+JUNK = {    # (test, applies to "base" / "arm")
+    "T1 diagonal faces: openings into the hollow shell + bowing": (lambda p: _diag(p)[0] > 1.00 and p[1] < 0.165 and abs(_diag(p)[1]) < 0.36, "base"),
+    "T2 diagonal faces: bowed ~20 mm": (lambda p: 0.78 < _diag(p)[0] < 0.90 and 0.20 < p[1] < 0.28 and abs(_diag(p)[1]) < 0.36, "base"),
+    "turntable rim: thin broken radial fins (hollow shell)": (_tt_fin, "base"),
+    "old arm-root fins / shoe under the new boss": (lambda p: (_rpin(p) < 0.20 and 0.60 < p[1] < 0.86)
+                                                    or (0.15 < abs(p[0]) < 0.34 and 0.735 < p[1] < 0.80), "arm"),
+    "splitter cut faces on the hinge beam top": (lambda p: 0.20 < abs(p[0]) < 0.36 and 0.72 < p[1] < 0.77 and abs(p[2]) < 0.16, "base"),
+    "arm front/back asymmetric recess (z- side only)": (lambda p: 0.62 < abs(p[0]) < 0.68 and 1.28 < p[1] < 1.40 and p[2] < -0.12, "arm"),
+}
+# b) deliberate design differences (low-poly samples)
+DESIGN = {
+    "root boss replaces the AI root": lambda p, part: part != "Base_01" and _rpin(p) < 0.175 and p[1] < 0.86,
+    "drum raised bands (13 mm) not modelled - boss slides over the drum": lambda p, part: part == "Base_01" and 0.10 < _rpin(p) < 0.15 and 0.06 < abs(p[2]) < 0.17 and abs(p[0]) > 0.40,
+}
+# a) features modelled as geometry in Step 3 / 3b (residual deviation reported)
+MODELLED = {
+    "tier-1 top: band / slope / sunken ring / trays": lambda p, part: part == "Base_01" and 0.155 < p[1] < 0.21 and 0.80 < math.hypot(p[0], p[2]) < 1.22,
+    "turntable notches": lambda p, part: part == "Base_01" and 0.29 < p[1] < 0.34 and 0.46 < math.hypot(p[0], p[2]) < 0.53,
+    "arm inner channel + rails": lambda p, part: part != "Base_01" and abs(p[2]) < 0.075 and 0.97 < p[1] < 1.57 and abs(p[0]) < 0.48,
+    "arm root full depth": lambda p, part: part != "Base_01" and 0.74 < p[1] < 0.92 and abs(p[2]) > 0.09 and abs(p[0]) < 0.55,
+    "hinge-beam fillet": lambda p, part: part == "Base_01" and 0.14 < abs(p[0]) < 0.33 and 0.43 < p[1] < 0.51 and abs(p[2]) < 0.07,
+}
+
+
+def categorize(p, d, edge, part):
+    """returns category label for one over-limit sample (cradle-local spec p)"""
+    kind = "base" if part == "Base_01" else "arm"
+    for k, f in DESIGN.items():                       # the boss surface counts as design even where AI fins lay under it
+        if f(p, part): return "b: " + k
+    for k, (f, where) in JUNK.items():
+        if where == kind and f(p): return "c: " + k
+    for k, f in DESIGN.items():
+        if f(p, part): return "b: " + k
+    for k, f in MODELLED.items():
+        if f(p, part): return "a: " + k
+    if d <= 0.015:
+        return "b: chamfer vs AI rounded edge (<= 15 mm)" if edge else "detail <= 15 mm (normal map by rule)"
+    return "other > 15 mm"
+
+
+def bake_junk(args):
+    """AI high-poly with the c) zones in red -> Renders/cradle_v2_s3b_bake_junk.png"""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    ref = ai_ref()
+    for key, (v, t) in ref.items():
+        loc = v - np.array([0, 0, V.CZ])
+        kind = "base" if key == "Base_01" else "arm"
+        junk = np.array([any(f(q) for f, where in JUNK.values() if where == kind) for q in loc])
+        me = bpy.data.meshes.new("AI_" + key)
+        bv = np.column_stack((-v[:, 0], -v[:, 2], v[:, 1]))
+        me.vertices.add(len(bv)); me.vertices.foreach_set("co", bv.ravel())
+        tt = t[:, ::-1]
+        me.loops.add(tt.size); me.loops.foreach_set("vertex_index", tt.ravel())
+        me.polygons.add(len(tt)); me.polygons.foreach_set("loop_start", np.arange(0, tt.size, 3)); me.polygons.foreach_set("loop_total", np.full(len(tt), 3))
+        me.update(); me.validate()
+        col = me.color_attributes.new("dev", 'FLOAT_COLOR', 'POINT')
+        c = np.tile(np.array([0.55, 0.56, 0.60, 1.0]), (len(bv), 1)); c[junk] = (0.95, 0.12, 0.10, 1.0)
+        col.data.foreach_set("color", c.ravel())
+        me.color_attributes.active_color = col
+        o = bpy.data.objects.new("AI_" + key, me); bpy.context.scene.collection.objects.link(o)
+        print("JUNK", key, int(junk.sum()), "of", len(junk), "vertices")
+    setup_render(color='VERTEX')
+    cz = V.CZ
+    camera([-2.3, 1.7, cz - 2.5], [0, 0.55, cz], lens=38); shot("cradle_v2_s3b_bake_junk.png")
+    camera([2.3, 1.2, cz + 2.4], [0, 0.45, cz], lens=38); shot("cradle_v2_s3b_bake_junk_back.png")
+    camera([0.9, 0.95, cz - 1.2], [0.38, 0.72, cz], lens=40); shot("cradle_v2_s3b_bake_junk_root.png")
+
+
+
+def renders_3b(args):
+    """cradle_v2_s3b_*: shaded + wire (34, top, corner pocket, turntable notch)"""
+    objs = open_file(); colours(objs); setup_render()
+    cz = V.CZ
+    views = [("34", dict(loc=[-2.9, 2.4, cz - 3.2], look=[0, 0.9, cz])),
+             ("top", dict(loc=[0, 8, cz + 0.001], look=[0, 0, cz], ortho=2.9, spin=True)),
+             ("pocket", dict(loc=[0.95, 0.95, cz - 1.55], look=[0.45, 0.18, cz - 0.85], lens=40)),
+             ("notch", dict(loc=[0.66, 0.66, cz - 0.95], look=[0.40, 0.31, cz - 0.28], lens=45))]
+    def cam(v):
+        c = camera(v["loc"], v["look"], ortho=v.get("ortho"), lens=v.get("lens", 40))
+        if v.get("spin"): c.rotation_euler[2] += math.pi
+    for name, v in views:
+        cam(v); shot(f"cradle_v2_s3b_shaded_{name}.png")
+    wires = add_wire(objs)
+    for name, v in views:
+        cam(v); shot(f"cradle_v2_s3b_wire_{name}.png")
+    camera([-0.15, 1.30, cz - 0.95], [0.40, 1.15, cz], lens=45); shot("cradle_v2_s3b_wire_channel.png")
+
+
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else ["topo"]
-    {"topo": topo, "deviation": deviation, "quick": quick, "clearance": clearance, "renders": renders}.get(argv[0], lambda a: print("unknown stage"))(argv[1:])
+    {"topo": topo, "deviation": deviation, "quick": quick, "clearance": clearance, "renders": renders, "bake_junk": bake_junk, "renders_3b": renders_3b}.get(argv[0], lambda a: print("unknown stage"))(argv[1:])
