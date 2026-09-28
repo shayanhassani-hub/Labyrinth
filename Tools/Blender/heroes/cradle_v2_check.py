@@ -707,6 +707,233 @@ def renders_3c(args):
         camera(loc, look, lens=lens); shot(f"cradle_v2_s3c_holes_{name}.png")
 
 
+
+# --------------------------------------------------------------------------- Step 4: UV checks and renders
+
+UV_UNIQUE = ["Base_01", "Arm_R_01", "Pad_R_01", "Riser_L_01"]        # Arm_L = mirrored Arm_R, Pad_L = Pad_R mesh
+UV_COL = {"Base_01": (0.30, 0.55, 0.95), "Arm_R_01": (0.95, 0.75, 0.15), "Pad_R_01": (0.95, 0.35, 0.10),
+          "Riser_L_01": (0.35, 0.85, 0.45)}
+TEXPX = 2048
+
+
+def uv_islands(me):
+    """face index lists per UV island (faces joined where they share a vertex with the same UV)"""
+    uvd = me.uv_layers.active.data
+    key = {}
+    parent = list(range(len(me.polygons)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]; i = parent[i]
+        return i
+    for p in me.polygons:
+        for li in p.loop_indices:
+            k = (me.loops[li].vertex_index, round(uvd[li].uv[0], 5), round(uvd[li].uv[1], 5))
+            if k in key: parent[find(p.index)] = find(key[k])
+            else: key[k] = p.index
+    groups = {}
+    for p in me.polygons: groups.setdefault(find(p.index), []).append(p.index)
+    return list(groups.values())
+
+
+def raster(tris_uv, size, label, img, count=None):
+    """fill triangles (N,3,2 in 0-1) into img (size x size) with label; count = coverage counter"""
+    for t in tris_uv:
+        P = t * size
+        x0, y0 = np.floor(P.min(0)).astype(int); x1, y1 = np.ceil(P.max(0)).astype(int)
+        x0, y0 = max(x0, 0), max(y0, 0); x1, y1 = min(x1, size), min(y1, size)
+        if x1 <= x0 or y1 <= y0: continue
+        xs, ys = np.meshgrid(np.arange(x0, x1) + 0.50013, np.arange(y0, y1) + 0.50029)   # off-grid: no double hits on shared edges
+        a, b, c = P
+        d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+        if abs(d) < 1e-12: continue
+        l1 = ((b[1] - c[1]) * (xs - c[0]) + (c[0] - b[0]) * (ys - c[1])) / d
+        l2 = ((c[1] - a[1]) * (xs - c[0]) + (a[0] - c[0]) * (ys - c[1])) / d
+        m = (l1 >= 0) & (l2 >= 0) & (1 - l1 - l2 >= 0)
+        sub = img[y0:y1, x0:x1]; sub[m] = label
+        if count is not None: count[y0:y1, x0:x1][m] += 1
+
+
+def uv_data(objs):
+    out = {}
+    for name in UV_UNIQUE:
+        o = objs[name]; me = o.data; uvd = me.uv_layers.active.data; M = o.matrix_world
+        me.calc_loop_triangles()
+        isl = uv_islands(me)
+        tris = np.array([[uvd[li].uv[:] for li in lt.loops] for lt in me.loop_triangles])
+        tri_face = np.array([lt.polygon_index for lt in me.loop_triangles])
+        faces = []
+        for p in me.polygons:
+            P = [np.array((M @ me.vertices[v].co)[:]) for v in p.vertices]
+            U = [np.array(uvd[li].uv[:]) for li in p.loop_indices]
+            faces.append((P, U))
+        out[name] = dict(me=me, isl=isl, tris=tris, tri_face=tri_face, faces=faces)
+    return out
+
+
+def _area3(P):
+    n = np.zeros(3)
+    for i in range(1, len(P) - 1): n += np.cross(P[i] - P[0], P[i + 1] - P[0])
+    return np.linalg.norm(n) / 2
+
+
+def _area2(U):
+    s_ = 0.0
+    for i in range(len(U)):
+        a, b = U[i], U[(i + 1) % len(U)]; s_ += a[0] * b[1] - b[0] * a[1]
+    return s_ / 2
+
+
+def _angles(P):
+    n = len(P); out = []
+    for i in range(n):
+        a = P[i - 1] - P[i]; b = P[(i + 1) % n] - P[i]
+        c = np.dot(a, b) / max(np.linalg.norm(a) * np.linalg.norm(b), 1e-12)
+        out.append(math.degrees(math.acos(max(-1, min(1, c)))))
+    return np.array(out)
+
+
+def uv_stats(D, size=TEXPX):
+    res = {}
+    for name in UV_UNIQUE:
+        d = D[name]; A3 = []; A2 = []; ang = []
+        for P, U in d["faces"]:
+            A3.append(_area3(P)); A2.append(_area2(U))
+            ang.append(np.abs(_angles(P) - _angles(U)).max())
+        A3 = np.array(A3); S2 = np.array(A2); A2 = np.abs(S2); ang = np.array(ang)
+        k = A2.sum() / A3.sum()
+        dens = math.sqrt(k) * size
+        r = A2 / np.maximum(A3, 1e-12)
+        for g in d["isl"]: r[g] = r[g] / (A2[g].sum() / A3[g].sum())      # distortion only: per island, density factors removed
+        big = A3 > 2e-4                                  # extremes over faces > 2 cm2 (slivers reported separately)
+        isl_d = [math.sqrt(A2[g].sum() / A3[g].sum()) * size for g in d["isl"]]
+        flips = sum(1 for g in d["isl"] if S2[g].sum() < 0)
+        res[name] = dict(px_per_m=round(dens, 1), islands=len(d["isl"]), island_px_per_m_min=round(min(isl_d), 1),
+                         island_px_per_m_max=round(max(isl_d), 1), area_ratio_min=round(float(r[big].min()), 3),
+                         area_ratio_max=round(float(r[big].max()), 3), angle_dev_max_deg=round(float(ang[big].max()), 1),
+                         angle_dev_mean_deg=round(float((ang * A3).sum() / A3.sum()), 2),
+                         area_ratio_min_all=round(float(r.min()), 3), area_ratio_max_all=round(float(r.max()), 3),
+                         angle_dev_max_all=round(float(ang.max()), 1),
+                         flipped_islands=flips, flipped_faces=int((S2 < 0).sum()), area_3d_m2=round(float(A3.sum()), 3),
+                         island_density=isl_d)
+    return res
+
+
+def uv(args):
+    objs = open_file(); D = uv_data(objs)
+    size = TEXPX
+    res = uv_stats(D, size)
+    lab = np.zeros((size, size), np.int32); cnt = np.zeros((size, size), np.int16)
+    gid = 0; isl_part = {}
+    for name in UV_UNIQUE:
+        d = D[name]
+        for g in d["isl"]:
+            gid += 1; isl_part[gid] = name
+            raster(d["tris"][np.isin(d["tri_face"], g)], size, gid, lab, cnt)
+    over = int((cnt > 1).sum())
+    used = float((lab > 0).mean())
+    if over:                                        # name the islands that overlap (self or neighbour)
+        for name in UV_UNIQUE:
+            d = D[name]
+            for g in d["isl"]:
+                t = d["tris"][np.isin(d["tri_face"], g)]
+                lo_ = np.floor(t.reshape(-1, 2).min(0) * size).astype(int); hi_ = np.ceil(t.reshape(-1, 2).max(0) * size).astype(int)
+                if (cnt[lo_[1]:hi_[1], lo_[0]:hi_[0]] > 1).sum() == 0: continue
+                own = np.zeros((size, size), np.int16); raster(t, size, 1, np.zeros((size, size), np.int8), own)
+                selfo = int((own > 1).sum())
+                P = np.vstack([d["faces"][f][0] for f in g]).mean(0)
+                print(f"INFO overlap {name} island ({len(g)} faces) at cradle-local ({-P[0]:+.2f},{P[2]:.2f},{-P[1] - V.CZ:+.2f}): "
+                      f"self {selfo} px, total {int((cnt[lo_[1]:hi_[1], lo_[0]:hi_[0]] > 1).sum())} px in bbox")
+    # padding: grow all islands one pixel per step; two different islands meeting at step k -> gap about 2k - 1 px
+    L = lab.copy(); gap = None
+    for k in range(1, V.UV.PAD_PX // 2 + 1):
+        for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            sh_ = np.zeros_like(L)
+            ys = slice(max(dy, 0), size + min(dy, 0)); yd = slice(max(-dy, 0), size + min(-dy, 0))
+            xs = slice(max(dx, 0), size + min(dx, 0)); xd = slice(max(-dx, 0), size + min(-dx, 0))
+            sh_[ys, xs] = L[yd, xd]
+            if gap is None and ((L > 0) & (sh_ > 0) & (L != sh_)).any(): gap = 2 * k - 1
+            L = np.where(L == 0, sh_, L)
+        if gap is not None: break
+    allu = np.vstack([D[n]["tris"].reshape(-1, 2) for n in UV_UNIQUE])
+    border = float(min(allu.min(), 1 - allu.max()) * size)
+    uvl = np.array([x.uv[:] for x in objs["Arm_L_01"].data.uv_layers.active.data])
+    uvr = np.array([x.uv[:] for x in objs["Arm_R_01"].data.uv_layers.active.data])
+    share_arm = sorted(map(tuple, np.round(uvl, 6))) == sorted(map(tuple, np.round(uvr, 6)))
+    share_pad = objs["Pad_L_01"].data == objs["Pad_R_01"].data
+    uvsum = sum(float(np.abs([_area2(U) for _, U in D[n]["faces"]]).sum()) for n in UV_UNIQUE)
+    for name, r in res.items():
+        ok = r["flipped_islands"] == 0
+        print(f"{'PASS' if ok else 'FAIL'} {name}: {r['px_per_m']} px/m (islands {r['island_px_per_m_min']}-{r['island_px_per_m_max']}), "
+              f"{r['islands']} islands, area ratio {r['area_ratio_min']}-{r['area_ratio_max']} (all faces {r['area_ratio_min_all']}-"
+              f"{r['area_ratio_max_all']}), angle dev max {r['angle_dev_max_deg']} deg (all {r['angle_dev_max_all']}, "
+              f"area-weighted mean {r['angle_dev_mean_deg']}), flipped islands {r['flipped_islands']}")
+    print(f"{'PASS' if over == 0 else 'FAIL'} overlaps (unique meshes): {over} px")
+    print(f"{'PASS' if gap is None else 'FAIL'} island padding >= {V.UV.PAD_PX} px" + ("" if gap is None else f" (closest ~{gap} px)"))
+    print(f"{'PASS' if border >= V.UV.BORDER_PX - 0.01 else 'FAIL'} border: {border:.1f} px")
+    print(f"{'PASS' if share_arm else 'FAIL'} Arm_L shares Arm_R UV space (mirrored overlap, intended)")
+    print(f"{'PASS' if share_pad else 'FAIL'} Pad_L = Pad_R mesh (shared UVs, intended)")
+    print(f"INFO packing: {used * 100:.1f} % of 0-1 covered (raster), UV area sum {uvsum * 100:.1f} %; islands total {gid}")
+    for r in res.values(): r.pop("island_density")
+    out = dict(parts=res, overlap_px=over, min_gap_px=gap, border_px=round(border, 1), coverage=round(used, 4),
+               islands=gid, arm_shared=share_arm, pad_shared=share_pad)
+    os.makedirs(SCR, exist_ok=True)
+    json.dump(out, open(os.path.join(SCR, "uv_report.json"), "w"), indent=1)
+    if args and args[0] == "render":
+        uv_layout_png(lab, isl_part)
+        uv_renders(objs)
+
+
+def uv_layout_png(lab, isl_part):
+    size = lab.shape[0]
+    lut = np.zeros((max(isl_part) + 1, 3)); lut[0] = (0.10, 0.10, 0.11)
+    rng = np.random.default_rng(1)
+    for gid, name in isl_part.items():
+        lut[gid] = np.clip(np.array(UV_COL[name]) * rng.uniform(0.7, 1.05), 0, 1)
+    rgb = lut[lab]
+    edge = np.zeros(lab.shape, bool)                  # island outlines
+    edge[:, :-1] |= lab[:, :-1] != lab[:, 1:]; edge[:-1, :] |= lab[:-1, :] != lab[1:, :]
+    rgb[edge & (lab > 0)] = (0.02, 0.02, 0.02)
+    b = V.UV.BORDER_PX
+    rgb[b, :] = rgb[-b - 1, :] = rgb[:, b] = rgb[:, -b - 1] = (0.35, 0.35, 0.35)
+    img = bpy.data.images.new("uvlayout", size, size, alpha=False)
+    img.pixels.foreach_set(np.concatenate([rgb, np.ones((size, size, 1))], axis=2).astype(np.float32).ravel())
+    img.filepath_raw = os.path.join(RENDERS, "cradle_v2_s4_uv_layout.png"); img.file_format = 'PNG'; img.save()
+    print("RENDER cradle_v2_s4_uv_layout.png")
+
+
+def checker_image(size=TEXPX, cell=32):
+    """32 px checker (6.25 cm at 512 px/m), tinted red along U and green along V, dark line every 8 cells"""
+    y, x = np.mgrid[0:size, 0:size]
+    chk = ((x // cell + y // cell) % 2).astype(np.float32)
+    u = x / size; v = y / size
+    k = 0.55 + 0.45 * chk
+    rgb = np.stack([(0.35 + 0.5 * u) * k, (0.35 + 0.5 * v) * k, np.full_like(u, 0.5) * k], axis=2)
+    rgb[(x % (cell * 8)) < 3] *= 0.25; rgb[(y % (cell * 8)) < 3] *= 0.25
+    img = bpy.data.images.new("checker", size, size, alpha=False)
+    img.pixels.foreach_set(np.concatenate([rgb, np.ones((size, size, 1))], axis=2).astype(np.float32).ravel())
+    img.pack()
+    return img
+
+
+def uv_renders(objs):
+    img = checker_image()
+    m = bpy.data.materials.new("M_UVChecker")
+    nt = m.node_tree if m.node_tree else None
+    if nt is None:
+        m.use_nodes = True; nt = m.node_tree
+    tex = nt.nodes.new("ShaderNodeTexImage"); tex.image = img; tex.interpolation = 'Closest'
+    nt.links.new(tex.outputs["Color"], nt.nodes["Principled BSDF"].inputs["Base Color"]); nt.nodes.active = tex
+    for o in objs.values():
+        o.data.materials.clear(); o.data.materials.append(m)
+    setup_render(color='TEXTURE')
+    bpy.context.scene.display.shading.show_cavity = False
+    cz = V.CZ
+    camera([-2.9, 2.4, cz - 3.2], [0, 0.8, cz], lens=40); shot("cradle_v2_s4_checker_34.png")
+    camera([0, 6.0, cz + 0.01], [0, 0, cz], lens=55); shot("cradle_v2_s4_checker_top.png")
+    camera([1.0, 1.0, cz - 0.9], [0.40, 0.62, cz], lens=45); shot("cradle_v2_s4_checker_hinge.png")
+
+
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else ["topo"]
-    {"topo": topo, "deviation": deviation, "quick": quick, "clearance": clearance, "renders": renders, "bake_junk": bake_junk, "renders_3b": renders_3b, "renders_3c": renders_3c}.get(argv[0], lambda a: print("unknown stage"))(argv[1:])
+    {"topo": topo, "deviation": deviation, "quick": quick, "clearance": clearance, "renders": renders, "bake_junk": bake_junk, "renders_3b": renders_3b, "renders_3c": renders_3c, "uv": uv}.get(argv[0], lambda a: print("unknown stage"))(argv[1:])

@@ -32,6 +32,8 @@ import sys
 import numpy as np
 from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import cradle_v2_uv as UV
 
 HERO = "LAB_HERO_Cradle"
 SAVE = "D:/AI_Labyrinth/Blender/Source/Heroes/Cradle/LAB_HERO_Cradle_v2.blend"
@@ -333,6 +335,15 @@ class SpecMesh:
                                      cmp_vcols=False, cmp_materials=False,
                                      angle_face_threshold=math.radians(0.5), angle_shape_threshold=math.radians(70))
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+        bm.normal_update()
+        # concave quads (e.g. the 1 mm-wide column-top ledge, Step 4): split on the reflex diagonal, so the
+        # triangulation (bake, UVs, engine) cannot fold the face over itself
+        for f in [f for f in bm.faces if len(f.verts) == 4]:
+            vs = [v.co for v in f.verts]; n = f.normal
+            reflex = [i for i in range(4) if (vs[i] - vs[i - 1]).cross(vs[(i + 1) % 4] - vs[i]).dot(n) < -1e-12]
+            if reflex:
+                i = reflex[0]
+                bmesh.ops.connect_verts(bm, verts=[f.verts[i], f.verts[(i + 2) % 4]])
         ox, oy, oz = offset
         for v in bm.verts:
             x, y, z = v.co
@@ -781,11 +792,9 @@ def delete_hidden(parts, arms, only=None):
 # --------------------------------------------------------------------------- shading
 
 
-def apply_shading(obj, sharp_deg=50.0):
+def apply_shading(obj):
+    """smooth faces + face-area weighted normals; hard edges were set by cradle_v2_uv.mark_edges"""
     bm = bmesh.new(); bm.from_mesh(obj.data)
-    lim = math.radians(sharp_deg)
-    for e in bm.edges:
-        e.smooth = not (e.is_manifold and e.calc_face_angle(0.0) > lim) and not e.is_boundary
     for f in bm.faces: f.smooth = True
     bm.to_mesh(obj.data); bm.free()
     mod = obj.modifiers.new("WN", 'WEIGHTED_NORMAL'); mod.mode = 'FACE_AREA'; mod.weight = 50
@@ -804,6 +813,30 @@ def mat(name, rgb):
     b = m.node_tree.nodes.get("Principled BSDF")
     if b: b.inputs["Base Color"].default_value = (*rgb, 1.0)
     return m
+
+
+UV_REDUCED = {"underside": 0.5, "back": 0.7}      # texel density factors for rarely seen islands (Step 4, option c)
+UV_CLASS_AREA = {}
+
+
+def uv_density(o, isl):
+    """density factor per island: undersides (facing down in the closed and the released pose) x0.5;
+    Base faces on the back half facing back (spec +Z, away from the front / approach side) x0.7"""
+    a = sum(f.calc_area() for f in isl)
+    n = sum((f.normal * f.calc_area() for f in isl), Vector()).normalized()
+    c = sum((o.matrix_world @ f.calc_center_median() * f.calc_area() for f in isl), Vector()) / max(a, 1e-12)
+    ns = [n]
+    if "Arm" in o.name or "Pad" in o.name or "Riser" in o.name:            # also the released pose (arms turn about Y)
+        s = -1 if "_R_" in o.name else 1
+        ns.append(Matrix.Rotation(math.radians(s * RELEASE_DEG), 3, 'Y') @ n)
+    cls = None
+    if all(m.z < -0.5 for m in ns):
+        cls = "underside"
+    elif "Base" in o.name and -n.y > 0.5 and (-c.y - CZ) > 0.2:
+        cls = "back"
+    k = f"{o.name.replace(HERO + '_', '')}:{cls}"
+    UV_CLASS_AREA[k] = UV_CLASS_AREA.get(k, 0.0) + a
+    return UV_REDUCED.get(cls, 1.0)
 
 
 def build():
@@ -836,18 +869,25 @@ def build():
     arm_l.data = mirrored_mesh(arm_r.data, f"{HERO}_Arm_L_01")
     bpy.data.meshes.remove(old_l)
     arm_l.data.name = f"{HERO}_Arm_L_01"
-    apply_shading(base, 40.0)                     # plinth/octagon corners (~45 deg) read crisp
-    for o in (arm_r, arm_l, pad_r, riser_l):
+    # Step 4: hard edges, seams, UVs on the unique meshes (Arm_L shares Arm_R's UV space, mirrored)
+    uv_report = UV.unwrap_and_pack([base, arm_r, pad_r, riser_l], uv_density)
+    uv_report["class_area_m2"] = {k: round(v, 3) for k, v in sorted(UV_CLASS_AREA.items())}
+    old_l = arm_l.data
+    arm_l.data = mirrored_mesh(arm_r.data, f"{HERO}_Arm_L_01")
+    bpy.data.meshes.remove(old_l)
+    arm_l.data.name = f"{HERO}_Arm_L_01"
+    for o in (base, arm_r, arm_l, pad_r, riser_l):
         apply_shading(o)
     # second pad instance only now: a modifier cannot be applied to multi-user mesh data
     pad_l = obj(f"{HERO}_Pad_L_01", pad_me, arm_l, (-(PAD_X - PIN_X), PLATE_TOP + RISER["h"] - PIN_Y, 0), m_amber)
     bpy.context.view_layer.update()
-    return [base, arm_l, arm_r, pad_r, riser_l, pad_l], arms, removed
+    return [base, arm_l, arm_r, pad_r, riser_l, pad_l], arms, removed, uv_report
 
 
 def main():
-    parts, arms, removed = build()
+    parts, arms, removed, uv_report = build()
     print("HIDDEN faces deleted:", removed)
+    print("UV:", uv_report)
     bpy.ops.wm.save_as_mainfile(filepath=SAVE, compress=True)
     print("SAVED", SAVE)
 
