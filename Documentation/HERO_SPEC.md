@@ -64,8 +64,8 @@ mirrored with it); after: max 0.1 mm. Above the cut the mesh is untouched (mean 
 | `LAB_HERO_Cradle_Base_01` | plinth tiers, turntable rings, column, hinge beam, both hinge drums, pin caps, hub — one continuous static body | floor centre (0, 0, 4.69) | no |
 | `LAB_HERO_Cradle_Arm_L_01` | left arm + rest plate (one mesh) | on the left pin axis: (−0.385, 0.637, 4.69), axis Z | 0 → **+75°** about local Z |
 | `LAB_HERO_Cradle_Arm_R_01` | mirror image of Arm_L | (+0.385, 0.637, 4.69), axis Z | 0 → **−75°** |
-| `LAB_HERO_Cradle_Pad_L_01` (amber) | pad under the back-left limb, **64.4 mm** thick | same pivot as Arm_L (child of it) | with Arm_L |
-| `LAB_HERO_Cradle_Pad_R_01` (amber) | pad under the front-right limb, **10 mm** thick | same pivot as Arm_R | with Arm_R |
+| `LAB_HERO_Cradle_Pad_R_01` / `_Pad_L_01` (amber) | two instances of one mesh `LAB_HERO_Cradle_Pad_01`: 0.22 × 0.010 × 0.14, 3 mm chamfers | own bottom centre, child of Arm_R / Arm_L | with the arm |
+| `LAB_HERO_Cradle_Riser_L_01` (grey metal) | riser under the left pad, 0.23 × **0.0544** × 0.15, 4 mm chamfers | own bottom centre, child of Arm_L | with Arm_L |
 
 Unity sign: a +Z rotation turns +Y towards −X, so +75° opens Arm_L outward and −75° opens Arm_R.
 Arm_L/Arm_R are two meshes (mirror copies), no negative scale. The pin itself is not a separate
@@ -137,9 +137,13 @@ span x −1.139 … 1.138, fixed body top y 0.884.
   r 0.28 … 0.62 from the body centre, 0.118 wide). The yaw lines up the **front-right** limb along +X
   (onto the right plate) and the **back-left** limb along −X (onto the left plate); limb axes within
   0.9 mm of the plate centre lines.
-- **Pads** (amber, identical outline 0.22 × 0.14, along the limb from r 0.39 to 0.61, outboard of the
-  pin, see the pad study): Pad_R 10 mm (top y 1.7091), Pad_L 64.4 mm (top y 1.7635). Contact gap
-  **3.0 mm** on both limbs; plate tops y 1.6991.
+- **Pads** (Step 3, owner decision 2026-09-28): two **identical** amber pads (one mesh, 10 mm, 0.22 × 0.14,
+  along the limb from r 0.39 to 0.61, outboard of the pin). The left limb's extra 54.4 mm is a grey metal
+  **riser** under the left pad (0.23 × 0.15, 5 mm larger per side), parented to Arm_L; the arms stay exact
+  mirror images. Pad tops y 1.7091 (right) / 1.7635 (left); contact gap **3.0 mm** on both limbs
+  (low-poly check: 3.04 / 2.97 mm); plate tops y 1.6991.
+- **Plate inner edge**: 40 × 8 mm chamfer on the inner top edge (x 0.280 … 0.320), so the rising inner
+  edge keeps limbs ≥ 10 mm away during the fold (low-poly: min 11.1 mm at 3°).
 - Docked clearances: limbs to arms/plates ≥ 12.2 mm; engines ≥ 13.8 mm (to the right plate);
   body ≥ 49.8 mm (arms), 0.68 m (hub); spinning propeller discs ≥ 106.5 mm (pads), ≥ 116.5 mm (arms).
 
