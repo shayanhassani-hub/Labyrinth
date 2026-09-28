@@ -20,6 +20,9 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
   into the normal map from the high-poly.
 - Large exposed edges get a one-segment chamfer (~8 mm) on the low-poly for edge
   highlights. Everything smaller is baked.
+- Depth rule (owner decision 2026-09-28): on visible surfaces, recesses and protrusions
+  deeper than ~15 mm are modelled as geometry; shallower detail goes to the normal map.
+  Reason: in VR, stereo depth makes large baked-only detail look flat at 1-2 m.
 - Round shapes: segment count by size and viewing distance (16 for Ø >= 0.4 m,
   8-12 for small parts). Where round and straight forms meet, match vertex counts so
   the transition is quads.

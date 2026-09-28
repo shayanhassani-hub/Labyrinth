@@ -126,6 +126,20 @@ plane (x, y):
   including the edge rib; top flat x 0.290 … 1.110, z ±0.197. Edge: a **rib** 40 mm tall
   (y 1.624 … 1.664), 16.5 mm proud of the upper and lower bands (24 mm each); top edge chamfer ~4 mm.
 
+**Step 3b corrections (2026-09-28, depth rule: visible relief > 15 mm is geometry).**
+- *Tier-1 top* (AI height map): an outer band at y 0.203 (inner edge inset 0.130 X / 0.110 Z / 0.134
+  diagonal from the tier-1 faces), a 20 mm slope, then a **sunken ring at y 0.176** down to the tier-2 wall
+  (tier-2 wall now starts at 0.176). The trays are cut 14 mm deeper into that ring (floor 0.162, vertical
+  walls). The ring shows between the trays as the eight corner pockets (28 mm below the band).
+- *Turntable*: four notches centred at ±35° / ±145°, 26° wide: top cut from y 0.333 down to 0.300 and in
+  to r 0.485, rim face recessed to r 0.497 below.
+- *Arm inner face*: two rails (inner edge x 0.417 → 0.375 from y 0.995 to 1.50, 15 mm edge chamfer) with a
+  **channel** z ±0.067, 35-40 mm deep, y 0.99 … 1.54. Root full depth (±0.151) up to the boss, strip
+  depth ±0.110 from y ~0.84.
+- *Hinge beam*: lower band half depth 0.090 at the column widening to **0.120** under the drum (x ≥ 0.32).
+- Not modelled, by decision: the drum's two raised bands (13 mm, below the rule, and the root boss
+  slides over the drum).
+
 Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
 span x −1.139 … 1.138, fixed body top y 0.884.
 
