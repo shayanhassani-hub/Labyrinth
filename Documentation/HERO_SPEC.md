@@ -38,43 +38,148 @@ until the service arm is fully stowed, so the drone can never launch into it.
 - **Quality:** Hero tier in `ASSET_RULES.md`. Heroes whose dimensions are fully specified (the
   Cradle) are built directly at production quality, no separate greybox.
 
-## 3. Hero 01 — Docking cradle (`Cradle`)
+## 3. Hero 01 — Docking cradle (`Cradle`), v2 (AI transfer workflow)
 
-**Drone at rest (measured live 2026-09-25):** body (`Body_low`) x −0.177 … 0.177,
-y 1.568 … 1.949, z 4.49 … 4.88, centre (0, 1.758, 4.687). The drone's arms leave the body sides
-at |x| ≈ 0.13 with their underside at y ≈ 1.65, so **the body can't be gripped from the sides**:
-the yoke is a fork that cups the body's underside, which hangs 8 cm below the arms. Whole drone
-including propellers: x ±0.944, y 1.568 … 1.986, z 4.07 … 5.31.
+Status: **v2 spec, 2026-09-28** (Step 2 of the AI transfer workflow, ASSET_RULES "Hero workflow v1").
+Supersedes the Part 1 design (§3a). Design source: Hunyuan 3D model `cradle_hy_*`
+(D:\AI_Labyrinth\Hunyuan\Downloads\Cradle, originals untouched), fitted and measured in
+`D:\AI_Labyrinth\Blender\Source\Heroes\Cradle\LAB_HERO_Cradle_AI.blend` (collection `AI_FIT_A`).
+Scripts: `Tools/Blender/heroes/cradle_ai_*.py`. Sections: `Renders/cradle_ai_sections.png`.
+All values: Unity axes, metres, cradle origin **(0, 0, 4.69)**, yaw 0. The front (pin caps
+towards the viewer) faces **−Z**, towards the labyrinth and the player. "r" = distance from the
+cradle axis (x 0, z 4.69).
 
-Cradle origin: **(0, 0, 4.69)** (under the body centre, not under `DroneAI2`), yaw 0.
+**Fit.** Uniform scale **s = 2.5885** of the AI mesh (native → spec: x' = s(x − cx), y' = s·z,
+z' = 4.69 + s(y − cy); in Blender a 180° turn about Z). s puts the front limb's pad top 3 mm under
+the limb at the drone's current height. Mirror symmetry of the AI mesh: mean 0.49 mm, p95 0.92 mm
+(native); one plinth defect (back-right diagonal face, up to 65 mm native). The plinth region
+(y < 0.415) was symmetrized from the **−X half** (`AI_A_Static_sym`, `AI_A_TexImg_sym`, texture
+mirrored with it); after: max 0.1 mm. Above the cut the mesh is untouched (mean 0.8 mm; up to
+19 mm only at the splitter's cut faces on the hinge beam under the arm roots).
 
-| Part | Shape / size | Hinge / origin (cradle-local) | Moves | Standby | Released |
-|---|---|---|---|---|---|
-| Base_T1 | octagon 2.4 across flats × 0.10 | floor centre | no | — | — |
-| Base_T2 | octagon 1.6 × 0.10 | (0, 0.10, 0) | no | — | — |
-| Turntable | cylinder Ø 0.8 × 0.10 | (0, 0.20, 0) | no | — | — |
-| Column | 0.30 × 0.70 × 0.30 | (0, 0.30, 0) | no | — | — |
-| Hub | 0.40 × 0.08 × 0.30 | (0, 1.00, 0) | no | — | — |
-| Arm_L / Arm_R | 0.06 × 0.50 × 0.18 | hinge (∓0.13, 1.04, 0), axis Z | yes | vertical | 100° outward: tip y ≈ 0.95, highest point ≈ 1.08 |
-| Pad_L / Pad_R (amber) | 0.10 × 0.025 × 0.22 | top of arm | with arm | top face at y 1.565, 3 mm under the body's lower edges (x ±0.08 … 0.18) | — |
+### Parts
 
-**Hub = clevis (2026-09-26).** Two cheeks at z ±0.095 … ±0.15 joined by a centre block for
-|x| < 0.095; one slot per arm, open to the outside, so the arm clears the hub over its whole
-0–100° sweep. A hinge pin Ø 0.02 along Z runs through each hinge (∓0.13, 1.04), visible in the
-cheeks; it is part of the Base mesh. Built (2026-09-26): pin heads 3 mm proud of each cheek
-(hub depth 0.306 at the pins); no pin in the 5 mm cheek-boss gaps (only visible through the slit
-at grazing angles, partly fully hidden). The arm root is a rounded boss (r 0.03 about Z, centred on
-the hinge) so it reads as turning on the pin; the pin passing through the boss is intended.
-One arm mesh (`LAB_HERO_Cradle_Arm_01`, origin on the hinge = its bottom centre) serves both
-sides. The pad (`LAB_HERO_Cradle_Pad_01`) is a separate mesh with its origin on the same hinge
-point, geometry at local y 0.50 … 0.525. Base_T1 … Hub form one static mesh
-(`LAB_HERO_Cradle_Base_01`, origin at floor centre).
+| Part | Contents | Origin / pivot | Moves |
+|---|---|---|---|
+| `LAB_HERO_Cradle_Base_01` | plinth tiers, turntable rings, column, hinge beam, both hinge drums, pin caps, hub — one continuous static body | floor centre (0, 0, 4.69) | no |
+| `LAB_HERO_Cradle_Arm_L_01` | left arm + rest plate (one mesh) | on the left pin axis: (−0.385, 0.637, 4.69), axis Z | 0 → **+75°** about local Z |
+| `LAB_HERO_Cradle_Arm_R_01` | mirror image of Arm_L | (+0.385, 0.637, 4.69), axis Z | 0 → **−75°** |
+| `LAB_HERO_Cradle_Pad_L_01` (amber) | pad under the back-left limb, **64.4 mm** thick | same pivot as Arm_L (child of it) | with Arm_L |
+| `LAB_HERO_Cradle_Pad_R_01` (amber) | pad under the front-right limb, **10 mm** thick | same pivot as Arm_R | with Arm_R |
 
-Measured live 2026-09-26 (CradleBuilder.Verify): pad tops at 1.5650, **pad-to-body gap 2.8 mm**
-(live `Body_low` min y 1.5678, not 1.568), 85 mm from the pads to the drone arms (y 1.65).
+Unity sign: a +Z rotation turns +Y towards −X, so +75° opens Arm_L outward and −75° opens Arm_R.
+Arm_L/Arm_R are two meshes (mirror copies), no negative scale. The pin itself is not a separate
+part: the caps are on the static body and the arm root turns around the drum (see Hinge beam).
 
-Checks: static parts top out at 1.08; released arms stay below 1.19. In standby the arms
-(x 0.10 … 0.16, up to y 1.565) stay clear of the drone arms (y ≥ 1.65).
+### Pivots (measured: cylinder fits on the pin caps, rms 0.15–0.20 mm)
+
+| | Front cap centre | Back cap centre | Axis vs Z |
+|---|---|---|---|
+| Left | (−0.3869, 0.6382, 4.455) | (−0.3881, 0.6365, 4.903) | 0.26° |
+| Right | (0.3827, 0.6381, 4.450) | (0.3850, 0.6364, 4.911) | 0.36° |
+
+The two axes are 0.43° apart and symmetric within 0.8 mm. **Build value: x ±0.385, y 0.637, axis ∥ Z.**
+
+### Dimensions for construction (from `cradle_ai_sections.png`, ray-cast profiles and plan fans)
+
+**Plinth, tier 1** (y 0 … 0.206). Plan: axis faces at 1.214 from the axis — Z faces (front/back)
+0.98 long (x ±0.490), X faces 0.88 long (z ±0.442); diagonal faces at **1.16**, joined to the axis
+faces by short corner facets ((±1.214, ±0.442) → (±1.075, ±0.559) and (±0.490, ±1.214) → (±0.606, ±1.05)).
+Not a regular octagon: follow these corners. Wall y 0.018 … 0.160, bottom chamfer 15 mm; top
+chamfer 40 × 46 mm to the top face at y 0.203–0.206. **Top trays**: 8 (one per face), r 0.876 … 1.084,
+floor y 0.160 (43 mm deep), outer wall sloped 16 mm, 0.66 (Z faces) / 0.70 (X faces) long:
+geometry. **Side panels**: outline groove 10 mm, y 0.052 … 0.126, 0.60 / 0.56 long: normal map.
+The AI plinth is a thin hollow shell, open underneath; the low-poly is closed, floor face deleted.
+
+**Tier 2** (y 0.206 … 0.318). Octagon, flats 0.863 (X) / 0.843 (Z) / 0.85 (diagonal). Wall to
+y 0.246, chamfer to (r 0.841, y 0.274), sloped top to (0.769, 0.288), chamfer up to a rim at
+y 0.318 (r 0.744). Inner top y 0.300, octagon flats 0.75. **Trough** r 0.522 … 0.642, floor y 0.253
+(47 mm deep), rounded outer edge (~12 mm).
+
+**Turntable and rings.** Disc r 0.505 (four small notches: normal map), y 0.253 … 0.334, top
+chamfer 14 mm. Ring 2 r 0.385, y 0.334 … 0.356. Ring 3 slightly elliptical 0.295 (X) × 0.267 (Z),
+y 0.356 … 0.392.
+
+**Column** (y 0.392 … ~0.72, hidden above y 0.52 by the beam). Block X ±0.18 × Z ±0.224, corner
+chamfers (0.174, 0.149) → (0.118, 0.224); side tabs out to x ±0.258 (tapered, z ±0.052 at the tip).
+
+**Hinge beam and drums.** Beam top y 0.755; depth 0.307 (z 4.538 … 4.845) for y 0.60 … 0.70, a
+0.18-deep band above and below. **Drums**: cylinders r 0.117–0.119 about each pin axis, faces at
+z 4.500 and 4.893 (0.393 deep), bottom y 0.52, top y 0.756. **Pin caps**: front Ø 0.13 face on a
+Ø 0.16 chamfered base, **50 mm proud** (face z 4.450); back Ø 0.17 face, chamfer to Ø 0.20,
+19 mm proud (face z 4.912).
+
+**Hub** (on the beam). Collar y 0.756 … 0.810, X ±0.165 × Z ±0.152, chamfered corners; cap round
+r 0.150 (16 segments), y 0.81 … 0.882, top chamfer ~20 mm.
+
+**Arm (Arm_R; Arm_L mirrored).** Depth 0.302 (z 4.541 … 4.843), centred z 4.692. Path in the front
+plane (x, y):
+- *Root*: a shoe on top of the drum, concentric with the pin. The AI root overlaps the drum by
+  ~20 mm; the low-poly gets a proper boss/shoe with clearance over the sweep.
+- *Lower segment*: (0.46, 0.76) → elbow (0.563, 0.96), leaning **31.7° outward**; section 0.255 × 0.302.
+- *Elbow*: section 0.286 × 0.301.
+- *Upper segment*: elbow → (0.513, 1.42), leaning **6.9° inward**; section 0.283 × 0.301, inner
+  face stepped ~20 mm (normal map or a small bevel).
+- *Gusset* (y 1.42 … 1.56): outer edge flares from x 0.65 to 0.94; section at y 1.48: 0.452 × 0.301.
+- *Neck* (y 1.56 … 1.588): x 0.398 … 0.94, depth 0.19 (z 4.598 … 4.788).
+- *Rest plate*: y **1.588 … 1.700** (0.111 thick), x 0.280 … 1.139 (0.859), z 4.480 … 4.902 (0.422)
+  including the edge rib; top flat x 0.290 … 1.110, z ±0.197. Edge: a **rib** 40 mm tall
+  (y 1.624 … 1.664), 16.5 mm proud of the upper and lower bands (24 mm each); top edge chamfer ~4 mm.
+
+Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
+span x −1.139 … 1.138, fixed body top y 0.884.
+
+### Docking pose
+
+- **DroneAI2**: rotation Y **−28.30°**, position **(−0.032, 2.000, 4.754)** (moves 33 mm from
+  (0, 2, 4.76)). Body centre then (0.003, 1.758, 4.689).
+- The drone's front limbs sit 54.4 mm lower than its back limbs (flat undersides y 1.7121 / 1.7665,
+  r 0.28 … 0.62 from the body centre, 0.118 wide). The yaw lines up the **front-right** limb along +X
+  (onto the right plate) and the **back-left** limb along −X (onto the left plate); limb axes within
+  0.9 mm of the plate centre lines.
+- **Pads** (amber, identical outline 0.22 × 0.14, along the limb from r 0.39 to 0.61, outboard of the
+  pin, see the pad study): Pad_R 10 mm (top y 1.7091), Pad_L 64.4 mm (top y 1.7635). Contact gap
+  **3.0 mm** on both limbs; plate tops y 1.6991.
+- Docked clearances: limbs to arms/plates ≥ 12.2 mm; engines ≥ 13.8 mm (to the right plate);
+  body ≥ 49.8 mm (arms), 0.68 m (hub); spinning propeller discs ≥ 106.5 mm (pads), ≥ 116.5 mm (arms).
+
+**Pad design study (2026-09-28, owner request).** Two identical amber saddles with a limb groove
+(floor 54 mm deeper on the front-limb side) were evaluated (`cradle_ai_saddle.py`) and **rejected**:
+- The groove walls must rise above the left groove floor (y ≥ 1.764) on both sides. On the right
+  that leaves **37 mm** to the front propeller discs (needed ≥ 100 mm; the front props are only
+  104 mm above the front limb). A short chock outside the prop discs still gave 42 mm. Groove
+  tuning cannot fix this.
+- The limb runs 16 mm off the body-to-engine line near its root, so a 128 mm groove also clips the
+  limb (7–12 mm); fixable, but moot.
+
+Plain pads were kept. The Step 1 pads (r 0.29 … 0.61) **failed** the fold check: their inner end
+lies inboard of the pin and rises ~4 mm in the first 5° of the fold, into the 3 mm gap (−1.3 mm).
+Moved outboard of the pin (r 0.39 … 0.61) they pass. During a 0 → 75° fold with the drone still
+docked: pads to limbs ≥ 3.1 mm (they only fall away), engines ≥ 11.7 mm, body ≥ 162 mm, prop discs
+≥ 106.7 mm; arms/plates to limbs ≥ 8.5 mm (at 5°). Renders: `cradle_v2_s2_pads_*`,
+`cradle_v2_s2_saddle_rejected_front.png`.
+
+### Release
+
+- Each arm (with its pad) swings **outward about its pin axis by 75° in 1.2 s** (was 100°).
+- Why 75°: the highest point drops below the drone volume floor (y 1.19) at 65° (right) / 70° (left,
+  thick pad); at 75° it is at 1.007 / 1.023, and the plate tips stay 0.16 m above the floor. Past
+  ~85° the plate's outer end hits the **floor** (80° is the last clear 5° step), and at 90–95° the
+  arm hits the **plinth**. The old 100° is impossible with this design.
+- Sweep checked in 5° steps with the AI geometry: no collision with the plinth or hinge blocks up to
+  80°. The drum sits inside the arm's root shoe in the AI mesh at every angle (a constant ~20 mm
+  overlap, not a collision); the low-poly boss needs its own clearance check over 0 … 75°.
+- Protected volumes: labyrinth ≥ 1.0 m, player ≥ 2.47 m, spawn ≥ 6.5 m clear; the static body
+  (top 0.884) and the released arms (≤ 1.023) stay below the drone volume.
+
+## 3a. Superseded Part 1 design (2026-09-26)
+
+Procedural cradle (`Tools/Blender/heroes/cradle.py`, `LAB_HERO_Cradle.blend`, `HERO_Cradle` in
+BasicScene, `CradleBuilder`), kept in the project until the v2 cradle is accepted. Drone docked at
+yaw 0 on its body: two narrow arms (0.06 × 0.50 × 0.18) hinged at (∓0.13, 1.04) in a clevis hub,
+amber pads (0.10 × 0.025 × 0.22) 2.8 mm under the body (y 1.565), released 100° outward.
+Base: octagon tiers 2.4 / 1.6, turntable Ø 0.8, column 0.30 × 0.70 × 0.30, hub 0.40 × 0.08 × 0.30.
+Verified 2026-09-26 (540 / 68 / 36 tris for Base / Arm / Pad).
 
 ## 4. Hero 01b — Ceiling service arm (`ServiceArm`)
 
@@ -92,7 +197,8 @@ ceiling. Mount **(0, 4.0, 5.30)**, 0.61 behind the body centre, so it never bloc
 
 - **Working pose (Standby):** tool tip ~0.05 above the drone's top (y ≈ 2.04, drone top 1.986),
   pointing down, near x = 0: the propellers start at |x| ≥ 0.44, so the arm stays inside
-  |x| < 0.3. Roughly shoulder −60°, elbow +70°, wrist keeping the tool vertical. Tune by eye;
+  |x| < 0.3. **Re-check (2026-09-28):** with the v2 docking yaw (−28.3°, §3) the back-right and
+  front-left prop discs reach in to |x| ≈ 0.14; re-derive the working pose and this rule. Roughly shoulder −60°, elbow +70°, wrist keeping the tool vertical. Tune by eye;
   the hard rule is only that nothing touches the drone. Reach check: 1.60 needed, 1.90 available.
 - **Idle motion (Standby):** procedural, no clips: turret ±10° yaw, wrist ±15°, tool roll
   spinning, each on its own slow sine (0.2–0.5 Hz) so it never visibly loops.
@@ -256,6 +362,11 @@ most 2–3 realtime lights whose colour lerps, plus an ambient/probe tint. Every
 
 - `FacilitySequence`: the state machine above; all timings serialized.
 - `HingeDriver` / `SlideDriver`: move one part between its closed and open pose (duration, easing).
+  Cradle v2: Arm_L 0 → +75°, Arm_R 0 → −75° about local Z, 1.2 s (§3).
+- Drone start pose (Cradle v2; integration note, not implemented yet): `DroneAI2` starts docked at
+  rotation Y **−28.3°**, position (−0.032, 2.000, 4.754). `DroneHoverAIV2` must take off from that
+  yaw and turn smoothly, without snapping to 0°. After the pose change, re-read the drone live and
+  update `ProtectedAssets/DroneBaseline.md`.
 - `ServiceArmIdle`: procedural idle motion; disabled on fold.
 - `LabyrinthTilt`: handle grab → cone-clamped pitch/roll on `LabyrinthPivot` (§8). Replaces the old panel control.
 - `AtmosphereController`: light and emissive colour transitions.

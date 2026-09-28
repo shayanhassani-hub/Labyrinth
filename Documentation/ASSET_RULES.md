@@ -77,6 +77,47 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
   source and the script is frozen (note it in DEVLOG). .blend and .spp files are
   backed up to G: per V9.
 
+## Hero workflow v1 (AI transfer)
+Owner decision 2026-09-27; first used on the Cradle v2 (HERO_SPEC §3).
+1. **Concept**: one concept image plus orthographic views (see "AI reference rules").
+2. **AI model** (Hunyuan 3D): high-poly geometry (~1.5M tris), a textured variant, a part split
+   for the moving parts; the auto-retopo is reference only. Originals stay untouched in
+   `D:\AI_Labyrinth\Hunyuan\Downloads\<Hero>\`.
+3. **Import, fit and study** in `D:\AI_Labyrinth\Blender\Source\Heroes\<Hero>\LAB_HERO_<Hero>_AI.blend`:
+   orientation per EXPORT_CONTRACT, one uniform scale set by gameplay constraints, symmetry and
+   pivot measurements, motion and clearance checks against live Unity data.
+4. **Measure and specify**: cross-sections, dimensions, pivots into HERO_SPEC. Symmetrize where
+   the object should be symmetric (keep the better half; the texture is mirrored with it).
+5. **Clean hero low-poly by construction** to the measurements (Hero standard above), then a
+   deviation check against the AI high-poly: silhouette edges <= 5 mm, flat faces <= 3 mm.
+6. **Transfer bake** of colour and normals from the AI high-poly onto the low-poly UVs; finish
+   in Substance Painter (owner).
+
+**Fallback**: if the AI shape cannot be used (contradicts the mechanism, unreadable detail, more
+cleanup than rebuilding), go back to the more hand-made workflow: blockout from the spec, hand-made
+high-poly, standard bake.
+
+Lessons from the Cradle: AI meshes come normalised (~1 m) and may be thin hollow shells; split
+parts can overlap at joints and carry extra cut faces; front/back and left/right are only roughly
+symmetric. Mechanical fit (pivots, clearances, motion range) is the modeller's job, never the AI's.
+
+## AI tool choice
+- **Hunyuan 3D Global** (hy3d.tencent.ai): first choice for hard-surface generation, part
+  splitting and texture sources.
+- **Meshy**: backup, and for organic or soft shapes.
+- All AI outputs are disclosed as AI-assisted (portfolio text and credits). The low-poly, UVs,
+  bakes and texturing are hand work.
+
+## AI reference rules
+For concept images and views fed to an AI 3D generator:
+- Few, large, readable details; small detail goes into the normal map anyway.
+- Exact symmetry where the object is symmetric.
+- No parts that contradict the mechanism (moving parts clear each other, pivots where the motion
+  needs them).
+- No text or logos.
+- Orthographic views at one level camera height and one scale.
+- One concept image works best as the texture-painting reference.
+
 ## Secondary standard
 No n-gons, no non-manifold or loose geometry, no hidden faces, sensible tri count for
 size and distance, unwrapped without visible stretching, 256 px/m (labyrinth pieces
