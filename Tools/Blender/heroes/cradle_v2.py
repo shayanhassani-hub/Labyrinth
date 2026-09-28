@@ -66,10 +66,8 @@ TRAY_END = {"X": (0.311, 0.357, 0.128, 0.327, 0.330), "Z": (0.282, 0.341, 0.153,
 TRAY_W = {"X": (0.167, 0.221), "Z": (0.206, 0.261), "D": (0.114, 0.182)}
 
 # turntable, rings, column, collar, hub cap
-# turntable: rim r 0.516 (y 0.253 .. 0.301), top chamfer to r 0.497 at y 0.333; four notches (Step 3b) centred at
-# +-35 / +-145 deg, 26 deg wide, cut from the top down to y 0.300 and in to r 0.485
-NOTCH_C, NOTCH_HALF, NOTCH_EPS, NOTCH_R, NOTCH_FLOOR = (35.0, 145.0, 215.0, 325.0), 13.0, 0.3, 0.485, 0.300
-CIRCLES = [((0.385, 0.385), 0.333),
+# turntable: continuous ring (the AI's rim notches are classed as AI junk, owner decision Step 3c)
+CIRCLES = [((0.516, 0.516), 0.253), ((0.515, 0.515), 0.301), ((0.497, 0.497), 0.333), ((0.385, 0.385), 0.333),
            ((0.385, 0.385), 0.356), ((0.293, 0.267), 0.356), ((0.293, 0.267), 0.384), ((0.285, 0.259), 0.392)]
 COL_Q = [(0.258, 0.052), (0.180, 0.085), (0.174, 0.149), (0.118, 0.224)]
 COL_YS = [0.392, 0.440, 0.600, 0.700, 0.724]
@@ -161,6 +159,78 @@ def ear_clip(pts):
     return tris
 
 
+def _plane2d(pts):
+    P = np.array(pts, float)
+    nrm = np.zeros(3)
+    for i in range(len(P)):
+        a, b = P[i], P[(i + 1) % len(P)]
+        nrm += np.array([(a[1] - b[1]) * (a[2] + b[2]), (a[2] - b[2]) * (a[0] + b[0]), (a[0] - b[0]) * (a[1] + b[1])])
+    ax = int(np.argmax(np.abs(nrm)))
+    Q = P[:, [(ax + 1) % 3, (ax + 2) % 3]]
+    return Q[:, ::-1] if nrm[ax] < 0 else Q                # counter-clockwise
+
+
+def _cross(o, a, b):
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+
+def _seg_cross(p1, p2, p3, p4):
+    d1, d2 = _cross(p3, p4, p1), _cross(p3, p4, p2); d3, d4 = _cross(p1, p2, p3), _cross(p1, p2, p4)
+    return (d1 * d2 < -1e-14) and (d3 * d4 < -1e-14)
+
+
+def quad_fill(pts):
+    """split a simple planar polygon into quads that follow its outline (ear-style: cut off 4 consecutive
+    vertices whose quad is convex, empty and whose closing diagonal stays inside); a triangle only when needed"""
+    Q = _plane2d(pts); idx = list(range(len(Q))); out = []
+    def inside_empty(q):
+        for j in idx:
+            if j in q: continue
+            if all(_cross(Q[q[k]], Q[q[(k + 1) % len(q)]], Q[j]) >= -1e-12 for k in range(len(q))): return False
+        a, b = Q[q[-1]], Q[q[0]]
+        for k in range(len(idx)):
+            e0, e1 = idx[k], idx[(k + 1) % len(idx)]
+            if e0 in (q[0], q[-1]) or e1 in (q[0], q[-1]): continue
+            if _seg_cross(a, b, Q[e0], Q[e1]): return False
+        return True
+    def quality(q):
+        worst = 0.0
+        for k in range(4):
+            a, b, c = Q[q[k - 1]], Q[q[k]], Q[q[(k + 1) % 4]]
+            u, w = a - b, c - b
+            ang = math.degrees(math.acos(max(-1, min(1, (u @ w) / (np.linalg.norm(u) * np.linalg.norm(w) + 1e-12)))))
+            worst = max(worst, abs(ang - 90))
+        return worst
+    guard = 0
+    while len(idx) > 4 and guard < 1000:
+        guard += 1; best = None
+        for k in range(len(idx)):
+            q = [idx[(k + j) % len(idx)] for j in range(4)]
+            if any(_cross(Q[q[j - 1]], Q[q[j]], Q[q[(j + 1) % 4]]) <= 1e-12 for j in range(4)): continue
+            if not inside_empty(q): continue
+            sc = quality(q)
+            if best is None or sc < best[0]: best = (sc, k, q)
+        if best is None:                                    # no valid quad: clip one triangle ear
+            for k in range(len(idx)):
+                t = [idx[k - 1], idx[k], idx[(k + 1) % len(idx)]]
+                if _cross(Q[t[0]], Q[t[1]], Q[t[2]]) <= 1e-12 or not inside_empty(t): continue
+                out.append(tuple(t)); idx.pop(k); break
+            else:
+                break
+            continue
+        _, k, q = best
+        out.append(tuple(q))
+        for j in sorted([(k + 1) % len(idx), (k + 2) % len(idx)], reverse=True): idx.pop(j)
+    if len(idx) == 4 and all(_cross(Q[idx[j - 1]], Q[idx[j]], Q[idx[(j + 1) % 4]]) > 1e-12 for j in range(4)):
+        out.append(tuple(idx))
+    elif len(idx) == 4:                                     # concave remainder: split on the inner diagonal
+        r = next(j for j in range(4) if _cross(Q[idx[j - 1]], Q[idx[j]], Q[idx[(j + 1) % 4]]) <= 1e-12)
+        out += [(idx[r], idx[(r + 1) % 4], idx[(r + 2) % 4]), (idx[r], idx[(r + 2) % 4], idx[(r + 3) % 4])]
+    elif len(idx) == 3:
+        out.append(tuple(idx))
+    return out
+
+
 class SpecMesh:
     """vertices by spec coordinate (merged on a 1e-6 grid), faces by point loops"""
 
@@ -184,10 +254,11 @@ class SpecMesh:
             for x in vs:
                 if x not in seen: seen.add(x); out.append(x)
             vs = out
-        if len(vs) > 4:                                   # planar n-gon: own ear clipping, joined to quads later
-            for tri in ear_clip([tuple(v.co) for v in vs]):
+        if len(vs) > 4:                                   # planar n-gon: quad-first fill that follows the outline
+            for poly in quad_fill([tuple(v.co) for v in vs]):
                 try:
-                    fc = self.bm.faces.new([vs[i] for i in tri]); fc.smooth = True; self.join.append(fc)
+                    fc = self.bm.faces.new([vs[i] for i in poly]); fc.smooth = True
+                    if len(poly) == 3: self.join.append(fc)
                 except ValueError:
                     pass
             return None
@@ -317,19 +388,6 @@ def poly_offset_var(poly, ds):
     return out
 
 
-def turntable_angles():
-    """16 even angles plus two vertices at each notch edge (outside / inside), sorted"""
-    angs = [11.25 + 22.5 * k for k in range(16)]
-    for c in NOTCH_C:
-        for a in (c - NOTCH_HALF, c - NOTCH_HALF + NOTCH_EPS, c + NOTCH_HALF - NOTCH_EPS, c + NOTCH_HALF):
-            angs = [x for x in angs if abs((x - a + 180) % 360 - 180) > 1.0] + [a % 360]
-    return sorted(angs)
-
-
-def in_notch(a):
-    return any(abs((a - c + 180) % 360 - 180) < NOTCH_HALF - NOTCH_EPS / 2 for c in NOTCH_C)
-
-
 def ellipse16(rx, rz, y, off=11.25):
     return [(rx * math.cos(math.radians(off + 22.5 * k)), y, rz * math.sin(math.radians(off + 22.5 * k))) for k in range(16)]
 
@@ -360,8 +418,25 @@ def base_face_lengths():
     return [float(np.linalg.norm(np.array(C[(k + 1) % 8]) - np.array(C[k]))) for k in range(8)]
 
 
+def ledge_ring_xz():
+    """tier-1 ledge ring (outer edge of the sunken ring), plan points only, no inserts"""
+    return poly_offset_var(mirror_quadrants(T1_Q), [BAND_IN[t] + BAND_SLOPE for t in T1_EDGE_TYPES])
+
+
+def diag_tray_ends(k):
+    """(t start, t end) along diagonal tier-2 face k: projections of the ledge facet corners (Step 3c)"""
+    C = octa_corners(*T2_RINGS[0][:3]); A = np.array(C[k]); B = np.array(C[(k + 1) % 8])
+    e = (B - A) / np.linalg.norm(B - A)
+    ei = SECTOR_EDGE[k]; led = ledge_ring_xz()
+    p0, p1 = np.array(led[ei]), np.array(led[(ei + 1) % 16])      # ends of the parallel diagonal ledge edge
+    return float((p0 - A) @ e), float((p1 - A) @ e)
+
+
 def tray_fracs(k):
     L = base_face_lengths()[k]
+    if FACE_TYPES[k].startswith("D"):
+        ta, tb = diag_tray_ends(k)
+        return ta / L, tb / L
     a, b = tray_ends(k, L)
     return a[0] / L, b[0] / L
 
@@ -399,21 +474,21 @@ def build_base():
         ea, eb = tray_ends(k, L)
         A2 = np.array(C[k])
         pt = lambda t, w, y, A2=A2, e=e, n=n: (float((A2 + e * t + n * w)[0]), y, float((A2 + e * t + n * w)[1]))
-        trays[k] = dict(e=e, n=n, a_m=(ea[1], ea[2]), b_m=(eb[1], eb[2]), a_o=ea[3], b_o=eb[3], wf=wf, pt=pt)
-        # tray-end corners projected along n onto the parallel tier-1 edge -> extra vertices on every tier-1 ring
-        ei = SECTOR_EDGE[k]; v0 = np.array(t1[ei]); v1 = np.array(t1[(ei + 1) % 16])
-        fr = []
-        for tt in (ea[3], eb[3]):
-            q = A2 + e * tt + n * wf
-            M2 = np.array([v1 - v0, -n]).T
-            f, _ = np.linalg.solve(M2, q - v0)
-            fr.append(float(f))
+        trays[k] = dict(e=e, n=n, a_o=ea[3], b_o=eb[3], wf=wf, pt=pt)
+        # X / Z trays: tray-end corners projected along n onto the parallel tier-1 edge -> extra vertices on every
+        # tier-1 ring. Diagonal trays end on the facet corners, so they need no extra vertices (Step 3c).
         t = FACE_TYPES[k]
-        if t in ("X", "Z"): use = fr                    # both ends get a vertex
-        elif t == "D+": use = [fr[1]]                   # X-side end meets the facet corner (edge start vertex)
-        else: use = [fr[0]]                             # D-: X-side end is the edge end vertex
-        inserts.setdefault(ei, []).extend(use)
         trays[k]["kind_ends"] = t
+        if t in ("X", "Z"):
+            ei = SECTOR_EDGE[k]; led = ledge_ring_xz()          # fraction measured on the ledge ring edge,
+            v0 = np.array(led[ei]); v1 = np.array(led[(ei + 1) % 16])   # so the strip quads stay square there
+            for tt in (ea[3], eb[3]):
+                q = A2 + e * tt + n * wf
+                f, _ = np.linalg.solve(np.array([v1 - v0, -n]).T, q - v0)
+                inserts.setdefault(ei, []).append(float(f))
+        else:
+            ta, tb = diag_tray_ends(k)
+            trays[k]["a_o"], trays[k]["b_o"] = ta, tb
 
     def t1_ring(ds, y):
         off = poly_offset_var(t1, ds)
@@ -432,42 +507,37 @@ def build_base():
         sm.bridge(a, b)
     pos = {tg: i for i, tg in enumerate(tags)}
     N = len(ledge)
+    # sector boundary midpoints (tier-2 corner -> ledge corner): every corner region becomes a hexagon = 2 quads
+    mids = []
+    for k in range(8):
+        A = base[3 * k]; O = ledge[pos[("v", SECTOR_START[k])]]
+        mids.append(((A[0] + O[0]) / 2, RING_Y, (A[2] + O[2]) / 2))
     for k in range(8):
         tr = trays[k]; pt = tr["pt"]; ei = SECTOR_EDGE[k]
         A = base[3 * k]; a = base[3 * k + 1]; b = base[3 * k + 2]; Bn = base[(3 * k + 3) % 24]
         i0 = pos[("v", SECTOR_START[k])]; i1 = pos[("v", SECTOR_START[(k + 1) % 8])]
         idx = [(i0 + j) % N for j in range(((i1 - i0) % N) + 1)]
         Lr = [ledge[i] for i in idx]
-        ins = [j for j, i in enumerate(idx) if tags[i][0] == "p" and tags[i][1] == ei]
-        if tr["kind_ends"] in ("X", "Z"): ja, jb = ins[0], ins[1]
-        elif tr["kind_ends"] == "D+": ja, jb = idx.index(pos[("v", ei)]), ins[0]
-        else: ja, jb = ins[0], idx.index(pos[("v", (ei + 1) % 16)])
-        a_m, b_m = pt(*tr["a_m"], RING_Y), pt(*tr["b_m"], RING_Y)
+        if tr["kind_ends"] in ("X", "Z"):
+            ins = [j for j, i in enumerate(idx) if tags[i][0] == "p" and tags[i][1] == ei]; ja, jb = ins[0], ins[1]
+        else:
+            ja, jb = idx.index(pos[("v", ei)]), idx.index(pos[("v", (ei + 1) % 16)])
+        # straight tray ends (the AI's 14 mm-deep end bulge is below the depth rule -> normal map)
         a_t, b_t = pt(tr["a_o"], tr["wf"], RING_Y), pt(tr["b_o"], tr["wf"], RING_Y)
         a_f, b_f = (a[0], TRAY_FLOOR, a[2]), (b[0], TRAY_FLOOR, b[2])
-        am_f, bm_f = pt(*tr["a_m"], TRAY_FLOOR), pt(*tr["b_m"], TRAY_FLOOR)
         a_ff, b_ff = pt(tr["a_o"], tr["wf"], TRAY_FLOOR), pt(tr["b_o"], tr["wf"], TRAY_FLOOR)
-        sm.f(*(Lr[:ja + 1] + [a_t, a_m, a, A]))                     # sunken ring, start corner
-        sm.f(*(Lr[ja:jb + 1] + [b_t, a_t]))                         # strip outside the tray
-        sm.f(*(Lr[jb:] + [Bn, b, b_m, b_t]))                        # sunken ring, end corner
-        sm.f(a_f, b_f, bm_f, b_ff, a_ff, am_f)                      # tray floor (hexagon)
-        sm.f(a_ff, b_ff, b_t, a_t)                                  # tray walls (14 mm, vertical)
-        sm.f(a, a_f, am_f, a_m); sm.f(a_m, am_f, a_ff, a_t)
-        sm.f(b, b_m, bm_f, b_f); sm.f(b_m, b_t, b_ff, bm_f)
-        sm.f(a, b, b_f, a_f)                                        # tier-2 wall continues down to the floor
-    # turntable with four notches, then the rings
-    angs = turntable_angles()
-    notch = [in_notch(a) for a in angs]
-    def tt(r_fn, y_fn):
-        return [(r_fn(i) * math.cos(math.radians(a)), y_fn(i), r_fn(i) * math.sin(math.radians(a))) for i, a in enumerate(angs)]
-    r14 = tt(lambda i: 0.497 if notch[i] else 0.516, lambda i: 0.253)     # notch also recesses the rim face
-    r15 = tt(lambda i: 0.497 if notch[i] else 0.515, lambda i: 0.301)
-    r16 = tt(lambda i: NOTCH_R if notch[i] else 0.497, lambda i: NOTCH_FLOOR if notch[i] else 0.333)
-    r17 = tt(lambda i: NOTCH_R, lambda i: 0.333)
-    sm.zipper(t2[-1], r14)
-    sm.bridge(r14, r15); sm.bridge(r15, r16); sm.bridge(r16, r17)
+        Mk, Mn = mids[k], mids[(k + 1) % 8]
+        sm.f(*(Lr[:ja + 1] + [a_t, a, A, Mk]))                        # sunken ring, start corner (hexagon)
+        sm.f(*(Lr[ja:jb + 1] + [b_t, a_t]))                           # strip outside the tray
+        sm.f(*(Lr[jb:] + [Mn, Bn, b, b_t]))                           # sunken ring, end corner (hexagon)
+        sm.f(a_f, b_f, b_ff, a_ff)                                    # tray floor
+        sm.f(a_ff, b_ff, b_t, a_t)                                    # tray walls (14 mm, vertical)
+        sm.f(a, a_f, a_ff, a_t)
+        sm.f(b, b_t, b_ff, b_f)
+        sm.f(a, b, b_f, a_f)                                          # tier-2 wall continues down to the floor
+    # trough floor (24 -> 16) and the turntable / rings
     circles = [ellipse16(r[0], r[1], y) for r, y in CIRCLES]
-    sm.zipper(r17, circles[0])
+    sm.zipper(t2[-1], circles[0])
     for a, b in zip(circles, circles[1:]):
         sm.bridge(a, b)
     # column (16), ledge, collar, hub cap
@@ -507,7 +577,7 @@ def add_beam(sm, sx):
         sm.f(*r)
 
 
-BEAM_FILLET = [(0.150, 0.440), (0.257, 0.441), (0.270, 0.462), (0.322, 0.506), (0.150, 0.506)]   # wedge under the beam
+BEAM_FILLET = [(0.150, 0.440), (0.257, 0.441), (0.322, 0.506), (0.150, 0.506)]   # wedge under the beam: one quad (AI's <10 mm bend in the slope -> normal map)
 BEAM_FILLET_Z = 0.066
 
 
@@ -654,7 +724,18 @@ def visible_faces(obj, tree, dirs, box):
     for p in obj.data.polygons:
         n = (nm @ p.normal).normalized()
         c = mw @ p.center
-        pts = [c] + [c + ((mw @ obj.data.vertices[i].co) - c) * 0.8 for i in p.vertices]
+        vw = [mw @ obj.data.vertices[i].co for i in p.vertices]
+        pts = [c]
+        for k in range(len(vw)):                          # corners and edge midpoints, 2 mm inside the face
+            for q in (vw[k], (vw[k] + vw[(k + 1) % len(vw)]) / 2):
+                d = c - q
+                pts.append(q + d.normalized() * min(0.002, d.length * 0.5) if d.length > 1e-9 else q)
+        for k in range(1, len(vw) - 1):                    # interior grid, ~2 cm spacing, per fan triangle
+            a, b, cc = vw[0], vw[k], vw[k + 1]
+            m = max(2, int(max((b - a).length, (cc - a).length, (cc - b).length) / 0.02))
+            for i in range(1, m):
+                for j in range(1, m - i):
+                    pts.append(a + (b - a) * (i / m) + (cc - a) * (j / m))
         found = False
         for q in pts:
             o = q + n * 5e-4

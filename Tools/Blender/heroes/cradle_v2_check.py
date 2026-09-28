@@ -112,6 +112,7 @@ def topo(args):
                          nonmanifold=nonman, wire_edges=wire, loose_verts=loose, zero_area=zero, duplicates=dup,
                          winding_inconsistent=inconsistent, sharp_edges=sharp, verts=len(me.vertices))
         ok = ng == 0 and nonman == 0 and wire == 0 and loose == 0 and zero == 0 and dup == 0 and inconsistent == 0
+        out[name]["topology_pass"] = ok
         print(f"{'PASS' if ok else 'FAIL'} {name}: {tris} tris ({q} quads, {tr} tris, {ng} n-gons), open border {border}, "
               f"non-manifold {nonman}, loose {loose}, dup {dup}, zero-area {zero}, winding errors {inconsistent}, sharp {sharp}")
     # Arm_L must be the exact mirror of Arm_R (object-local, Blender x -> -x)
@@ -126,6 +127,13 @@ def topo(args):
     mirror_ok = len(lv) == len(rv) and md < 1e-6 and len(objs["Arm_L_01"].data.polygons) == len(objs["Arm_R_01"].data.polygons)
     print(f"{'PASS' if mirror_ok else 'FAIL'} Arm_L is the exact mirror of Arm_R (verts {len(lv)}/{len(rv)}, max offset {md:.2e} m)")
     out["_arm_mirror_ok"] = bool(mirror_ok)
+    holes, nb = hole_test(objs)
+    for name in PARTS:
+        hs = holes.get(name, [])
+        print(f"{'PASS' if not hs else 'FAIL'} hole test {name}: {nb[name]} open border edges, {len(hs)} hole edges")
+        for h in hs[:20]: print(f"     HOLE at cradle-local {h['at_cradle_local']} (pose {h['pose_deg']:.0f} deg)")
+        out[name]["hole_edges"] = hs
+        if hs: out[name]["topology_pass"] = False
     inst = sum(v["tris"] for k, v in out.items() if not k.startswith("_"))
     print(f"TOTAL unique meshes {total} tris; in the scene (pad instanced twice) {inst} tris")
     out["_total_unique"] = total; out["_total_scene"] = inst
@@ -183,6 +191,54 @@ def visible_samples(p, v, t, fi, tree, ndir=64):
             if tree.ray_cast(Vector(o), Vector(d), te)[0] is None:
                 out[i] = True; break
     return out
+
+
+def hole_test(objs, ndir=64):
+    """every open border edge must be explained: floor contact, or the border of a face deleted as hidden.
+    Test: a point just inside the solid, under the missing side (2 mm across the edge, 3 mm below the adjacent
+    face). If a ray from there reaches open space (review box; floor hits blocked) in the closed or the released
+    pose, the interior can be seen through the gap -> HOLE."""
+    parts = [objs[n] for n in PARTS]
+    dirs = [Vector(d) for d in fib_dirs(ndir)]
+    dirs = [Vector((-d.x, -d.z, d.y)) for d in dirs]          # spec -> Blender axes (a direction set, any order)
+    box = ((-2.0, -V.CZ - 2.0, -1.0), (2.0, -V.CZ + 2.0, 2.6))
+    report = {}
+    cand = {}
+    for name in PARTS:
+        o = objs[name]; bm = bmesh.new(); bm.from_mesh(o.data)
+        items = []
+        for e in bm.edges:
+            if not e.is_boundary: continue
+            f = e.link_faces[0]
+            a, b = e.verts[0].co, e.verts[1].co
+            mid = (a + b) / 2; t = (b - a).normalized(); n = f.normal.normalized()
+            away = mid - f.calc_center_median(); away = (away - t * away.dot(t)).normalized()
+            items.append((mid.copy(), n.copy(), away.copy()))
+        bm.free(); cand[name] = items
+    for deg in (0.0, V.RELEASE_DEG):
+        set_pose(objs, deg)
+        tree = V.scene_bvh(parts)
+        for name in PARTS:
+            o = objs[name]; M = o.matrix_world; R = M.to_3x3()
+            for i, (mid, n, away) in enumerate(cand[name]):
+                w = M @ mid
+                if w.z < 0.002: continue                         # floor contact
+                nw = (R @ n).normalized(); aw = (R @ away).normalized()
+                pin = w + aw * 0.002 - nw * 0.003
+                for d in dirs:
+                    ts = []
+                    for k, lo, hi in ((0, box[0][0], box[1][0]), (1, box[0][1], box[1][1]), (2, box[0][2], box[1][2])):
+                        if d[k] > 1e-9: ts.append((hi - pin[k]) / d[k])
+                        elif d[k] < -1e-9: ts.append((lo - pin[k]) / d[k])
+                    te = min(ts)
+                    if d.z < -1e-9 and -pin.z / d.z < te: continue
+                    if tree.ray_cast(pin, d, te)[0] is None:
+                        sp = V.to_blender((0, 0, 0))
+                        loc = (round(-w.x, 3), round(w.z, 3), round(-w.y - V.CZ, 3))
+                        report.setdefault(name, {})[i] = dict(at_cradle_local=loc, pose_deg=deg)
+                        break
+    set_pose(objs, 0.0)
+    return {k: list(v.values()) for k, v in report.items()}, {k: len(v) for k, v in cand.items()}
 
 
 def deviation(args):
@@ -545,6 +601,8 @@ JUNK = {    # (test, applies to "base" / "arm")
     "T1 diagonal faces: openings into the hollow shell + bowing": (lambda p: _diag(p)[0] > 1.00 and p[1] < 0.165 and abs(_diag(p)[1]) < 0.36, "base"),
     "T2 diagonal faces: bowed ~20 mm": (lambda p: 0.78 < _diag(p)[0] < 0.90 and 0.20 < p[1] < 0.28 and abs(_diag(p)[1]) < 0.36, "base"),
     "turntable rim: thin broken radial fins (hollow shell)": (_tt_fin, "base"),
+    "turntable rim notches (read as damage; owner decision 3c)": (lambda p: 0.25 < p[1] < 0.34 and 0.47 < math.hypot(p[0], p[2]) < 0.53
+        and any(abs((math.degrees(math.atan2(p[2], p[0])) - c + 180) % 360 - 180) < 15 for c in (35, 145, 215, 325)), "base"),
     "old arm-root fins / shoe under the new boss": (lambda p: (_rpin(p) < 0.20 and 0.60 < p[1] < 0.86)
                                                     or (0.15 < abs(p[0]) < 0.34 and 0.735 < p[1] < 0.80), "arm"),
     "splitter cut faces on the hinge beam top": (lambda p: 0.20 < abs(p[0]) < 0.36 and 0.72 < p[1] < 0.77 and abs(p[2]) < 0.16, "base"),
@@ -558,7 +616,6 @@ DESIGN = {
 # a) features modelled as geometry in Step 3 / 3b (residual deviation reported)
 MODELLED = {
     "tier-1 top: band / slope / sunken ring / trays": lambda p, part: part == "Base_01" and 0.155 < p[1] < 0.21 and 0.80 < math.hypot(p[0], p[2]) < 1.22,
-    "turntable notches": lambda p, part: part == "Base_01" and 0.29 < p[1] < 0.34 and 0.46 < math.hypot(p[0], p[2]) < 0.53,
     "arm inner channel + rails": lambda p, part: part != "Base_01" and abs(p[2]) < 0.075 and 0.97 < p[1] < 1.57 and abs(p[0]) < 0.48,
     "arm root full depth": lambda p, part: part != "Base_01" and 0.74 < p[1] < 0.92 and abs(p[2]) > 0.09 and abs(p[0]) < 0.55,
     "hinge-beam fillet": lambda p, part: part == "Base_01" and 0.14 < abs(p[0]) < 0.33 and 0.43 < p[1] < 0.51 and abs(p[2]) < 0.07,
@@ -629,6 +686,27 @@ def renders_3b(args):
     camera([-0.15, 1.30, cz - 0.95], [0.40, 1.15, cz], lens=45); shot("cradle_v2_s3b_wire_channel.png")
 
 
+
+def renders_3c(args):
+    """cradle_v2_s3c_*: wire close-ups (turntable at the s3b notch angle, a tier-1 corner) and a hole check
+    render: backface culling on, bright red background, no floor"""
+    objs = open_file(); colours(objs); setup_render()
+    cz = V.CZ
+    wires = add_wire(objs)
+    camera([0.66, 0.66, cz - 0.95], [0.40, 0.31, cz - 0.28], lens=45); shot("cradle_v2_s3c_wire_turntable.png")
+    camera([0.95, 0.95, cz - 1.55], [0.45, 0.18, cz - 0.85], lens=40); shot("cradle_v2_s3c_wire_corner.png")
+    camera([1.35, 0.85, cz + 0.2], [0.93, 0.18, cz + 0.40], lens=40); shot("cradle_v2_s3c_wire_corner_x.png")
+    camera([1.0, 1.0, cz - 0.9], [0.40, 0.62, cz], lens=45); shot("cradle_v2_s3c_wire_beam_drum.png")
+    for o, w in wires: bpy.data.objects.remove(w)
+    bpy.data.objects.remove(bpy.data.objects["RenderFloor"])
+    sh = bpy.context.scene.display.shading
+    sh.show_backface_culling = True; sh.background_color = (1.0, 0.0, 0.0)
+    for name, loc, look, lens in (("front", [0, 1.2, cz - 4.5], [0, 0.6, cz], 35), ("34", [-2.9, 2.4, cz - 3.2], [0, 0.9, cz], 40),
+                                  ("back34", [2.9, 2.0, cz + 3.2], [0, 0.8, cz], 40), ("top", [0, 6.0, cz + 0.01], [0, 0, cz], 30),
+                                  ("low", [-2.2, 0.35, cz - 2.2], [0, 0.45, cz], 35)):
+        camera(loc, look, lens=lens); shot(f"cradle_v2_s3c_holes_{name}.png")
+
+
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else ["topo"]
-    {"topo": topo, "deviation": deviation, "quick": quick, "clearance": clearance, "renders": renders, "bake_junk": bake_junk, "renders_3b": renders_3b}.get(argv[0], lambda a: print("unknown stage"))(argv[1:])
+    {"topo": topo, "deviation": deviation, "quick": quick, "clearance": clearance, "renders": renders, "bake_junk": bake_junk, "renders_3b": renders_3b, "renders_3c": renders_3c}.get(argv[0], lambda a: print("unknown stage"))(argv[1:])
