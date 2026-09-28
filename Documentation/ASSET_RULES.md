@@ -92,9 +92,16 @@ Owner decision 2026-09-27; first used on the Cradle v2 (HERO_SPEC §3).
 4. **Measure and specify**: cross-sections, dimensions, pivots into HERO_SPEC. Symmetrize where
    the object should be symmetric (keep the better half; the texture is mirrored with it).
 5. **Clean hero low-poly by construction** to the measurements (Hero standard above), then a
-   deviation check against the AI high-poly: silhouette edges <= 5 mm, flat faces <= 3 mm.
+   deviation check against the AI high-poly (see "Deviation acceptance").
 6. **Transfer bake** of colour and normals from the AI high-poly onto the low-poly UVs; finish
    in Substance Painter (owner).
+
+**Deviation acceptance** (owner decision 2026-09-28, replaces the hard 3 mm / 5 mm pass/fail):
+- 3 mm on flat faces and 5 mm on edges stay the *reporting* limits (visible surface only).
+- A hero low-poly **passes** when every over-limit area is classified as
+  a) modelled (residual of a feature that is geometry), b) deliberate design difference, or
+  c) AI junk (excluded from the bake), **and** the unclassified visible area deviating more than
+  15 mm is **< 0.5 % per part**.
 
 **Fallback**: if the AI shape cannot be used (contradicts the mechanism, unreadable detail, more
 cleanup than rebuilding), go back to the more hand-made workflow: blockout from the spec, hand-made

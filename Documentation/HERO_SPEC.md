@@ -144,6 +144,9 @@ plane (x, y):
 - Not modelled, by decision: the drum's two raised bands (13 mm, below the rule, and the root boss
   slides over the drum).
 
+**Deviation acceptance (ASSET_RULES, 2026-09-28): PASS.** Every over-limit area of the Step 3c low-poly is
+classified a/b/c; the unclassified visible area deviating > 15 mm is 0.14 % (Base) and ~0.2 % per arm (< 0.5 %).
+
 Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
 span x −1.139 … 1.138, fixed body top y 0.884.
 
