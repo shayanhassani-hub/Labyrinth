@@ -196,14 +196,6 @@ if __name__ == "__main__":
         import cradle_ai_sections; getattr(cradle_ai_sections, argv[1])(argv[2:])
     elif stage == "sheet":
         import cradle_ai_sheet; cradle_ai_sheet.run(argv[1:])
-    elif stage == "probe":
-        import cradle_ai_probe; cradle_ai_probe.run(argv[1:])
-    elif stage == "probe2":
-        import cradle_ai_probe2; cradle_ai_probe2.run(argv[1:])
-    elif stage == "look":
-        import cradle_ai_look; cradle_ai_look.run(argv[1:])
-    elif stage == "probe3":
-        import cradle_ai_probe3; cradle_ai_probe3.run(argv[1:])
     elif stage == "s2":
         import cradle_ai_s2; cradle_ai_s2.run(argv[1:])
     elif stage == "render":

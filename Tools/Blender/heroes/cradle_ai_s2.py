@@ -268,4 +268,18 @@ def saddle_render(args):
 
 
 def run(args):
-    {"apply": apply, "verify": verify_sym, "render": render, "saddle_render": saddle_render}[args[0]](args[1:])
+    {"apply": apply, "verify": verify_sym, "render": render, "saddle_render": saddle_render, "export_fit": export_fit}[args[0]](args[1:])
+
+
+def export_fit(args):
+    """fitted AI reference meshes (spec coordinates, world) for the cradle_v2 deviation check"""
+    bpy.ops.wm.open_mainfile(filepath=S.BLEND)
+    for name in ("AI_A_Static_sym", "AI_A_Arm_L", "AI_A_Arm_R"):
+        ob = bpy.data.objects[name]; me = ob.data
+        v = np.empty(len(me.vertices) * 3); me.vertices.foreach_get("co", v); v = v.reshape(-1, 3)
+        M = np.array(ob.matrix_world); v = v @ M[:3, :3].T + M[:3, 3]
+        sv = np.column_stack((-v[:, 0], v[:, 2], -v[:, 1]))          # Blender -> spec
+        me.calc_loop_triangles(); t = np.empty(len(me.loop_triangles) * 3, np.int32)
+        me.loop_triangles.foreach_get("vertices", t)
+        np.savez(os.path.join(S.CACHE, f"fit_{name}.npz"), v=sv, t=t.reshape(-1, 3)[:, ::-1].copy())
+        print("EXPORT", name, len(sv))
