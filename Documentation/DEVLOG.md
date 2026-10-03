@@ -178,3 +178,29 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   >= 480 px/m on one 2048 set); then Step 5 bake-source cleanup (AI junk zones patched)
   and a test transfer bake; then Substance.
   Hours today: ~6
+
+## 2026-10-03
+- Done: Cradle v2 UVs finished (Steps 4b/4c): smooth chamfer corners, octagon bands as continuous
+  strips, ring cuts kept off the front half, 8/4 px padding; 428.5 px/m on one 2048 set, 176 islands,
+  52 % packing, deterministic generator. Step 5a: AI-based bake sources (fitted AI mesh with junk zones
+  patched, colour highs, Substance export). Step 5b: comparison bake on the same low - AI high vs clean
+  bevelled high. Step 6a: production high-poly built by Code (bevels with measured radii, 3 mm inside
+  fillets, detail set: plinth side panels x8, tray outlines, pin cap retaining rings, drum bands, hub
+  groove, column access panel + 4 screws, turntable radial seams, elbow grooves, strip panel lines,
+  gusset bolts, arm outer inset panel, plate top outline, riser bolts) and per-vertex cages.
+  Personal snapshots on G: (UV'd low-poly, 5b comparison renders and test bakes).
+- Decisions: hero texel density >= 400 px/m acceptable for heroes > 2 m on one 2048 set (target 512);
+  padding 8 px / 4 px border; no fixed island count, seams avoid front/main views. Hero workflow v2:
+  the AI model is the shape, measurement and colour reference only; high-poly = low + controlled
+  bevels + clean detail (5b: ray misses 4.61 % vs 0.02 %, AI surfaces wavy/"melted", patch borders
+  jagged). Code does the full high-poly detail pass; the owner textures in Substance.
+- Problems: 4b missed its targets (194 islands, 409 px/m) - thin strips and 16 px padding were the
+  cause, my 480-520 estimate was wrong; non-deterministic island output (fixed); 5a patch borders
+  ragged; colour bakes first blank (colour-space bug, fixed); 5b dashed seam lines from a 25 mm ray
+  offset (cages built in 6a). The Monday DEVLOG commit had not run (committed today).
+- Open: high-poly round parts are still 16-faceted (to become true circles in 6b); turntable seams
+  break over the rounded top edge; ID map groups; final bake verification + Substance export (6b).
+  Service arm §4 conflict, DroneHoverAIV2 yaw, STYLE_GUIDE.md still open.
+- Next: Step 6b (round parts, seam fix, ID vertex colours, cage bake check, export + README for
+  Substance); then the owner textures the Cradle in Substance Painter.
+  Hours today: ~4
