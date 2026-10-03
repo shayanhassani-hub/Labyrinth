@@ -880,11 +880,12 @@ def uv(args):
     os.makedirs(SCR, exist_ok=True)
     json.dump(out, open(os.path.join(SCR, "uv_report.json"), "w"), indent=1)
     if args and args[0] == "render":
-        uv_layout_png(lab, isl_part)
-        uv_renders(objs)
+        step = args[1] if len(args) > 1 else "s4b"
+        uv_layout_png(lab, isl_part, step)
+        uv_renders(objs, step)
 
 
-def uv_layout_png(lab, isl_part):
+def uv_layout_png(lab, isl_part, step="s4b"):
     size = lab.shape[0]
     lut = np.zeros((max(isl_part) + 1, 3)); lut[0] = (0.10, 0.10, 0.11)
     rng = np.random.default_rng(1)
@@ -898,8 +899,8 @@ def uv_layout_png(lab, isl_part):
     rgb[b, :] = rgb[-b - 1, :] = rgb[:, b] = rgb[:, -b - 1] = (0.35, 0.35, 0.35)
     img = bpy.data.images.new("uvlayout", size, size, alpha=False)
     img.pixels.foreach_set(np.concatenate([rgb, np.ones((size, size, 1))], axis=2).astype(np.float32).ravel())
-    img.filepath_raw = os.path.join(RENDERS, "cradle_v2_s4_uv_layout.png"); img.file_format = 'PNG'; img.save()
-    print("RENDER cradle_v2_s4_uv_layout.png")
+    img.filepath_raw = os.path.join(RENDERS, f"cradle_v2_{step}_uv_layout.png"); img.file_format = 'PNG'; img.save()
+    print(f"RENDER cradle_v2_{step}_uv_layout.png")
 
 
 def checker_image(size=TEXPX, cell=32):
@@ -916,7 +917,7 @@ def checker_image(size=TEXPX, cell=32):
     return img
 
 
-def uv_renders(objs):
+def uv_renders(objs, step="s4b"):
     img = checker_image()
     m = bpy.data.materials.new("M_UVChecker")
     nt = m.node_tree if m.node_tree else None
@@ -929,11 +930,48 @@ def uv_renders(objs):
     setup_render(color='TEXTURE')
     bpy.context.scene.display.shading.show_cavity = False
     cz = V.CZ
-    camera([-2.9, 2.4, cz - 3.2], [0, 0.8, cz], lens=40); shot("cradle_v2_s4_checker_34.png")
-    camera([0, 6.0, cz + 0.01], [0, 0, cz], lens=55); shot("cradle_v2_s4_checker_top.png")
-    camera([1.0, 1.0, cz - 0.9], [0.40, 0.62, cz], lens=45); shot("cradle_v2_s4_checker_hinge.png")
+    camera([-2.9, 2.4, cz - 3.2], [0, 0.8, cz], lens=40); shot(f"cradle_v2_{step}_checker_34.png")
+    camera([0, 6.0, cz + 0.01], [0, 0, cz], lens=55); shot(f"cradle_v2_{step}_checker_top.png")
+    camera([1.0, 1.0, cz - 0.9], [0.40, 0.62, cz], lens=45); shot(f"cradle_v2_{step}_checker_hinge.png")
+    # orthographic front: arm and plinth front faces at one screen scale, so checker cell sizes compare directly
+    camera([0, 0.9, cz - 8], [0, 0.9, cz], ortho=3.4); shot(f"cradle_v2_{step}_checker_front.png")
+
+
+# --------------------------------------------------------------------------- Step 4b: shading check (smooth corners)
+
+
+def shading(args):
+    """Base only, grey glossy plastic, one strong sun, almost no ambient (Cycles): smoothing artefacts on the
+    corners left smooth in Step 4b would show. Renders cradle_v2_s4b_shading_34 / _side / _detail."""
+    objs = open_file()
+    for n, o in objs.items():
+        if n != "Base_01": o.hide_render = True
+    sc = bpy.context.scene
+    sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = 96; sc.cycles.use_denoising = True
+    sc.render.resolution_x, sc.render.resolution_y = 2000, 1250; sc.render.resolution_percentage = 100
+    sc.view_settings.view_transform = 'AgX'
+    w = sc.world or bpy.data.worlds.new("W"); sc.world = w; w.use_nodes = True
+    w.node_tree.nodes["Background"].inputs["Color"].default_value = (0.02, 0.02, 0.025, 1)
+    w.node_tree.nodes["Background"].inputs["Strength"].default_value = 1.0
+    m = bpy.data.materials.new("M_Shading"); m.use_nodes = True
+    b = m.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (0.45, 0.46, 0.48, 1); b.inputs["Roughness"].default_value = 0.32
+    b.inputs["Metallic"].default_value = 0.0
+    o = objs["Base_01"]; o.data.materials.clear(); o.data.materials.append(m)
+    fl = bpy.data.meshes.new("Floor"); fl.from_pydata([(-20, -20, 0), (20, -20, 0), (20, 20, 0), (-20, 20, 0)], [], [(0, 1, 2, 3)])
+    fo = bpy.data.objects.new("Floor", fl); sc.collection.objects.link(fo)
+    ld = bpy.data.lights.new("Sun", 'SUN'); ld.energy = 3.0; ld.angle = math.radians(1.0)
+    sun = bpy.data.objects.new("Sun", ld); sc.collection.objects.link(sun)
+    cz = V.CZ
+
+    def aim(d_spec):                                    # light travelling along -d_spec (from that direction)
+        d = V.to_blender(d_spec) - V.to_blender((0, 0, 0)); d.normalize()
+        sun.rotation_euler = (-d).to_track_quat('-Z', 'Y').to_euler()
+    aim((-0.6, 0.65, -0.47)); camera([-2.9, 2.4, cz - 3.2], [0, 0.45, cz], lens=40); shot("cradle_v2_s4b_shading_34.png")
+    aim((-1.0, 0.22, 0.05)); shot("cradle_v2_s4b_shading_side.png")
+    aim((-0.6, 0.65, -0.47)); camera([-1.15, 1.05, cz - 1.25], [-0.25, 0.45, cz - 0.15], lens=40); shot("cradle_v2_s4b_shading_detail.png")
 
 
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else ["topo"]
-    {"topo": topo, "deviation": deviation, "quick": quick, "clearance": clearance, "renders": renders, "bake_junk": bake_junk, "renders_3b": renders_3b, "renders_3c": renders_3c, "uv": uv}.get(argv[0], lambda a: print("unknown stage"))(argv[1:])
+    {"topo": topo, "deviation": deviation, "quick": quick, "clearance": clearance, "renders": renders, "bake_junk": bake_junk, "renders_3b": renders_3b, "renders_3c": renders_3c, "uv": uv, "shading": shading}.get(argv[0], lambda a: print("unknown stage"))(argv[1:])

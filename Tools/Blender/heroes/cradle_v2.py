@@ -815,13 +815,12 @@ def mat(name, rgb):
     return m
 
 
-UV_REDUCED = {"underside": 0.5, "back": 0.7}      # texel density factors for rarely seen islands (Step 4, option c)
+UV_REDUCED = {"underside": 0.5}                   # texel density factor for rarely seen islands (Step 4; the x0.7 back factor was dropped in 4b: the cradle is walked around)
 UV_CLASS_AREA = {}
 
 
 def uv_density(o, isl):
-    """density factor per island: undersides (facing down in the closed and the released pose) x0.5;
-    Base faces on the back half facing back (spec +Z, away from the front / approach side) x0.7"""
+    """density factor per island: undersides (facing down in the closed and the released pose) x0.5"""
     a = sum(f.calc_area() for f in isl)
     n = sum((f.normal * f.calc_area() for f in isl), Vector()).normalized()
     c = sum((o.matrix_world @ f.calc_center_median() * f.calc_area() for f in isl), Vector()) / max(a, 1e-12)
@@ -832,8 +831,6 @@ def uv_density(o, isl):
     cls = None
     if all(m.z < -0.5 for m in ns):
         cls = "underside"
-    elif "Base" in o.name and -n.y > 0.5 and (-c.y - CZ) > 0.2:
-        cls = "back"
     k = f"{o.name.replace(HERO + '_', '')}:{cls}"
     UV_CLASS_AREA[k] = UV_CLASS_AREA.get(k, 0.0) + a
     return UV_REDUCED.get(cls, 1.0)
