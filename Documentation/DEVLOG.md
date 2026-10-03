@@ -147,3 +147,34 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
 - Next: Claude Code imports the Hunyuan files, fits them to the spec, measures the drone
   contact, compares, and runs a trial transfer bake.
   Hours today: ~7
+
+## 2026-09-28
+- Done: Cradle v2 (AI transfer workflow) Steps 1-4. Step 1: Hunyuan high-poly, split parts
+  and textured variants imported and fitted (x2.589); docking study with the live drone dump.
+  Step 2: pad study, cross-sections and measurement sheet, plinth symmetrized from the -X
+  half, HERO_SPEC §3 rewritten (old design -> §3a), ASSET_RULES: hero workflow v1, AI tool
+  choice, AI reference rules. Step 3/3b/3c: clean hero low-poly by construction
+  (cradle_v2.py + cradle_v2_check.py): 3,620 tris, quads (8 tris on the base), arms exact
+  mirrors, all clearances pass (limbs >= 11.1 mm over the whole fold), new hole test.
+  Step 4: UV module (cradle_v2_uv.py): no overlaps/flips, low distortion, ~410 px/m.
+  Personal copy of the pre-UV low-poly on G:\AI_Labyrinth_Personal\Cradle\.
+- Decisions: docking option A (drone yaw -28.3 deg, two opposite limbs on the plates);
+  release angle 75 deg (100 deg hits floor/plinth), timing 1.2 s; front faces -Z.
+  Identical 10 mm amber pads + grey 54.4 mm riser under the left pad (saddles rejected:
+  prop clearance). Plate inner-edge chamfer 40 x 8 mm for fold clearance. Depth rule:
+  visible relief > ~15 mm is geometry. Deviation acceptance: every over-limit area
+  classified a) modelled / b) design difference / c) AI junk, unexplained > 15 mm < 0.5 %
+  per part (Cradle passes). Turntable notches removed (read as damage). AI junk zones are
+  corrected in the high-poly before any bake (bake transfers detail, never shape decisions).
+- Problems: holes at the notch ends and, found by the new test, partly visible faces
+  deleted by the hidden-face pass (fixed: dense sampling + hole test). Code's fold check
+  initially below 10 mm (fixed by the chamfer). UVs too fragmented (473 islands, 45 %
+  packing): 45 deg octagon turns marked hard -> every ring cut into pieces.
+  Blender review file was open during a Code run (not saved, no harm) - rule: close
+  without saving before a run.
+- Open: service arm §4 conflicts with the turned drone (prop discs reach |x| ~0.14);
+  DroneHoverAIV2 must take off from yaw -28.3 deg without snapping; STYLE_GUIDE.md missing.
+- Next: Step 4b UVs (fewer, larger islands, octagon bands as continuous strips, target
+  >= 480 px/m on one 2048 set); then Step 5 bake-source cleanup (AI junk zones patched)
+  and a test transfer bake; then Substance.
+  Hours today: ~6
