@@ -9,10 +9,11 @@ Hard edges (always UV seams): only where shading needs them. Corners < SMOOTH_DE
 Cap / wall split: an island whose longest border loop is planar is split between the faces facing along that loop's
   axis (caps: tops, floors, round end faces) and the faces around it (walls); chamfer strips go with their larger
   neighbour.
-Rings (islands with two border loops: tier walls, turntable, collars, flat annuli): ONE cut at the back (+Z spec,
-  preferring a corner), straightened with follow-active-quads; a second cut opposite (on a corner) only when the
-  strip is longer than MAX_STRIP. A ring that cannot be flattened within the stretch limits that way is split into
-  2, 4 or 8 sectors at corners (the fewest that pass). Islands with more loops are first joined by one cut per extra
+Rings (islands with two border loops: tier walls, turntable, collars, flat annuli): ONE cut on the least visible
+  side (the back, +Z spec, for rings about a vertical axis; the underside for rings facing front), preferring a
+  corner, straightened (grid straightener). Rings longer than MAX_STRIP and rings that do not flatten within the
+  limits get 2, 3 or 4 cuts, all on corners of the back half or the two side extremes (Step 4c: never a seam on the
+  front half), the most even set first. Only flat steps that need 4-8 sectors fall back to corners all round. Islands with more loops are first joined by one cut per extra
   loop.
 Everything else: planar islands = exact projection; curved = angle based, straightened with follow-active-quads
   where all quads and within the limits; islands outside the limits are split at a chamfer border (the chamfer stays
@@ -22,6 +23,7 @@ Orientation: each island's minimum-area rectangle is turned so its long side run
 """
 import bpy
 import bmesh
+import itertools
 import math
 import numpy as np
 from mathutils import Vector
@@ -35,15 +37,18 @@ CAP_DOT = 0.80                 # cap face: |normal . loop axis| >= this
 PLANAR_DEG = 2.0
 STRETCH_MAX = 1.20             # per-island face area ratio limits (max / median, median / min)
 ANGLE_MAX = 12.0               # per-island max corner angle deviation (deg), faces > 2 cm2
+STRIP_OVER = 1.5               # straightened rings: chamfer faces may carry up to this x the median density
+FRONT_PIECE_FILL = 0.2         # flat steps (vertical axis): a seamless front piece may fill its box down to this
+                               # (Step 4c: no seam on the front half; costs ~30 px/m, None = off)
 RING_ANGLE_MAX = 25.0          # ... for straightened ring strips: a trapezoid at a 45 deg octagon corner shears by 22.5 deg
 FILL_MIN = 0.5                 # islands filling less of their min-area rectangle are cut in two
 SPLIT_MIN_LEN = 0.20           # ... when their long side exceeds this (m)
 MAX_STRIP = 4.1                # longest island (m): fits the 2048 sheet up to ~495 px/m
 CORNER_DEG = 15.0              # ring outline turn that counts as a corner for cuts
-RING_SECTORS = (1, 2, 4, 8)
+RING_SECTORS = (1, 2, 3, 4, 8)
 ROUNDS = 14
 TEX = 2048
-PAD_PX, BORDER_PX = 16, 8
+PAD_PX, BORDER_PX = 8, 4             # island gap / sheet border at 2048 (owner decision, Step 4c)
 LOG = None                     # debug: list -> ring trial log
 FAQ_LOG = None                 # debug: list -> follow-active-quads results
 
@@ -79,13 +84,22 @@ def is_chamfer_border(e):
 
 
 def mark_edges(bm):
-    """hard edges + base seams (open borders). Returns number of hard edges."""
-    n = 0
+    """hard edges + base seams (open borders). Hard runs in the SMOOTH_DEG..HARD_DEG band that dead-end inside a
+    smooth surface (the corner angle drifts across the threshold along a ring) are pruned back to smooth: a hard
+    edge that stops half way shows as a break, and the slit it leaves cannot be unwrapped cleanly.
+    Returns number of hard edges."""
     for e in bm.edges:
         e.smooth = True; e.seam = len(e.link_faces) != 2
         if is_hard(e):
-            e.smooth = False; e.seam = True; n += 1
-    return n
+            e.smooth = False; e.seam = True
+    def lines(v):
+        return sum(1 for x in v.link_edges if x.seam)
+    for _ in range(1000):
+        cut = [e for e in bm.edges if not e.smooth and dihedral(e) < HARD_DEG
+               and any(lines(v) == 1 for v in e.verts)]
+        if not cut: break
+        for e in cut: e.smooth = True; e.seam = False
+    return sum(1 for e in bm.edges if not e.smooth)
 
 
 def islands(bm, faces=None):
@@ -107,8 +121,8 @@ def islands(bm, faces=None):
 
 def border_loops(isl):
     fs = set(isl)
-    bedges = list({e for f in isl for e in f.edges
-                   if e.seam or len(e.link_faces) < 2 or any(g not in fs for g in e.link_faces)})
+    bedges = sorted({e for f in isl for e in f.edges
+                     if e.seam or len(e.link_faces) < 2 or any(g not in fs for g in e.link_faces)}, key=lambda e: e.index)
     adj = {}
     for e in bedges:
         for v in e.verts: adj.setdefault(v, []).append(e)
@@ -178,12 +192,31 @@ def class_split(bm):
         fs = set(isl)
         own = {f: abs(f.normal.dot(ax)) >= CAP_DOT for f in isl}
         cap = dict(own)
-        for f in isl:                                            # chamfer strips join their larger neighbour:
-            if not is_strip(f): continue                         # the largest wide one, else the largest strip
-            nb = [g for e in f.edges if not e.seam for g in e.link_faces if g is not f and g in fs]
-            wide = [g for g in nb if not is_strip(g)]
-            if wide: cap[f] = own[max(wide, key=lambda g: g.calc_area())]
-            elif nb: cap[f] = own[max(nb, key=lambda g: g.calc_area())]
+        # chamfer strips join their larger neighbour, decided per connected run of strips (a whole chamfer row goes
+        # one way, so the seam does not zigzag): the class with more adjacent wide-face area, else the largest strip
+        strips = [f for f in isl if is_strip(f)]; done = set()
+        for f0 in strips:
+            if f0 in done: continue
+            run = []; st = [f0]; done.add(f0)
+            while st:
+                f = st.pop(); run.append(f)
+                lmax = max(x.calc_length() for x in f.edges)
+                for e in f.edges:                                # along the row only: across the short edges
+                    if e.seam or e.calc_length() > 0.5 * lmax: continue
+                    for g in e.link_faces:
+                        if g is not f and g in fs and g not in done and is_strip(g): done.add(g); st.append(g)
+            rs = set(run); votes = {True: 0.0, False: 0.0}; nb_all = []
+            for f in run:
+                for e in f.edges:
+                    if e.seam: continue
+                    for g in e.link_faces:
+                        if g in fs and g not in rs:
+                            nb_all.append(g)
+                            if not is_strip(g): votes[own[g]] += g.calc_area()
+            if votes[True] or votes[False]: c_ = votes[True] > votes[False]
+            elif nb_all: c_ = own[max(nb_all, key=lambda g: g.calc_area())]
+            else: continue
+            for f in run: cap[f] = c_
         a = sum(f.calc_area() for f in isl); ac = sum(f.calc_area() for f in isl if cap[f])
         if ac < 0.03 * a or ac > 0.97 * a: continue
         for f in isl:
@@ -191,6 +224,19 @@ def class_split(bm):
                 if not e.seam and len(e.link_faces) == 2 and all(g in fs for g in e.link_faces) \
                         and cap[e.link_faces[0]] != cap[e.link_faces[1]]:
                     e.seam = True; n += 1
+    return n
+
+
+def prune_slits(bm):
+    """soft seams that dead-end inside an island separate nothing and leave a slit: remove them (repeatedly).
+    Hard edges and open borders stay. Returns number of seams removed."""
+    n = 0
+    for _ in range(1000):
+        cut = [e for e in bm.edges if e.seam and e.smooth and len(e.link_faces) == 2
+               and any(sum(1 for x in v.link_edges if x.seam) == 1 for v in e.verts)]
+        if not cut: break
+        for e in cut: e.seam = False
+        n += len(cut)
     return n
 
 
@@ -235,19 +281,21 @@ def _corner_angles(pts):
 
 
 def island_quality(isl, uvl, strips=True):
-    """(area ratio max/median, median/min, max angle deviation) over faces > 2 cm2; strips=False leaves chamfer
-    strips out of the angle (straightened rings: the shear inside a narrow chamfer strip is accepted, reported)"""
-    r = []; ang = [0.0]
+    """(area ratio max/median, median/min, max angle deviation) over faces > 2 cm2; strips=False leaves faces
+    narrower than STRIP_W (chamfers) out of the angle (straightened rings: the shear inside a narrow chamfer strip is accepted, reported)"""
+    r = []; ang = [0.0]; wide = []
     for f in isl:
         a3 = f.calc_area()
         if a3 < 2e-4: continue
         U = [np.array(l[uvl].uv[:]) for l in f.loops]; P = [np.array(l.vert.co[:]) for l in f.loops]
-        r.append(abs(_poly_area(U)) / a3)
-        if strips or not is_strip(f):
+        r.append(abs(_poly_area(U)) / a3); wide.append(strips or face_width(f) >= STRIP_W)
+        if wide[-1]:
             ang.append(np.abs(_corner_angles(P) - _corner_angles(U)).max())
     if not r: return 1.0, 1.0, 0.0
-    r = np.array(r); m = np.median(r)
-    return r.max() / m, m / max(r.min(), 1e-12), max(ang)
+    r = np.array(r); m = np.median(r); wide = np.array(wide)
+    over = r[wide].max() / m if wide.any() else 1.0                 # chamfers may be over-sampled up to STRIP_OVER
+    if (~wide).any(): over = max(over, r[~wide].max() / m * STRETCH_MAX / STRIP_OVER)
+    return over, m / max(r.min(), 1e-12), max(ang)
 
 
 def within_limits(q, angle_max=ANGLE_MAX):
@@ -333,7 +381,9 @@ def island_fill(isl, uvl):
 def self_overlap(isl, uvl):
     """True if the island's UV outline crosses itself (proper segment intersections)"""
     sa = [_poly_area([l[uvl].uv for l in f.loops]) for f in isl]
-    if min(sa) < 0 < max(sa): return True                          # a face folded over inside the island
+    tiny = 1e-6 * sum(abs(x) for x in sa)                          # near-zero slivers may flip sign numerically
+    sa_ = [x for x in sa if abs(x) > tiny] or sa
+    if min(sa_) < 0 < max(sa_): return True                        # a face folded over inside the island
     fs = set(isl); seg = []
     for f in isl:
         for l in f.loops:
@@ -354,10 +404,11 @@ def self_overlap(isl, uvl):
 
 
 def piece_ok(isl, uvl, angle_max=ANGLE_MAX):
-    """(passes, quality, fill, long side m): within the stretch limits, no self overlap, compact or short, not too long"""
+    """(passes, quality, fill, long side m): one border loop (no closed rings), within the stretch limits, no self
+    overlap, compact or short, not too long"""
     q = island_quality(isl, uvl, strips=angle_max == ANGLE_MAX)
     fill, long_m = island_fill(isl, uvl)
-    ok = within_limits(q, angle_max) and not (len(isl) > 1 and self_overlap(isl, uvl)) \
+    ok = len(border_loops(isl)) == 1 and within_limits(q, angle_max) and not (len(isl) > 1 and self_overlap(isl, uvl)) \
         and (fill >= FILL_MIN or long_m <= SPLIT_MIN_LEN) and long_m <= MAX_STRIP
     return ok, q, fill, long_m
 
@@ -376,7 +427,7 @@ def split_chamfers(isl):
         e.seam = True; n += 1
     if n == 0:                                     # no chamfers: cut the strongest smooth folds
         es = sorted({e for f in isl for e in f.edges if not e.seam and len(e.link_faces) == 2},
-                    key=lambda e: -e.calc_face_angle(0.0))
+                    key=lambda e: (-e.calc_face_angle(0.0), e.index))
         for e in es[:max(1, len(es) // 8)]:
             if e.calc_face_angle(0.0) > math.radians(10): e.seam = True; n += 1
     return n
@@ -552,7 +603,7 @@ def ring_trial(o, idx, stats):
     ov = order_loop(outer)
     if ov is None: ov = order_loop(inner); outer, inner = inner, outer
     if ov is None: return None
-    oset = set(outer); ivs = {v for e in inner for v in e.verts}
+    oset = set(outer); ivs = sorted({v for e in inner for v in e.verts}, key=lambda v: v.index)
     n = len(ov)
     seg = [(ov[(i + 1) % n].co - ov[i].co).length for i in range(n)]
     cum = np.concatenate(([0.0], np.cumsum(seg)[:-1])); L = float(sum(seg))
@@ -563,17 +614,54 @@ def ring_trial(o, idx, stats):
         d1 = (es[0].other_vert(v).co - v.co).normalized(); d2 = (es[1].other_vert(v).co - v.co).normalized()
         return 180.0 - math.degrees(math.acos(max(-1.0, min(1.0, d1.dot(d2)))))
     tv = [turn(v) for v in ov]
-    span = max(np.ptp([v.co.y for v in ov]), 1e-6)
-    s0 = max(range(n), key=lambda i: -ov[i].co.y / span + 0.05 * min(tv[i], 45.0) / 45.0)
+    # least visible side of the loop: the back (spec +Z = Blender -y) for rings about a vertical axis, the
+    # underside for rings that face front / back; cuts go on that half or on the two side extremes, never in front
+    P = np.array([v.co[:] for v in ov]); c = P.mean(0)
+    w, vec = np.linalg.eigh((P - c).T @ (P - c)); axis = vec[:, 0]
+    pref = np.array([0.0, -1.0, 0.0]); pref = pref - axis * (pref @ axis)
+    if np.linalg.norm(pref) < 0.3:
+        pref = np.array([0.0, 0.0, -1.0]); pref = pref - axis * (pref @ axis)
+    pref /= np.linalg.norm(pref); side = np.cross(axis, pref)
+    av = (P - c) @ pref; bv = np.abs((P - c) @ side)
+    span = max(np.ptp(av), 1e-6)
+    corner = [tv[i] >= CORNER_DEG for i in range(n)]
+    ok_cut = [corner[i] and (av[i] >= -0.02 * span or bv[i] >= bv.max() - 0.01 * span) for i in range(n)]
+    s0 = max(range(n), key=lambda i: av[i] / span + 0.05 * min(tv[i], 45.0) / 45.0)
     ov_idx = [v.index for v in ov]; iv_idx = [v.index for v in ivs]
+    ax_v = Vector(axis)                                  # flat step: a ring about a vertical axis, faces mostly up
+    flat_step = abs(axis[2]) > 0.9 and sum(abs(f.normal.dot(ax_v)) * f.calc_area() for f in isl)         > 0.7 * sum(f.calc_area() for f in isl)
+
+    def gaps(sel):
+        q = sorted(cum[i] for i in sel)
+        return [q[(j + 1) % len(q)] - q[j] + (L if j == len(q) - 1 else 0.0) for j in range(len(q))]
+
+    def placements(k):
+        """cut vertex sets to try for k pieces: allowed (back / side) corners, the most even set first; for 4+
+        sectors also the old even spacing as a last resort (may cut in front)"""
+        out = []
+        if k == 1:
+            return [[s0]]
+        A = [i for i in range(n) if ok_cut[i]]
+        if len(A) >= k and math.comb(len(A), k) <= 40000:
+            best = min(itertools.combinations(A, k), key=lambda sel: (max(gaps(sel)), -sum(av[i] for i in sel)))
+            out.append(list(best))
+        if k == RING_SECTORS[-1]:                           # every back / side corner: one seamless front piece
+            big = [i for i in A if tv[i] >= 30.0]           # (real outline corners when the outline has many)
+            sel = A if len(A) <= 8 else big
+            if 2 <= len(sel) <= (12 if flat_step else 8): out.append(sel)
+        if k >= 4:
+            st = [s0]
+            for j in range(1, k):
+                t = (cum[s0] + j * L / k) % L
+                st.append(min(range(n), key=lambda i: min(abs(cum[i] - t), L - abs(cum[i] - t))
+                              + (0.0 if corner[i] else 0.15 * L / k)))
+            out.append(st)
+        return out
+
+    if LOG is not None: LOG.append(dict(obj=o.name[-9:], L=round(L, 2), k=0, pieces=[], info=(flat_step, sum(ok_cut), n, sorted([round(tv[i]) for i in range(n) if ok_cut[i]]), round(abs(axis[2]), 3), sum(abs(f.normal.dot(ax_v)) * f.calc_area() for f in isl) / sum(f.calc_area() for f in isl))))
     last = None
-    for k in RING_SECTORS:
-        if k == 1 and L > MAX_STRIP * 1.02: continue
-        starts = [s0]
-        for j in range(1, k):
-            t = (cum[s0] + j * L / k) % L
-            starts.append(min(range(n), key=lambda i: min(abs(cum[i] - t), L - abs(cum[i] - t))
-                              + (0.0 if tv[i] >= CORNER_DEG else 0.15 * L / k)))
+    tries = [(len(sel), sel) for k in RING_SECTORS for sel in placements(k) if not (k == 1 and L > MAX_STRIP * 1.02)]
+    for t_i, (k, starts) in enumerate(tries):
         bm, _ = _edit_bm(o)
         isl = [bm.faces[i] for i in idx]
         added = []
@@ -582,7 +670,12 @@ def ring_trial(o, idx, stats):
             for e in (p or []):
                 if not e.seam: e.seam = True; added.append(e.index)
         bmesh.update_edit_mesh(o.data)
+        global FILL_MIN
+        keep_fill = FILL_MIN
+        if FRONT_PIECE_FILL is not None and flat_step and len(starts) >= 5 and all(ok_cut[i] for i in starts):
+            FILL_MIN = FRONT_PIECE_FILL
         res = unwrap_pieces(o, idx, stats, ring=True)
+        FILL_MIN = keep_fill
         last = (k, added)
         if LOG is not None:
             bm, uvl = _edit_bm(o)
@@ -593,12 +686,31 @@ def ring_trial(o, idx, stats):
         if all(r[1] for r in res):
             stats.setdefault("rings", {}); stats["rings"][k] = stats["rings"].get(k, 0) + 1
             stats["straightened"] = stats.get("straightened", 0) + sum(1 for r in res if r[4])
+            stats.setdefault("cuts", []).append(dict(
+                obj=o.name.replace("LAB_HERO_Cradle_", ""), ring_len_m=round(L, 2), pieces=k,
+                at=[(round(-ov[i].co.x, 3), round(ov[i].co.z, 3), round(-ov[i].co.y, 3)) for i in starts],
+                front=[bool(av[i] < -0.02 * span and bv[i] < bv.max() - 0.01 * span) for i in starts]))
             return [r[0] for r in res]
-        if k == RING_SECTORS[-1]: break
+        if t_i == len(tries) - 1: break
         bm, _ = _edit_bm(o)
         for i in added: bm.edges[i].seam = False
         bmesh.update_edit_mesh(o.data)
     stats.setdefault("rings", {}); stats["rings"]["failed"] = stats["rings"].get("failed", 0) + 1
+    # nothing passed: keep only the first back / side cut set (no front seams), the generic rounds split further
+    safe = next((sel for _, sel in tries if all(ok_cut[i] for i in sel)), None)
+    if safe is not None and safe != starts:
+        bm, _ = _edit_bm(o)
+        for i in last[1]: bm.edges[i].seam = False
+        isl = [bm.faces[i] for i in idx]
+        for s_ in safe:
+            p = _path(isl, {bm.verts[ov_idx[s_]]}, {bm.verts[i] for i in iv_idx})
+            for e in (p or []): e.seam = True
+        bmesh.update_edit_mesh(o.data)
+        starts = safe
+    stats.setdefault("cuts", []).append(dict(
+        obj=o.name.replace("LAB_HERO_Cradle_", ""), ring_len_m=round(L, 2), pieces=-len(starts),
+        at=[(round(-ov[i].co.x, 3), round(ov[i].co.z, 3), round(-ov[i].co.y, 3)) for i in starts],
+        front=[bool(av[i] < -0.02 * span and bv[i] < bv.max() - 0.01 * span) for i in starts]))
     return None
 
 
@@ -661,6 +773,7 @@ def unwrap_object(o):
     bm, _ = _edit_bm(o)
     stats["hard_edges"] = mark_edges(bm)
     stats["class_seams"] = class_split(bm) + class_split(bm)
+    stats["slits_pruned"] = prune_slits(bm)
     stats["loop_joins"] = join_loops(bm)
     bmesh.update_edit_mesh(o.data)
     locked = set()
