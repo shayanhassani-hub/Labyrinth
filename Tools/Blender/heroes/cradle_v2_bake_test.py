@@ -49,8 +49,9 @@ def spec_pt(p):
     return V.to_blender((p[0], p[1], p[2] + CZ))
 
 
-def weighted_bevel(low, rmap, rmax, name):
-    """low + bevel (3 seg, harden normals), width per edge = rmap(spec point, dihedral) via bevel weights"""
+def weighted_bevel(low, rmap, rmax, name, concave_r=None):
+    """low + bevel (3 seg, harden normals), width per edge = rmap(spec point, dihedral) via bevel weights;
+    concave_r: fixed width for concave edges (inside fillets), None = same as convex (Step 5b)"""
     me = low.data.copy(); me.name = name + "_src"
     bm = bmesh.new(); bm.from_mesh(me)
     lay = bm.edges.layers.float.get("bevel_weight_edge") or bm.edges.layers.float.new("bevel_weight_edge")
@@ -61,7 +62,8 @@ def weighted_bevel(low, rmap, rmax, name):
         th = e.calc_face_angle(0.0)
         if th < math.radians(30): continue
         mid = M @ ((e.verts[0].co + e.verts[1].co) / 2)
-        e[lay] = rmap(B.spec_local([mid])[0]) / rmax
+        r = concave_r if (concave_r is not None and not e.is_convex) else rmap(B.spec_local([mid])[0])
+        e[lay] = r / rmax
     bm.to_mesh(me); bm.free()
     tmp = bpy.data.objects.new(name + "_tmp", me); bpy.context.scene.collection.objects.link(tmp); tmp.matrix_world = M
     for p in me.polygons: p.use_smooth = True
