@@ -147,6 +147,14 @@ plane (x, y):
 **Deviation acceptance (ASSET_RULES, 2026-09-28): PASS.** Every over-limit area of the Step 3c low-poly is
 classified a/b/c; the unclassified visible area deviating > 15 mm is 0.14 % (Base) and ~0.2 % per arm (< 0.5 %).
 
+**Low-poly and UVs (Steps 4-4c, 2026-10-03).** 3,620 tris (unique meshes). The Base has **48 triangle
+faces** since Step 4 (the concave-quad split at the 1 mm column-top ledge and the flat fills), not 8; Arm 12,
+pads/riser 0. UVs (`cradle_v2_uv.py`): one 2048 set, 8 px island gap, 4 px border, Arm_L shares Arm_R
+(mirrored), Pad_L = Pad_R. **Achieved texel density 428.5 px/m** (full density; undersides x0.5), packing
+52 %, 176 islands (Base 135, Arm 37, Pad 2, Riser 2). Ring strips are cut on the back half or the two side
+corners; the front half carries no ring cut except the tier-2 sloped top (2 sector cuts at the front octagon
+corners) and the trough floor (generic split, sunken channel).
+
 Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
 span x −1.139 … 1.138, fixed body top y 0.884.
 
