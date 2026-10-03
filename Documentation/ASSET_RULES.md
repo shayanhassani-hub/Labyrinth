@@ -84,21 +84,32 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
   source and the script is frozen (note it in DEVLOG). .blend and .spp files are
   backed up to G: per V9.
 
-## Hero workflow v1 (AI transfer)
-Owner decision 2026-09-27; first used on the Cradle v2 (HERO_SPEC §3).
+## Hero workflow v2 (AI as reference, clean high-poly)
+Owner decision 2026-10-03, after the Cradle bake comparison (HERO_SPEC §3, Step 5b).
 1. **Concept**: one concept image plus orthographic views (see "AI reference rules").
-2. **AI model** (Hunyuan 3D): high-poly geometry (~1.5M tris), a textured variant, a part split
-   for the moving parts; the auto-retopo is reference only. Originals stay untouched in
-   `D:\AI_Labyrinth\Hunyuan\Downloads\<Hero>\`.
-3. **Import, fit and study** in `D:\AI_Labyrinth\Blender\Source\Heroes\<Hero>\LAB_HERO_<Hero>_AI.blend`:
-   orientation per EXPORT_CONTRACT, one uniform scale set by gameplay constraints, symmetry and
-   pivot measurements, motion and clearance checks against live Unity data.
-4. **Measure and specify**: cross-sections, dimensions, pivots into HERO_SPEC. Symmetrize where
-   the object should be symmetric (keep the better half; the texture is mirrored with it).
-5. **Clean hero low-poly by construction** to the measurements (Hero standard above), then a
-   deviation check against the AI high-poly (see "Deviation acceptance").
-6. **Transfer bake** of colour and normals from the AI high-poly onto the low-poly UVs; finish
-   in Substance Painter (owner).
+2. **AI 3D model** (Hunyuan 3D) as the **shape, measurement and colour reference only**. Originals stay
+   untouched in `D:\AI_Labyrinth\Hunyuan\Downloads\<Hero>\`; import, fit and study in
+   `D:\AI_Labyrinth\Blender\Source\Heroes\<Hero>\LAB_HERO_<Hero>_AI.blend` (orientation per
+   EXPORT_CONTRACT, one uniform scale set by gameplay constraints, symmetry and pivot measurements,
+   motion and clearance checks against live Unity data); cross-sections, dimensions and pivots into
+   HERO_SPEC.
+3. **Low-poly by construction** to the measurements (Hero standard above), checked against the AI model
+   (see "Deviation acceptance").
+4. **High-poly = low-poly + controlled bevels + clean detail** (grooves, bolts, panel seams; floaters
+   allowed), modelled to the bake-size rules of the hero (detail sizes from the texel density). No AI
+   geometry in the bake source.
+5. **Bake** (normal, AO, ...) with a proper cage (the low pushed out just enough to enclose its high).
+6. **Substance Painter** (owner): materials and wear; the AI texture is a colour reference only.
+
+**Why v2** (Cradle Step 5b, same low, same bake settings): the AI-derived high (fitted AI mesh with
+junk zones patched from the low) had **4.61 % ray misses** against **0.02 %** for the clean high; its
+surfaces are wavy ("melted" edges and faces read as dents on machined metal), and the patch borders
+bake as jagged lines. The clean high reads as machined metal. Transferring the AI texture is no
+better: its grime layout is random and the patches show as flat grey.
+
+**Hero workflow v1 (AI transfer) - tried, superseded 2026-10-03.** The AI high-poly was to be the bake
+source (colour and normals transferred onto the clean low). Tried on the Cradle (Steps 5a/5b); dropped
+for the reasons above. Its measurement steps live on in v2.
 
 **Deviation acceptance** (owner decision 2026-09-28, replaces the hard 3 mm / 5 mm pass/fail):
 - 3 mm on flat faces and 5 mm on edges stay the *reporting* limits (visible surface only).
@@ -108,8 +119,7 @@ Owner decision 2026-09-27; first used on the Cradle v2 (HERO_SPEC §3).
   15 mm is **< 0.5 % per part**.
 
 **Fallback**: if the AI shape cannot be used (contradicts the mechanism, unreadable detail, more
-cleanup than rebuilding), go back to the more hand-made workflow: blockout from the spec, hand-made
-high-poly, standard bake.
+cleanup than rebuilding), skip it: blockout from the spec, then steps 3-6.
 
 Lessons from the Cradle: AI meshes come normalised (~1 m) and may be thin hollow shells; split
 parts can overlap at joints and carry extra cut faces; front/back and left/right are only roughly

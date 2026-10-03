@@ -155,6 +155,12 @@ pads/riser 0. UVs (`cradle_v2_uv.py`): one 2048 set, 8 px island gap, 4 px borde
 corners; the front half carries no ring cut except the tier-2 sloped top (2 sector cuts at the front octagon
 corners) and the trough floor (generic split, sunken channel).
 
+**High-poly approach (owner decision 2026-10-03, Step 5b; ASSET_RULES "Hero workflow v2").** A bake
+comparison on the same low (`cradle_v2_bake_test.py`, renders `cradle_v2_s5b_cmp_*`) chose the **clean
+high-poly** (low + bevels + clean detail, `HIGH_CLEAN` / `HIGH_FINAL` in `LAB_HERO_Cradle_v2_bake.blend`)
+over the AI-derived high (Step 5a, `HIGH`): ray misses 0.02 % vs 4.61 %, no wavy surfaces, no patch
+borders. The fitted AI model stays the design, shape and colour reference only.
+
 Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
 span x −1.139 … 1.138, fixed body top y 0.884.
 
