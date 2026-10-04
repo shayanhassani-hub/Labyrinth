@@ -161,6 +161,43 @@ high-poly** (low + bevels + clean detail, `HIGH_CLEAN` / `HIGH_FINAL` in `LAB_HE
 over the AI-derived high (Step 5a, `HIGH`): ray misses 0.02 % vs 4.61 %, no wavy surfaces, no patch
 borders. The fitted AI model stays the design, shape and colour reference only.
 
+**Step 6b: final high-poly, cage, bake check, Substance export (2026-10-04).** Scripts `cradle_v2_highpoly.py`
+(build) and `cradle_v2_bake_final.py` (bake / renders / export / verify); renders `cradle_v2_s6b_*`.
+- *Round parts are true circles in the high*: turntable + rings 2/3 (ring 3 elliptical), hub cap, both drums with pin
+  caps and their collars/steps, and the arm root boss arc. Each 16-gon ring edge is cut into 6 (96 segments; boss
+  5 → 30 over 98°), and the ring vertices sit on the circle through the low's corners (same radii, same bevels).
+  Moves up to 9.9 mm (turntable, = r(1 − cos 11.25°)). The hardened facet normals are turned to revolution normals
+  (max 1.85°). The octagonal plinth tiers are unchanged.
+- *Grooves are projected onto the real bevelled surface* (every groove, densified, ray-cast). The turntable seams
+  run unbroken over the 16.9 mm top edge. Found by the check: the 6a tray outlines sat 2–4 mm from the tray edge, on
+  its 10.1 mm bevel (offset along the corner diagonal), now **16 mm perpendicular**; the elbow groove ends wrap the
+  12 mm step bevel (3.9 mm, kept, like a real joint line). Bolt heads and drum bands were inside-out in 6a (the spec
+  frame is mirrored): fixed. Pad/Riser highs now have hardened normals.
+- *Cages* (triangulated bake lows pushed out, same vertices as `Cradle_low.fbx`): all four enclose their high
+  (0 vertices outside). Push Base max 24.0 / p95 17.1 mm (drum bands, circle bulge), Arm_R 8.1 / 5.1 mm, Pad 1.5 mm,
+  Riser 6.4 mm.
+- *Blender verification bake* (Cycles, per part with its cage, 2048 via 2×2 supersampling, 16 px margin; maps in
+  `D:\AI_Labyrinth\Substance\Cradle\Bake_6b`): ray misses **0.029 %** (the hidden column-top ledge between the beam and
+  the hub collar, y 0.73–0.76); hit distance median 0.02 mm, p99 13 mm; 0.002 % of texels hit > 20 mm away
+  (all at the drum apex, where the 13 mm drum band stands over the beam top: real). No 5b-style dashed seam lines.
+  Remaining: texel stair-steps on island borders in extreme close-ups, scalloped crescents at the foot of round
+  parts (the circle bulge between low facets), faint periodic ticks beside the diagonal tray edges (hits land
+  exactly; Blender-only, to be checked in the Substance bake).
+- *Material ID* (vertex colour `ID` on the highs, one texture set `M_LAB_HERO_Cradle`):
+
+| Group | Contents | sRGB |
+|---|---|---|
+| painted structure | plinth, column, beam, hub, arms, plates, grooves on them | 255, 0, 0 (#FF0000) |
+| machined / bare metal | pin caps + retaining rings, drum bands, turntable top annulus | 0, 255, 0 (#00FF00) |
+| amber pads | Pad | 255, 255, 0 (#FFFF00) |
+| riser | Riser body | 0, 0, 255 (#0000FF) |
+| fasteners | all bolts and screws | 255, 0, 255 (#FF00FF) |
+| column access panel | panel inside its groove (flat 0.25 mm ID floater) + outline groove | 0, 255, 255 (#00FFFF) |
+
+- *Export* `D:\AI_Labyrinth\Substance\Cradle\Mesh\`: `Cradle_low.fbx`, `Cradle_high.fbx` (ID colours), `Cradle_cage.fbx`
+  (meshes carry the low names) + `README.txt` (Painter bake settings); the 5a AI exports moved to `_superseded_5a_AI\`
+  as `OLD_5a_*`. Re-import check passes (cage = low topology, ID present, no n-gons).
+
 Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
 span x −1.139 … 1.138, fixed body top y 0.884.
 
