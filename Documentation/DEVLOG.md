@@ -204,3 +204,31 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
 - Next: Step 6b (round parts, seam fix, ID vertex colours, cage bake check, export + README for
   Substance); then the owner textures the Cradle in Substance Painter.
   Hours today: ~4
+
+## 2026-10-04
+- Done: owner reviewed the Code-built high-poly in Blender and approved it. Step 6b: round parts true
+  circles in the high (96 segments, revolution normals), grooves projected onto the real surface,
+  ID vertex colours (6 groups: painted structure, machined metal, amber pads, riser, fasteners,
+  column access panel), cages enclose all highs, Blender verification bake (ray misses 0.03 %),
+  Substance export + README. Substance export re-done in the assembled closed pose (Arm_L and
+  Pad_L left out: they share their twin's UVs). Substance Painter 6.1.3 (2020.1) project set up,
+  first 1024 test bake: ID and normals correct. Step 6c: turntable and rings 2/3 raised to 32
+  segments (sliver at the turntable foot 13.9 -> 2.7 mm, round outline from above), 3,876 tris,
+  438 px/m, re-export. Backups on G: (bake .blend, Substance meshes).
+- Decisions: Code does the full high-poly detail pass; Substance texturing is the owner's part.
+  Round-shape rule: 32 segments for diameter >= 0.5 m, 16 for 0.2-0.5 m, 8-12 below. Substance
+  bake from the assembled pose, match by mesh name, cage file, ID from vertex colour, AO only same
+  mesh name + ground plane; final bake 2048 with 2x2 subsampling (TdrDelay not changed).
+  Starting palette proposed (warm light-grey paint, brushed steel, drone-yellow pads, graphite
+  riser, zinc fasteners) - to be confirmed in Substance and written up as STYLE_GUIDE.md.
+- Problems: 6a bugs found in 6b (inside-out bolts/drum bands, tray outlines on the edge bevel,
+  cross-part AO); first Painter export had the parts piled at their pivots; Painter shows a GPU
+  preemption warning (long bakes may be killed by Windows TDR); the 16-segment turntable baked
+  normal slivers at every facet foot (fixed in 6c).
+- Open: re-do the Painter project with the 6c low (new project, test bake, final bake, save
+  _v01_baked); then texturing; custom export preset (BaseColor / Normal OpenGL / Mask R metallic,
+  G mixed AO, A glossiness); Unity import of the Cradle v2 (separate Unity export at own pivots);
+  STYLE_GUIDE.md; service arm §4 conflict; DroneHoverAIV2 yaw.
+- Next: Painter - new project with the 6c Cradle_low.fbx, bake (1024 test, check the turntable
+  foot, then 2048 2x2), save; start the base materials per ID group.
+  Hours today: ~5
