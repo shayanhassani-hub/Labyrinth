@@ -96,7 +96,7 @@ y 0.246, chamfer to (r 0.841, y 0.274), sloped top to (0.769, 0.288), chamfer up
 y 0.318 (r 0.744). Inner top y 0.300, octagon flats 0.75. **Trough** r 0.522 … 0.642, floor y 0.253
 (47 mm deep), rounded outer edge (~12 mm).
 
-**Turntable and rings.** Disc r 0.505 (four small notches: normal map), y 0.253 … 0.334, top
+**Turntable and rings** (32 segments in the low since Step 6c). Disc r 0.505 (four small notches: normal map), y 0.253 … 0.334, top
 chamfer 14 mm. Ring 2 r 0.385, y 0.334 … 0.356. Ring 3 slightly elliptical 0.295 (X) × 0.267 (Z),
 y 0.356 … 0.392.
 
@@ -147,7 +147,7 @@ plane (x, y):
 **Deviation acceptance (ASSET_RULES, 2026-09-28): PASS.** Every over-limit area of the Step 3c low-poly is
 classified a/b/c; the unclassified visible area deviating > 15 mm is 0.14 % (Base) and ~0.2 % per arm (< 0.5 %).
 
-**Low-poly and UVs (Steps 4-4c, 2026-10-03).** 3,620 tris (unique meshes). The Base has **48 triangle
+**Low-poly and UVs (Steps 4-4c, 2026-10-03; numbers before Step 6c, current values in Step 6c below).** 3,620 tris (unique meshes). The Base has **48 triangle
 faces** since Step 4 (the concave-quad split at the 1 mm column-top ledge and the flat fills), not 8; Arm 12,
 pads/riser 0. UVs (`cradle_v2_uv.py`): one 2048 set, 8 px island gap, 4 px border, Arm_L shares Arm_R
 (mirrored), Pad_L = Pad_R. **Achieved texel density 428.5 px/m** (full density; undersides x0.5), packing
@@ -197,6 +197,43 @@ borders. The fitted AI model stays the design, shape and colour reference only.
 - *Export* `D:\AI_Labyrinth\Substance\Cradle\Mesh\`: `Cradle_low.fbx`, `Cradle_high.fbx` (ID colours), `Cradle_cage.fbx`
   (meshes carry the low names) + `README.txt` (Painter bake settings); the 5a AI exports moved to `_superseded_5a_AI\`
   as `OLD_5a_*`. Re-import check passes (cage = low topology, ID present, no n-gons).
+
+**Step 6c: 32 segments on the large round parts (2026-10-04).** Reason: the owner's Substance test bake of 6b showed
+strong normal slivers at the foot of every turntable/ring facet (the true-round high bulged up to 9.9 mm out of the
+16-sided low) and a 16-cornered turntable outline from above. New rule (ASSET_RULES "Round shapes"): 32 segments for
+Ø >= 0.5 m, 16 for 0.2-0.5 m, 8-12 below. Scripts unchanged in their rules; renders `cradle_v2_s6c_*`.
+- *Low*: turntable, ring 2 and ring 3 (elliptical) are 32-gons; radii, heights and bevels unchanged. Hub cap (Ø 0.30) and
+  drums with pin caps (Ø 0.236; caps are part of the drum stack) stay 16, the boss arc stays 5 segments. The two flat
+  transitions are bridged quad-first (`SpecMesh.quad_bridge`): trough floor (tier-2 24-point ring -> turntable 32) = 24
+  quads + **8 triangles**, one per 45° sector - the minimum: with more points on the convex inner circle than on the
+  outer ring, a quad would be concave; ring 3 top -> column foot (32 -> 16) = 24 quads, no triangles.
+- *Tris* (unique meshes): **Base 2,544 -> 2,800** (triangle faces 48 -> 32), Arm 500, Pad 38, Riser 38 unchanged;
+  **total 3,620 -> 3,876** (scene, pad twice: 3,658 -> 3,914). Topology, Arm_L mirror, hole test: PASS; clearances unchanged
+  (contact 3.04 / 2.97 mm, fold min 11.1 mm at 3°).
+- *UVs* (same rules; a round ring without a 15° corner now treats every vertex as a cut candidate): **438.0 px/m** (was
+  428.5), 179 islands (Base 138, Arm 37, Pad 2, Riser 2), packing 54.5 %; distortion max unchanged (Base 42.2°, an
+  existing island), mean 2.26° (was 2.58°). Front-cut check: the only front-half ring cuts are still the two on the
+  tier-2 sloped top (as in 4c).
+- *High / cages*: the 32-gon ring edges are cut x3 (still 96 segments); vertices move onto the circle by at most 2.2 mm
+  (bulge r(1 - cos 5.625°) = 2.5 mm; 6b: 9.9 mm). Highs: Base 77,214 tris, Arm_R 13,826, Pad 478, Riser 1,150. Cages
+  enclose their high (0 outside): Base max 24.0 / p95 17.1 mm (drum bands), Arm_R 8.1, Pad 1.5, Riser 6.4 mm.
+- *Blender verification bake* (`Substance/Cradle/Bake_6c`; 6b maps kept in `Bake_6b`): ray misses **0.027 %** (the hidden
+  column-top ledge, as in 6b), hit distance median 0.02 / p99 12.6 mm, 253 texels (0.003 %) > 20 mm, all at the drum apex.
+- *Sliver check* (`cradle_v2_bake_final.py -- sliver`; floor texels within 30 mm of a round wall's foot whose baked
+  normal tilts > 20°, radial seams excluded):
+
+| Foot | 6b (16 seg) | 6c (32 seg) |
+|---|---|---|
+| trough floor at the turntable | 3,539 texels (~19,300 mm²), out to 13.9 mm (p95 8.8) | 974 texels (~5,300 mm²), out to 2.7 mm (p95 2.6) |
+| turntable top at ring 2 | 2,566 texels, out to 5.7 mm | 939 texels; foot line plus one UV-border row of the annulus strip (island-border stair-step, not a sliver) |
+| ring-2 step at ring 3 | 1,706 texels, out to 17.8 mm (p95 13.6) | 551 texels, all in the first texel row at the foot |
+
+  The remaining 2-3 mm line is the high's 3 mm inside fillet plus the 2.5 mm bulge: about one texel at 438 px/m.
+  Renders: `cradle_v2_s6c_turntable_foot_before.png` / `_after.png` (normal map only, shadowless sun), `cradle_v2_s6c_top.png`.
+- *Export* `Substance/Cradle/Mesh` (same names, assembled closed pose, Arm_L/Pad_L out): Cradle_low.fbx (Base 1,491 v / 2,800
+  tris), Cradle_cage.fbx (same topology), Cradle_high.fbx (ID colours); verify PASS. The 6b set is in `Mesh\_superseded_6b`,
+  the 6b review/bake .blend files in `Blender\Source\Heroes\Cradle\_pre6c`. An existing Painter project needs the new low
+  and a full re-bake (the low's topology and UVs changed).
 
 Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
 span x −1.139 … 1.138, fixed body top y 0.884.

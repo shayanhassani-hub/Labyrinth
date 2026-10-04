@@ -23,9 +23,14 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
 - Depth rule (owner decision 2026-09-28): on visible surfaces, recesses and protrusions
   deeper than ~15 mm are modelled as geometry; shallower detail goes to the normal map.
   Reason: in VR, stereo depth makes large baked-only detail look flat at 1-2 m.
-- Round shapes: segment count by size and viewing distance (16 for Ø >= 0.4 m,
-  8-12 for small parts). Where round and straight forms meet, match vertex counts so
-  the transition is quads.
+- Round shapes: **32 segments for Ø >= 0.5 m, 16 for Ø 0.2-0.5 m, 8-12 below 0.2 m**
+  (owner decision 2026-10-04, Cradle Step 6c). Reason: the high-poly is truly round, so it
+  bulges r(1 - cos(180°/n)) out of the low between two corners: on a 16-gon of Ø 1 m that is
+  9.9 mm, which bakes as normal slivers at the foot of every facet and a cornered outline;
+  at 32 it is 2.5 mm, about one texel at hero density. A small part that is one continuous
+  stack with a larger one (e.g. pin caps on a drum) keeps the stack's count. Where round and
+  straight forms meet, match vertex counts so the transition is quads; where the counts
+  cannot match on a flat face, bridge quad-first (triangles only where the counts force them).
 - Stacked forms prefer continuous geometry. Separate intersecting elements are
   allowed where cheaper (pins, small bolts as geometry), but every fully hidden face
   (floor contact, covered areas, inside intersections) is deleted and gets no UV space.
