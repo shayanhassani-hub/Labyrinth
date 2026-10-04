@@ -14,6 +14,9 @@ enough to enclose the high nearby, + CAGE_MARGIN) replaces the large ray offset 
 Step 6b: round parts are true circles in the high (ring edges cut x6 = 96 segments, ring vertices on the circle
 through the low's corners, revolution normals); every groove is projected onto the real bevelled surface; ID
 vertex colours ("ID", ID_GROUPS); cages are built on the triangulated bake lows (same vertices as Cradle_low.fbx).
+Step 6c: the turntable and rings 2/3 are 32-gons in the low (ASSET_RULES round-shape rule): their ring edges are cut x3
+(still 96 segments, circle bulge 2.5 mm instead of 9.9 mm); build first refreshes the BAKE file's <Part>_low from the
+review file (cradle_v2.SAVE).
 """
 import bpy
 import bmesh
@@ -65,6 +68,7 @@ NEAREST = None                 # groove floaters: ID of the body face under them
 
 
 ROUND_CUTS = 5                 # each 16-gon edge -> 6 pieces: 96 segments (boss arc: 5 -> 30 over 98 deg)
+ROUND_SEGMENTS = 96            # target in the high; per feature cuts = 96 / low segments - 1 (32-gon: 2)
 ROUND_TOL = 3e-4
 
 
@@ -74,19 +78,22 @@ def round_features(part):
     circle (ellipse) through their vertices is the true shape."""
     X, Y, Z = np.array([1.0, 0, 0]), np.array([0, 1.0, 0]), np.array([0, 0, 1.0])
     if part == "Base":
+        st, hs = 360.0 / V.CIRCLE_SEG, 360.0 / V.HUB_SEG
         f = [dict(name="turntable + rings 2/3", o=np.zeros(3), a=Y, e1=X, e2=Z,
-                  rings=[(y, rx, rz) for (rx, rz), y in V.CIRCLES], phase=11.25, step=22.5, rng=None),
+                  rings=[(y, rx, rz) for (rx, rz), y in V.CIRCLES], phase=st / 2, step=st, rng=None,
+                  cuts=ROUND_SEGMENTS // V.CIRCLE_SEG - 1),
              dict(name="hub cap", o=np.zeros(3), a=Y, e1=X, e2=Z,
-                  rings=[(y, rx, rz) for (rx, rz), y in V.HUB], phase=11.25, step=22.5, rng=None)]
+                  rings=[(y, rx, rz) for (rx, rz), y in V.HUB], phase=hs / 2, step=hs, rng=None, cuts=ROUND_SEGMENTS // V.HUB_SEG - 1)]
         for sx in (1, -1):
             f.append(dict(name=f"drum + pin caps {'R' if sx > 0 else 'L'}", o=np.array([sx * V.PIN_X, V.PIN_Y, 0.0]),
-                          a=Z, e1=X, e2=Y, rings=[(z, r, r) for r, z in V.DRUM_PROFILE], phase=11.25, step=22.5, rng=None))
+                          a=Z, e1=X, e2=Y, rings=[(z, r, r) for r, z in V.DRUM_PROFILE], phase=11.25, step=22.5, rng=None,
+                          cuts=ROUND_CUTS))
         return f
     if part == "Arm_R":
         R0, R1, BZ, CH = V.BOSS_R0, V.BOSS_R1, V.BOSS_Z, V.BOSS_CH
         rings = [(-BZ, R0, R0), (-BZ, R1 - CH, R1 - CH), (-BZ + CH, R1, R1), (BZ - CH, R1, R1), (BZ, R1 - CH, R1 - CH), (BZ, R0, R0)]
         return [dict(name="root boss arc", o=np.array([V.PIN_X, V.PIN_Y, 0.0]), a=Z, e1=X, e2=Y, rings=rings, phase=V.BOSS_A0,
-                     step=(V.BOSS_A1 - V.BOSS_A0) / V.BOSS_SEG, rng=(V.BOSS_A0, V.BOSS_A1))]
+                     step=(V.BOSS_A1 - V.BOSS_A0) / V.BOSS_SEG, rng=(V.BOSS_A0, V.BOSS_A1), cuts=ROUND_CUTS)]
     return []
 
 
@@ -117,7 +124,7 @@ def ring_member(p, F):
 
 
 def roundify(bm, feats):
-    """bm in world space. Every ring edge of the round features is cut ROUND_CUTS times and every ring vertex moved
+    """bm in world space. Every ring edge of the round features is cut F["cuts"] times and every ring vertex moved
     onto the circle (ellipse) through the ring's corners; faces whose vertices all lie on one feature's rings get
     the face attribute rf = feature index + 1. Returns per-feature counts."""
     rep = []
@@ -133,7 +140,7 @@ def roundify(bm, feats):
                 dphi = abs((mem[a][1] - mem[b][1] + math.pi) % (2 * math.pi) - math.pi)
                 if abs(dphi - st) < 0.1 * st: edges.append(e)
         n_v = len(mem)
-        bmesh.ops.subdivide_edges(bm, edges=edges, cuts=ROUND_CUTS, use_grid_fill=False)
+        bmesh.ops.subdivide_edges(bm, edges=edges, cuts=F["cuts"], use_grid_fill=False)
         moved, dmax = 0, 0.0
         for v in bm.verts:
             p = w2s(v.co); m = ring_member(p, F)
@@ -148,9 +155,9 @@ def roundify(bm, feats):
                 f[lay] = fi + 1; n_f += 1
         rep.append(dict(feature=F["name"], ring_verts_low=n_v, ring_edges_cut=len(edges), verts_on_circle=moved,
                         faces_tagged=n_f, max_move_mm=round(1e3 * dmax, 2),
-                        segments=round(360 / (F["step"] / (ROUND_CUTS + 1))) if F["rng"] is None else
-                        f"{V.BOSS_SEG * (ROUND_CUTS + 1)} over {F['rng'][1] - F['rng'][0]:.0f} deg"))
-        print(f"ROUND {F['name']}: {n_v} ring verts, {len(edges)} edges cut x{ROUND_CUTS + 1}, {moved} verts on the circle "
+                        segments=round(360 / (F["step"] / (F["cuts"] + 1))) if F["rng"] is None else
+                        f"{V.BOSS_SEG * (F['cuts'] + 1)} over {F['rng'][1] - F['rng'][0]:.0f} deg"))
+        print(f"ROUND {F['name']}: {n_v} ring verts, {len(edges)} edges cut x{F['cuts'] + 1}, {moved} verts on the circle "
               f"(max move {1e3 * dmax:.2f} mm), {n_f} faces tagged")
     return rep
 
@@ -700,9 +707,40 @@ def seam_report(lows):
 # --------------------------------------------------------------------------- build
 
 
+def refresh_lows():
+    """Step 6c: <Part>_low in the BAKE file = world copies (closed pose) of the current review file's parts, as
+    cradle_v2_bake.build made them (that build also remakes the superseded 5a AI highs, so it is not rerun)"""
+    with bpy.data.libraries.load(V.SAVE, link=False) as (src, dst):
+        dst.objects = [n for n in src.objects if n.startswith(V.HERO + "_")]
+    tmp = bpy.data.collections.new("_v2_src"); bpy.context.scene.collection.children.link(tmp)
+    for o in dst.objects: tmp.objects.link(o)
+    bpy.context.view_layer.update()
+    by_name = {o.name.split(".")[0]: o for o in dst.objects}
+    low_c = B.coll("LOW"); rep = {}
+    for k, name in B.PARTS.items():
+        src_o = by_name[name]; old = bpy.data.objects.get(f"{k}_low")
+        me = src_o.data.copy()
+        for i, m in enumerate(me.materials):                     # appended duplicates (M_x.001) -> the file's own
+            if m is not None and "." in m.name and bpy.data.materials.get(m.name.split(".")[0]): me.materials[i] = bpy.data.materials[m.name.split(".")[0]]
+        if old is None:
+            old = bpy.data.objects.new(f"{k}_low", me); low_c.objects.link(old)
+        else:
+            gone = old.data; old.data = me
+            if gone.users == 0: bpy.data.meshes.remove(gone)
+        me.name = f"{k}_low"; old.matrix_world = src_o.matrix_world.copy()
+        rep[k] = len(me.polygons)
+    for o in list(dst.objects):
+        d = o.data; bpy.data.objects.remove(o)
+        if d is not None and d.users == 0: bpy.data.meshes.remove(d)
+    bpy.data.collections.remove(tmp)
+    for m in [m for m in bpy.data.materials if m.users == 0]: bpy.data.materials.remove(m)
+    print(f"LOWS refreshed from {os.path.basename(V.SAVE)}: faces {rep}")
+
+
 def build(args):
     global BODY
     bpy.ops.wm.open_mainfile(filepath=B.BAKE)
+    refresh_lows()
     hf = B.coll("HIGH_FINAL"); cg = B.coll("CAGE"); bl = B.coll("BAKE_LOW")
     for c in (hf, cg, bl):
         for o in list(c.objects): bpy.data.objects.remove(o)

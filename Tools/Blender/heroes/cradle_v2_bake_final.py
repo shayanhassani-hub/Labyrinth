@@ -1,8 +1,10 @@
 """
-Cradle v2 Step 6b: verification bake of the production set in Blender, renders, and the Substance export.
+Cradle v2 Step 6b/6c: verification bake of the production set in Blender, renders, and the Substance export.
+Step 6c also: -- sliver <step> <low segments> (baked normal at the foot of the turntable / rings), -- foot <tag> <step>
+(Renders/cradle_v2_s6c_turntable_foot_<tag>.png), -- top (Renders/cradle_v2_s6c_top.png).
 Needs the build of cradle_v2_highpoly.py (HIGH_FINAL, BAKE_LOW, CAGE in the BAKE file).
-  blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- bake      (maps -> Substance/Cradle/Bake_6b)
-  blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- renders   (Renders/cradle_v2_s6b_*)
+  blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- bake      (maps -> Substance/Cradle/Bake_<STEP>)
+  blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- renders   (Renders/cradle_v2_s<STEP>_*)
   blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- export    (Substance/Cradle/Mesh + README)
   blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- verify    (re-imports the three FBX files)
 
@@ -31,7 +33,8 @@ import cradle_v2_bake_test as T          # noqa: E402
 import cradle_v2_highpoly as H           # noqa: E402
 
 CZ = V.CZ
-OUT = r"D:/AI_Labyrinth/Substance/Cradle/Bake_6b"
+STEP = "6c"                              # 6c: 32-segment turntable / rings (6b maps stay in Bake_6b)
+OUT = rf"D:/AI_Labyrinth/Substance/Cradle/Bake_{STEP}"
 MESH = r"D:/AI_Labyrinth/Substance/Cradle/Mesh"
 OLD = os.path.join(MESH, "_superseded_5a_AI")
 SCR = os.path.join(C.PROJ, "Temp", "claude", "cradle_bake")
@@ -230,8 +233,8 @@ def bake(args):
     rep["id_texels"] = {n: int((np.abs(idp - c).max(1) < 0.02).sum()) for n, c in cols.items()}
     rep["id_unassigned_texels"] = int(len(idp) - sum(rep["id_texels"].values()))
     # save maps (+ the miss and hit-distance visualisations)
-    for name, fn in (("Normal", "T_Cradle_Normal_blender6b.png"), ("AO", "T_Cradle_AO_blender6b.png"),
-                     ("Curvature", "T_Cradle_Curvature_blender6b.png"), ("ID", "T_Cradle_ID_blender6b.png")):
+    for name, fn in (("Normal", f"T_Cradle_Normal_blender{STEP}.png"), ("AO", f"T_Cradle_AO_blender{STEP}.png"),
+                     ("Curvature", f"T_Cradle_Curvature_blender{STEP}.png"), ("ID", f"T_Cradle_ID_blender{STEP}.png")):
         save_down(imgs[name], fn)
     R2 = RES * SS
     vis = np.zeros((R2, R2, 4), np.float32); vis[..., 3] = 1
@@ -240,11 +243,11 @@ def bake(args):
     vis[hit, 0] = v[hit]; vis[hit, 1] = v[hit] * 0.6; vis[hit, 2] = 0.25 * (1 - v[hit])
     vis[far] = (1, 0, 1, 1); vis[missed] = (1, 0, 0, 1)
     vi = bpy.data.images.new("vis", R2, R2, alpha=False); vi.pixels.foreach_set(vis.ravel())
-    vi.filepath_raw = os.path.join(OUT, "T_Cradle_RayCheck_blender6b.png"); vi.file_format = 'PNG'; vi.save()
+    vi.filepath_raw = os.path.join(OUT, f"T_Cradle_RayCheck_blender{STEP}.png"); vi.file_format = 'PNG'; vi.save()
     rep["settings"] = dict(res=RES, supersampling=f"{SS}x{SS} (baked at {RES * SS})", margin=MARGIN, cage=True, max_ray_m=RAY_MAX, ao_samples=AO_SAMPLES, ao_distance_m=AO_DIST,
                            curvature=f"AO-local inside/outside, {CURV_DIST * 1e3:.0f} mm, {CURV_SAMPLES} samples")
     os.makedirs(SCR, exist_ok=True)
-    json.dump(rep, open(os.path.join(SCR, "bake_6b.json"), "w"), indent=1, default=float)
+    json.dump(rep, open(os.path.join(SCR, f"bake_{STEP}.json"), "w"), indent=1, default=float)
     print(f"{'PASS' if rep['missed_pct'] < 0.05 else 'FAIL'} ray misses: {rep['missed_texels']} of {rep['uv_texels']} texels ({rep['missed_pct']} %)")
     print(f"{'PASS' if rep['foreign_hits_texels'] == 0 else 'CHECK'} hit distance: {rep['hit_dist_mm']}, {rep['foreign_hits_texels']} texels hit > {FOREIGN * 1e3:.0f} mm away")
     for c in rep["foreign_cells"][:10]: print(f"     far hits: {c}")
@@ -302,28 +305,28 @@ def renders(args):
     sun = bpy.data.objects.new("Sun", ld); sc.collection.objects.link(sun)
     dvec = V.to_blender((-0.55, 0.7, -0.45 + CZ)) - V.to_blender((0, 0, CZ)); dvec.normalize()
     sun.rotation_euler = (-dvec).to_track_quat('-Z', 'Y').to_euler()
-    nimg = bpy.data.images.load(os.path.join(OUT, "T_Cradle_Normal_blender6b.png"))
-    aimg = bpy.data.images.load(os.path.join(OUT, "T_Cradle_AO_blender6b.png"))
+    nimg = bpy.data.images.load(os.path.join(OUT, f"T_Cradle_Normal_blender{STEP}.png"))
+    aimg = bpy.data.images.load(os.path.join(OUT, f"T_Cradle_AO_blender{STEP}.png"))
     baked = T.display_material("baked", nimg, aimg); grey = T.display_material("grey")
     for o in low_set: o.data.materials.clear(); o.data.materials.append(baked)
     for o in low_set: o.hide_render = False
     for v in VIEWS:
-        cam(v); C.shot(f"cradle_v2_s6b_{v}.png")
+        cam(v); C.shot(f"cradle_v2_s{STEP}_{v}.png")
     # side by side: low + bake vs high, same camera
-    cam("34"); files = [os.path.join(C.RENDERS, "cradle_v2_s6b_34.png")]
+    cam("34"); files = [os.path.join(C.RENDERS, f"cradle_v2_s{STEP}_34.png")]
     for o in low_set: o.hide_render = True
     for o in high_set:
         keep = list(o.data.materials); o.data.materials.clear(); o.data.materials.append(grey); o.hide_render = False
         for p in o.data.polygons: p.material_index = 0
-    C.shot("cradle_v2_s6b_cmp_34_high.png"); files.append(os.path.join(C.RENDERS, "cradle_v2_s6b_cmp_34_high.png"))
-    T.sheet(files, os.path.join(C.RENDERS, "cradle_v2_s6b_cmp_34_lowbake_vs_high.png"))
+    C.shot(f"cradle_v2_s{STEP}_cmp_34_high.png"); files.append(os.path.join(C.RENDERS, f"cradle_v2_s{STEP}_cmp_34_high.png"))
+    T.sheet(files, os.path.join(C.RENDERS, f"cradle_v2_s{STEP}_cmp_34_lowbake_vs_high.png"))
     os.remove(files[1])
 
 
 # --------------------------------------------------------------------------- export
 
 
-README = """Cradle (LAB_HERO_Cradle) - Substance Painter bake set, Step 6b ({date})
+README = """Cradle (LAB_HERO_Cradle) - Substance Painter bake set, Step {step} ({date})
 Generated by Tools/Blender/heroes/cradle_v2_bake_final.py (export). Units: metres, FBX axis per EXPORT_CONTRACT.
 POSE: all three files are ASSEMBLED in the closed pose. The cradle origin (floor centre) is at the world origin;
 Base, Arm_R (closed, 0 deg), Pad_R and Riser_L sit where they are in the game. Each part's low, high and cage got the
@@ -340,6 +343,9 @@ FILES
                     to enclose the high. Its meshes carry the LOW names on purpose ({lows}), so the cage matches the
                     low mesh by mesh name and by vertex order.
   _superseded_5a_AI\\  the old Step 5a AI-based exports, renamed OLD_5a_*. Do not load them.
+  _superseded_6b\\     the Step 6b set (16-segment turntable / rings: slivers at their foot). Do not load them.
+                    Step 6c: the turntable and rings 2/3 have 32 segments in the low; the low changed, so an
+                    existing Painter project needs the new low (Edit > Project configuration) and a full re-bake.
 
 PAINTER: NEW PROJECT
   File: Cradle_low.fbx, Normal map format: OpenGL, Compute tangent space per fragment: ON (MikkTSpace),
@@ -367,7 +373,7 @@ MAPS TO BAKE
 ID COLOURS (sRGB, exact values)
 {ids}
 
-CHECKS DONE IN BLENDER (same set, same cage, Cycles): see Documentation/HERO_SPEC.md section 3, Step 6b.
+CHECKS DONE IN BLENDER (same set, same cage, Cycles): see Documentation/HERO_SPEC.md section 3, Steps 6b / 6c.
 """
 
 
@@ -435,9 +441,9 @@ def export(args):
     ids = "\n".join(f"  {n:<24s} R {c[0]:3d}  G {c[1]:3d}  B {c[2]:3d}   #{c[0]:02X}{c[1]:02X}{c[2]:02X}" for _, (n, c) in H.ID_GROUPS.items())
     names = lambda suf: ", ".join(f"{k}{suf}" for k in PARTS)
     open(os.path.join(MESH, "README.txt"), "w", encoding="utf-8", newline="\r\n").write(
-        README.format(date=time.strftime("%Y-%m-%d"), lows=names("_low"), highs=names("_high"), ids=ids))
+        README.format(step=STEP, date=time.strftime("%Y-%m-%d"), lows=names("_low"), highs=names("_high"), ids=ids))
     out["pose"] = "assembled closed pose, cradle origin at the world origin"
-    json.dump(out, open(os.path.join(SCR, "export_6b.json"), "w"), indent=1)
+    json.dump(out, open(os.path.join(SCR, f"export_{STEP}.json"), "w"), indent=1)
     print("WROTE README.txt")
 
 
@@ -481,6 +487,128 @@ def verify(args):
     print(f"{'PASS' if ok else 'FAIL'} export verify")
 
 
+# --------------------------------------------------------------------------- Step 6c: round-part foot check
+
+
+# flat faces at the foot of a round wall: name -> (floor y, wall semi-axes (x, z), outer limit in wall units). The circle
+# bulge of the high between two low facets bakes into the floor next to the wall as a crescent ("sliver")
+FOOT_ZONES = {
+    "trough floor (turntable foot)": (0.253, (0.516, 0.516), 0.66 / 0.516),
+    "turntable top (ring 2 foot)": (0.333, (0.385, 0.385), 0.497 / 0.385),
+    "ring 2 step (ring 3 foot)": (0.356, (0.293, 0.267), 0.385 / 0.293),
+}
+FOOT_BAND = 0.030                        # only the floor band this close to the low's wall foot (beyond: other bevels)
+SLIVER_DEG = 20.0                        # floor texel whose baked normal tilts more than this: sliver
+SEAM_ANGLES = [22.5 + 45 * k for k in range(8)]   # turntable radial seams (real grooves, excluded)
+
+
+def _texel_positions(lo, faces_sel):
+    """(label image, spec cradle-local position per texel) for the selected triangles of a triangulated low"""
+    me = lo.data; uvd = me.uv_layers.active.data; me.calc_loop_triangles()
+    W = np.array(lo.matrix_world)
+    lab = np.zeros((RES, RES), np.int32); pos = np.zeros((RES, RES, 3), np.float32)
+    for lt in me.loop_triangles:
+        z = faces_sel(lt)
+        if not z: continue
+        U = np.array([uvd[li].uv[:] for li in lt.loops]) * RES
+        Pw = np.array([me.vertices[v].co[:] for v in lt.vertices]) @ W[:3, :3].T + W[:3, 3]
+        P = B.spec_local(Pw)
+        x0, y0 = np.floor(U.min(0)).astype(int); x1, y1 = np.ceil(U.max(0)).astype(int)
+        x0, y0, x1, y1 = max(x0, 0), max(y0, 0), min(x1, RES), min(y1, RES)
+        if x1 <= x0 or y1 <= y0: continue
+        xs, ys = np.meshgrid(np.arange(x0, x1) + 0.5, np.arange(y0, y1) + 0.5)
+        a, b, c = U; d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+        if abs(d) < 1e-12: continue
+        l1 = ((b[1] - c[1]) * (xs - c[0]) + (c[0] - b[0]) * (ys - c[1])) / d
+        l2 = ((c[1] - a[1]) * (xs - c[0]) + (a[0] - c[0]) * (ys - c[1])) / d; l3 = 1 - l1 - l2
+        m = (l1 >= 0) & (l2 >= 0) & (l3 >= 0)
+        lab[y0:y1, x0:x1][m] = z
+        pos[y0:y1, x0:x1][m] = (l1[m, None] * P[0] + l2[m, None] * P[1] + l3[m, None] * P[2])
+    return lab, pos
+
+
+def sliver(args):
+    """-- sliver <step> <low segments>: baked normal on the floor at the foot of the turntable / rings (Base, maps of
+    Substance/Cradle/Bake_<step>): texels tilting > SLIVER_DEG, their area, and how far from the low's wall foot they
+    reach (the visible sliver width; the 3 mm fillet of the high accounts for ~3 mm of it). Radial seams excluded."""
+    step, nseg = args[0], int(args[1])
+    bpy.ops.wm.open_mainfile(filepath=B.BAKE)
+    lo = bpy.data.objects["Base_bakelow"]; me = lo.data
+    W = np.array(lo.matrix_world); names = list(FOOT_ZONES)
+
+    def sel(lt):
+        Pw = np.array([me.vertices[v].co[:] for v in lt.vertices]) @ W[:3, :3].T + W[:3, 3]
+        c = B.spec_local(Pw).mean(0); n = W[:3, :3] @ np.array(lt.normal[:])
+        if n[2] / np.linalg.norm(n) < 0.99: return 0
+        for i, (y, (rx, rz), lim) in enumerate(FOOT_ZONES.values()):
+            e = math.hypot(c[0] / rx, c[2] / rz)
+            if abs(c[1] - y) < 0.001 and 0.995 < e < lim: return i + 1
+        return 0
+    lab, pos = _texel_positions(lo, sel)
+    img = bpy.data.images.load(os.path.join(os.path.dirname(OUT), f"Bake_{step}", f"T_Cradle_Normal_blender{step}.png"))
+    img.colorspace_settings.name = 'Non-Color'
+    n = pixels(img)[..., :3] * 2 - 1; n /= np.linalg.norm(n, axis=2, keepdims=True).clip(1e-6)
+    tilt = np.degrees(np.arccos(np.clip(n[..., 2], -1, 1)))
+    st = 2 * math.pi / nseg; texel_mm2 = 1e6 / 428.5 ** 2
+    rep = {}
+    for i, name in enumerate(names):
+        y, (rx, rz), lim = FOOT_ZONES[name]
+        m = lab == i + 1; P = pos[m]; t = tilt[m]
+        phi = np.arctan2(P[:, 2] / rz, P[:, 0] / rx); rho = np.hypot(P[:, 0] / rx, P[:, 2] / rz)
+        deg = np.degrees(phi) % 360
+        seam = np.min(np.abs((deg[:, None] - np.array(SEAM_ANGLES)[None] + 180) % 360 - 180), 1) < 2.0   # ~13-18 mm each side (groove + its smoothed edges)
+        mid = np.round(phi / st) * st                                            # facet centre (low vertices at st / 2 + k st)
+        d_low = (rho * np.cos(phi - mid) - math.cos(st / 2)) * rx                # metres out from the low's wall (chord)
+        keep = ~seam & (d_low < FOOT_BAND); sl = keep & (t > SLIVER_DEG)
+        rep[name] = dict(texels=int(keep.sum()), sliver_texels=int(sl.sum()), sliver_area_mm2=round(float(sl.sum()) * texel_mm2, 0),
+                         sliver_width_max_mm=round(1e3 * float(d_low[sl].max()), 1) if sl.any() else 0.0,
+                         sliver_width_p95_mm=round(1e3 * float(np.percentile(d_low[sl], 95)), 1) if sl.any() else 0.0,
+                         tilt_p99_deg=round(float(np.percentile(t[keep], 99)), 1) if keep.any() else 0.0)
+        r = rep[name]
+        print(f"INFO {step} {name}: {r['sliver_texels']} sliver texels (> {SLIVER_DEG:.0f} deg) of {r['texels']}, ~{r['sliver_area_mm2']:.0f} mm2, "
+              f"reaching {r['sliver_width_max_mm']} mm (p95 {r['sliver_width_p95_mm']}) from the low's wall foot; tilt p99 {r['tilt_p99_deg']} deg")
+    os.makedirs(SCR, exist_ok=True)
+    json.dump(rep, open(os.path.join(SCR, f"sliver_{step}.json"), "w"), indent=1)
+
+
+FOOT_CAM = ([-0.40, 0.98, -1.02], [-0.19, 0.26, -0.47], 60)       # front-left turntable foot from above, high sun
+
+
+def foot(args):
+    """-- foot <tag> <step>: the baked low (normal map only, grey) at the turntable foot -> cradle_v2_s6c_turntable_foot_<tag>.png"""
+    tag, step = args[0], args[1]
+    bpy.ops.wm.open_mainfile(filepath=B.BAKE)
+    sc = bpy.context.scene
+    for o in bpy.data.objects: o.hide_render = True
+    lo, hi, cg = objs()
+    sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = 64; sc.cycles.use_denoising = True
+    sc.render.resolution_x, sc.render.resolution_y = 1600, 1000; sc.view_settings.view_transform = 'AgX'
+    w = sc.world or bpy.data.worlds.new("W"); sc.world = w; w.use_nodes = True
+    w.node_tree.nodes["Background"].inputs["Color"].default_value = (0.05, 0.055, 0.06, 1)
+    w.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.6
+    ld = bpy.data.lights.new("Sun", 'SUN'); ld.energy = 4.0; ld.angle = math.radians(1); ld.use_shadow = False
+    sun = bpy.data.objects.new("Sun", ld); sc.collection.objects.link(sun)
+    # shadowless, from above / along the wall / slightly behind it: the floor is lit, floor texels whose baked normal
+    # tilts outward (the slivers) go dark; no cast shadow hides the foot
+    dvec = V.to_blender((0.595, 0.80, 0.14 + CZ)) - V.to_blender((0, 0, CZ)); dvec.normalize()
+    sun.rotation_euler = (-dvec).to_track_quat('-Z', 'Y').to_euler()
+    nimg = bpy.data.images.load(os.path.join(os.path.dirname(OUT), f"Bake_{step}", f"T_Cradle_Normal_blender{step}.png"))
+    mat = T.display_material("normal_only", nimg)
+    for k in ("Base", "Arm_R"):
+        lo[k].data.materials.clear(); lo[k].data.materials.append(mat); lo[k].hide_render = False
+    loc, look, lens = FOOT_CAM
+    C.camera([loc[0], loc[1], loc[2] + CZ], [look[0], look[1], look[2] + CZ], lens=lens)
+    C.shot(f"cradle_v2_s6c_turntable_foot_{tag}.png")
+
+
+def top(args):
+    """top view of the assembled low (review file), shaded + wire -> cradle_v2_s6c_top.png"""
+    objs_ = C.open_file()
+    C.setup_render(size=(2000, 2000)); C.colours(objs_); C.add_wire(objs_, thickness=0.0016)
+    C.camera([0, 6.0, CZ + 0.001], [0, 0, CZ], ortho=2.7)
+    C.shot("cradle_v2_s6c_top.png")
+
+
 def overlay(args):
     """the three files imported together, one shot: high solid (blue-grey), low wire (black), cage wire (orange)
     -> Renders/cradle_v2_s6b_export_assembled.png"""
@@ -502,4 +630,5 @@ def overlay(args):
 
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else ["bake"]
-    {"bake": bake, "renders": renders, "export": export, "verify": verify, "overlay": overlay}[argv[0]](argv[1:])
+    {"bake": bake, "renders": renders, "export": export, "verify": verify, "overlay": overlay,
+     "sliver": sliver, "foot": foot, "top": top}[argv[0]](argv[1:])

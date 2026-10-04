@@ -44,7 +44,7 @@ RING_ANGLE_MAX = 25.0          # ... for straightened ring strips: a trapezoid a
 FILL_MIN = 0.5                 # islands filling less of their min-area rectangle are cut in two
 SPLIT_MIN_LEN = 0.20           # ... when their long side exceeds this (m)
 MAX_STRIP = 4.1                # longest island (m): fits the 2048 sheet up to ~495 px/m
-CORNER_DEG = 15.0              # ring outline turn that counts as a corner for cuts
+CORNER_DEG = 15.0              # ring outline turn that counts as a corner for cuts (round rings: every vertex)
 RING_SECTORS = (1, 2, 3, 4, 8)
 ROUNDS = 14
 TEX = 2048
@@ -624,7 +624,9 @@ def ring_trial(o, idx, stats):
     pref /= np.linalg.norm(pref); side = np.cross(axis, pref)
     av = (P - c) @ pref; bv = np.abs((P - c) @ side)
     span = max(np.ptp(av), 1e-6)
-    corner = [tv[i] >= CORNER_DEG for i in range(n)]
+    # a round ring has no turn of CORNER_DEG (32-gon: 11.25 deg, Step 6c): there every vertex counts as a corner
+    cdeg = CORNER_DEG if max(tv) >= CORNER_DEG else 0.5 * max(tv)
+    corner = [tv[i] >= cdeg for i in range(n)]
     ok_cut = [corner[i] and (av[i] >= -0.02 * span or bv[i] >= bv.max() - 0.01 * span) for i in range(n)]
     s0 = max(range(n), key=lambda i: av[i] / span + 0.05 * min(tv[i], 45.0) / 45.0)
     ov_idx = [v.index for v in ov]; iv_idx = [v.index for v in ivs]

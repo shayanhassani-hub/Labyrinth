@@ -15,8 +15,9 @@ Parts (review file D:/AI_Labyrinth/Blender/Source/Heroes/Cradle/LAB_HERO_Cradle_
       LAB_HERO_Cradle_Pad_L_01   amber pad, same mesh as Pad_R
 Opening: Arm_L rotates +deg, Arm_R -deg about Blender Y (spec Z); 75 deg = released.
 
-Construction: 16-vertex rings on the round/octagonal stack (24 on the tier-2 octagons, which carry
-the tray ends), quads by bridging; planar n-gons (tray surround, caps) are triangulated and joined
+Construction: 16-vertex rings on the octagonal stack (24 on the tier-2 octagons, which carry the tray
+ends), 32 on the round parts >= 0.5 m across (turntable, rings 2/3; Step 6c), 16 below; quads by bridging, the
+flat transitions between different counts by quad_bridge (quads, a triangle only where the counts force one); planar n-gons (tray surround, caps) are triangulated and joined
 back to quads, so the only triangles sit on flat faces. Separate intersecting shells are used where
 cheaper (beam, drums, boss, web); every face that is hidden in both the closed and the released
 pose is deleted (ray visibility test).
@@ -69,6 +70,9 @@ TRAY_W = {"X": (0.167, 0.221), "Z": (0.206, 0.261), "D": (0.114, 0.182)}
 
 # turntable, rings, column, collar, hub cap
 # turntable: continuous ring (the AI's rim notches are classed as AI junk, owner decision Step 3c)
+# round segments (ASSET_RULES): 32 for >= 0.5 m across (turntable, rings 2/3; Step 6c: the true-round high bulged
+# 9.9 mm from a 16-gon and baked slivers at the foot of every facet), 16 for 0.2-0.5 m (hub cap, drums)
+CIRCLE_SEG, HUB_SEG = 32, 16
 CIRCLES = [((0.516, 0.516), 0.253), ((0.515, 0.515), 0.301), ((0.497, 0.497), 0.333), ((0.385, 0.385), 0.333),
            ((0.385, 0.385), 0.356), ((0.293, 0.267), 0.356), ((0.293, 0.267), 0.384), ((0.285, 0.259), 0.392)]
 COL_Q = [(0.258, 0.052), (0.180, 0.085), (0.174, 0.149), (0.118, 0.224)]
@@ -295,6 +299,69 @@ class SpecMesh:
             if fc is not None and len(fc.verts) == 3:
                 self.join.append(fc)
 
+    def quad_bridge(self, outer, inner):
+        """flat annulus between two closed rings with different counts (Step 6c): the strip of spokes is chosen by
+        dynamic programming so that consecutive triangles pair into convex quads; a triangle stays only where the
+        counts force one (on a convex inner ring with more points than the outer ring: one per extra point).
+        Cost: 10 per triangle + quad shape (worst corner off 90 deg) + spoke slant. Returns (quads, triangles)."""
+        def ang(p): return math.atan2(p[2], p[0]) % (2 * math.pi)
+        O = sorted(outer, key=ang); I = sorted(inner, key=ang); n, m = len(O), len(I)
+        Q2 = _plane2d(O + I); Qo, Qi = Q2[:n], Q2[n:]
+        def P(kind, i): return Qo[i % n] if kind == "o" else Qi[i % m]
+        def dang(a, b): return abs((ang(a) - ang(b) + math.pi) % (2 * math.pi) - math.pi)
+        def spoke(a, b): return 0.5 * dang(O[a % n], I[b % m])
+        def tri(step, a, b):                     # step "O": (o a, o a+1, i b); "I": (o a, i b+1, i b)
+            return [("o", a), ("o", a + 1), ("i", b)] if step == "O" else [("o", a), ("i", b + 1), ("i", b)]
+        def area2(vs):
+            q = [P(*v) for v in vs]
+            return sum(q[k][0] * q[(k + 1) % len(q)][1] - q[(k + 1) % len(q)][0] * q[k][1] for k in range(len(q)))
+        sgn = 1.0 if area2(tri("O", 0, 0)) > 0 else -1.0
+        def quad(t1, t2):
+            # union of two triangles that share a spoke, as one loop
+            a1 = [v for v in t1 if v not in t2]; a2 = [v for v in t2 if v not in t1]; sh = [v for v in t1 if v in t2]
+            if len(a1) != 1 or len(a2) != 1 or len(sh) != 2: return None
+            i = t1.index(a1[0]); cyc = t1[i:] + t1[:i]               # a1, s_x, s_y (t1 winding)
+            q = [cyc[0], cyc[1], a2[0], cyc[2]]
+            pts = [P(*v) for v in q]; worst = 0.0
+            for k in range(4):
+                u = pts[k - 1] - pts[k]; w = pts[(k + 1) % 4] - pts[k]
+                if sgn * _cross(pts[k - 1], pts[k], pts[(k + 1) % 4]) <= 1e-12: return None     # concave / flat
+                c = (u @ w) / (np.linalg.norm(u) * np.linalg.norm(w) + 1e-12)
+                worst = max(worst, abs(math.degrees(math.acos(max(-1, min(1, c)))) - 90))
+            return q, worst / 90.0
+        best = None
+        for j0 in sorted(range(m), key=lambda j: dang(O[0], I[j]))[:3]:
+            INF = (1e18, None)
+            dp = {(0, 0, None): (0.0, [])}
+            for s_ in range(n + m):
+                nxt = {}
+                for (a, b, pend), (cost, faces) in dp.items():
+                    for step in ("O", "I"):
+                        if step == "O" and a >= n or step == "I" and b >= m: continue
+                        t = tri(step, a, j0 + b); a2, b2 = (a + 1, b) if step == "O" else (a, b + 1)
+                        if sgn * area2(t) <= 1e-12: continue
+                        c0 = cost + spoke(a2, j0 + b2)
+                        opts = []
+                        if pend is None: opts.append(((a2, b2, tuple(t)), c0, faces))
+                        else:
+                            opts.append(((a2, b2, tuple(t)), c0 + 10.0, faces + [list(pend)]))
+                            qq = quad(list(pend), t)
+                            if qq: opts.append(((a2, b2, None), c0 + qq[1], faces + [qq[0]]))
+                        for key, c, fs in opts:
+                            if c < nxt.get(key, INF)[0]: nxt[key] = (c, fs)
+                dp = nxt
+            for (a, b, pend), (cost, faces) in dp.items():
+                if pend is not None: cost += 10.0; faces = faces + [list(pend)]
+                if best is None or cost < best[0]: best = (cost, faces, j0)
+        _, faces, j0 = best
+        nq = nt = 0
+        for f in faces:
+            self.f(*[O[i % n] if k == "o" else I[i % m] for k, i in f])      # inner indices already include j0
+            if len(f) == 4: nq += 1
+            else: nt += 1
+        self.bridge_report = getattr(self, "bridge_report", []) + [(n, m, nq, nt)]
+        return nq, nt
+
     def grid_fill(self, ring):
         """16-vertex planar ring -> 4x4 quad grid (Coons patch)"""
         n = len(ring)
@@ -397,6 +464,12 @@ def poly_offset_var(poly, ds):
         t, _ = np.linalg.solve(np.array([e1, -e2]).T, p2 - p1)
         out.append(tuple(p1 + t * e1))
     return out
+
+
+def ellipse_n(rx, rz, y, n=16):
+    """n points, vertices at half steps (180/n + k 360/n), so a flat sits on each axis"""
+    st = 360.0 / n
+    return [(rx * math.cos(math.radians(st / 2 + st * k)), y, rz * math.sin(math.radians(st / 2 + st * k))) for k in range(n)]
 
 
 def ellipse16(rx, rz, y, off=11.25):
@@ -546,22 +619,22 @@ def build_base():
         sm.f(a, a_f, a_ff, a_t)
         sm.f(b, b_t, b_ff, b_f)
         sm.f(a, b, b_f, a_f)                                          # tier-2 wall continues down to the floor
-    # trough floor (24 -> 16) and the turntable / rings
-    circles = [ellipse16(r[0], r[1], y) for r, y in CIRCLES]
-    sm.zipper(t2[-1], circles[0])
+    # trough floor (24 -> 32) and the turntable / rings
+    circles = [ellipse_n(r[0], r[1], y, CIRCLE_SEG) for r, y in CIRCLES]
+    sm.quad_bridge(t2[-1], circles[0])
     for a, b in zip(circles, circles[1:]):
         sm.bridge(a, b)
-    # column (16), ledge, collar, hub cap
+    # column (16), ledge, collar, hub cap; ring 3 top -> column foot (32 -> 16)
     col = mirror_quadrants(COL_Q)
     col_rings = [ring3(col, y) for y in COL_YS]
-    sm.bridge(circles[-1], col_rings[0])
+    sm.quad_bridge(circles[-1], col_rings[0])
     for a, b in zip(col_rings, col_rings[1:]):
         sm.bridge(a, b)
     col_top = ring3(mirror_quadrants(COL_TOP_Q), LEDGE_Y)
     collar0 = ring3(mirror_quadrants(COLLAR_Q), LEDGE_Y)
     collar1 = ring3(mirror_quadrants(COLLAR_Q), COLLAR_Y1)
     sm.bridge(col_rings[-1], col_top); sm.bridge(col_top, collar0); sm.bridge(collar0, collar1)
-    hub = [ellipse16(r[0], r[1], y) for r, y in HUB]
+    hub = [ellipse_n(r[0], r[1], y, HUB_SEG) for r, y in HUB]
     sm.bridge(collar1, hub[0])
     for a, b in zip(hub, hub[1:]):
         sm.bridge(a, b)
@@ -571,6 +644,8 @@ def build_base():
         add_beam(sm, sx)
         add_beam_fillet(sm, sx)
         add_drum(sm, sx)
+    for n, m, nq, nt in sm.bridge_report:
+        print(f"BRIDGE {n} -> {m} points: {nq} quads, {nt} triangles")
     return sm.finish(f"{HERO}_Base_01")
 
 
