@@ -235,6 +235,38 @@ strong normal slivers at the foot of every turntable/ring facet (the true-round 
   the 6b review/bake .blend files in `Blender\Source\Heroes\Cradle\_pre6c`. An existing Painter project needs the new low
   and a full re-bake (the low's topology and UVs changed).
 
+**Step 6d: pin-cap ID and black AO at the beam/drum junction (2026-10-14).** Reason: the owner's Painter test bake of 6c
+(pin caps red in the ID map; fully black jagged patches where the hinge beam meets each drum). Low and UVs unchanged.
+- *Causes (6c check, renders `cradle_v2_s6c_check_*`)*: (1) the cap ID rule ran only on round-feature ring faces, so the
+  flat cap fills stayed painted - a source error, not export or Painter. (2) The beam runs through the drum and its buried
+  faces stayed in the high; where the low's 16-gon lies inside the round drum (<= 2.3 mm) the cage, pushed along the drum
+  axis, started inside the high, so rays hit buried faces (AO 0). The drum bands, deleted face by face where buried, left
+  stepped ends sunk into the beam (closed pockets, also black). Blender's Bake_6c had the same black.
+- *Fixes* (`cradle_v2_highpoly.py`): `pin_cap` on every body face (shoulder rings stay painted); `clip_drum_interiors`
+  cuts the Base faces inside each round drum along a 96-gon prism 0.8 mm inside the surface and removes them (132 faces);
+  `band_arcs`: the bands are capped arcs of 160.5 deg over each drum's outer side, cap >= 5 mm beyond the beam end face
+  (the beam waist +-0.153 covers the band's whole z range on the hub side; a boolean cut by the grown beam left 6 mm
+  slots beside the beam that trapped the cage). The bands are not cut by the arm boss (other mesh; already so on the left
+  in 6c). Cages: after the enclosure passes, triangles with a sample point inside the high over a visible low point are
+  pushed further out along the vertex normals until the sample leaves the high (`cage_inside_samples`).
+- *Numbers*: high Base 77,214 -> 79,408 tris (others unchanged). Cage push Base max 62.5 / p95 17.0 mm (6c 24.0 / 17.1;
+  the 16 verts > 25 mm are at the hidden column-top ledge), Arm_R 14.1 / 7.6, Pad 1.5, Riser 6.4. Export
+  `Substance/Cradle/Mesh` (6c high/cage in `_superseded_6c` as `OLD_6c_*`, .blend files in `_pre6d`); Cradle_low.fbx has
+  identical content and was kept byte-identical (the 6c file).
+- *Verification bake* (`Bake_6d`, 2048, 2x2): ray misses 0.752 % of all texels, almost all on low texels buried inside the
+  drums (their buried high faces are gone). Visible misses: Base 995 texels (6c 671: the same column-top ledge clusters
+  plus ~200 at the ledge after its large cage push and ~100 per drum side on the 16-gon/circle gap of the beam waist,
+  which baked black in 6c), Arm_R 9, Pad 4 (as 6c). Hit distance p50 0.02 / p99 6.5 mm; far hits (> 20 mm) now at the ledge
+  (6c: drum apex). Sliver check: identical to 6c (974 / 939 / 551 texels).
+- *Hero checks* (`verify`, ASSET_RULES): **(a) cage both ways**: build PASS for all parts; on the exported FBX Arm_R, Pad,
+  Riser PASS (Arm_R: 2 contact-line samples at the gusset web), **Base FAIL: 42 high vertices outside the cage at the
+  column-top ledge** (up to 25 mm; same ledge where the cage was pushed hardest). **(b) ID per feature: PASS** (pin caps
+  4,176 faces, bands 524, annulus 416, panel 721, fasteners 4/4/4, rest painted; FBX colour areas match). **(c) AO black:
+  Arm_R / Pad / Riser PASS** (the closed pocket between arm top and plate is an enclosed void, not visible), **Base FAIL:
+  7 patches, all already in 6c** (6c: 32): plinth tray slots (4, y 0.16-0.17), a turntable notch (-0.04, 0.32, 0.47), a
+  sliver on the back pin cap rim (0.44, 0.58, 0.22), plinth (-1.17, 0.20, 0.42). The junction patches are gone.
+  Renders: `cradle_v2_s6d_check_id_caps.png`, `cradle_v2_s6d_check_ao_band_L/_R.png` (6c views).
+
 Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
 span x −1.139 … 1.138, fixed body top y 0.884.
 

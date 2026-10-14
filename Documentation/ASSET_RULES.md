@@ -45,6 +45,10 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
   Low/high meshes named <Part>_low / <Part>_high so bakes match by name.
 - Bakes in Substance Painter: Normal (OpenGL), World Normal, AO, Curvature, Position,
   Thickness, ID.
+- Hero bake checks (Step 6d; `cradle_v2_bake_final.py -- verify`), all PASS before a Substance export:
+  - Cage both ways: every high vertex inside the cage, and no cage sample point inside the high over a visible low point (contact-line samples within 1 texel tolerated).
+  - ID per feature: every feature of the HERO_SPEC ID table selects faces and all of them carry its colour (flat fills included); the FBX carries the same colours.
+  - AO black scan on the verification bake: visible texels with AO < 0.05 may only form contact lines (<= 2 texels thick); any patch is a FAIL.
 ### UVs
 - One texture set (one material) per hero where possible: fewer draw calls, SRP Batcher.
 - Texel density: hero target 512 px/m (5.12 px/cm) at 2048. Large heroes (> 2 m across)

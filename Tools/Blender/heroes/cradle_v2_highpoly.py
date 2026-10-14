@@ -17,6 +17,10 @@ vertex colours ("ID", ID_GROUPS); cages are built on the triangulated bake lows 
 Step 6c: the turntable and rings 2/3 are 32-gons in the low (ASSET_RULES round-shape rule): their ring edges are cut x3
 (still 96 segments, circle bulge 2.5 mm instead of 9.9 mm); build first refreshes the BAKE file's <Part>_low from the
 review file (cradle_v2.SAVE).
+Step 6d (6c Painter check): pin-cap ID on every cap face (pin_cap; the flat fills were painted); drum bands as capped
+arcs over the drums' outer side, >= 5 mm from the beam (band_arcs; 6c left stepped ends sunk into the beam); Base faces
+inside the round drums removed (clip_drum_interiors); cages also pushed out wherever a cage sample point lay inside the
+high over a visible low point (cage_inside_samples). Low and UVs unchanged.
 """
 import bpy
 import bmesh
@@ -335,17 +339,92 @@ def bolt(bm, c, nrm, d=BOLT_D, h=BOLT_H, seg=24, lift=0.0):
     tag_new(bm, n0, G_FAST)
 
 
-def band(bm, centre_xy, z0, z1, r0, r1, ch, seg=96):
-    """raised ring around the pin axis (axis = spec z): r0 surface, r1 top, chamfer ch at both ends"""
-    cx, cy = centre_xy
-    prof = [(z0, r0), (z0 + ch, r1), (z1 - ch, r1), (z1, r0)]
-    bm.faces.ensure_lookup_table(); n0 = len(bm.faces)
-    rings = [[bm.verts.new(T.spec_pt((cx + r * math.cos(2 * math.pi * k / seg), cy + r * math.sin(2 * math.pi * k / seg), z)))
-              for k in range(seg)] for z, r in prof]
-    for a, b in zip(rings, rings[1:]):
-        for k in range(seg):
-            bm.faces.new((b[k], b[(k + 1) % seg], a[(k + 1) % seg], a[k]))       # spec frame is mirrored: outward in Blender
+BANDS = ((-0.150, -0.072), (0.074, 0.152))       # drum band z ranges (AI measurement: ~76 mm wide, 13 mm proud)
+BAND_R0, BAND_R1, BAND_CH = V.DRUM_R + 0.0003, V.DRUM_R + 0.013, 0.004
+BAND_CLEAR = 0.005             # band ends: at least this far from the beam
+# The beam's end face (x = PIN_X + 0.015) spans the band's whole z range (waist +-0.153), so the band is an arc over the
+# outer side; its cap's inner corner (r0) lies BAND_CLEAR beyond the end face: cos(phi) = (0.015 + clear) / r0
+BAND_PHI = math.degrees(math.acos((V.BEAM_ST[-1][0] - V.PIN_X + BAND_CLEAR) / BAND_R0))     # 80.3 deg
+
+
+def band_arcs(bm, seg_deg=3.75):
+    """Step 6d: the drum bands as capped arcs over the outer side of each drum (right drum -BAND_PHI..+BAND_PHI from +x,
+    mirrored on the left), open at the bottom (r0, 0.3 mm over the drum), flat end caps >= 5 mm from the beam's end
+    face. 6c built full rings and deleted the buried faces one by one: stepped ends sunk into the beam, closed pockets
+    over beam faces that baked black. A boolean cut by the grown beam (tried first) leaves narrow strips beside the
+    beam with 6 mm slots that trap the cage. Not cut by the arm boss (other mesh, moves; Painter's AO is per mesh).
+    Returns (arc degrees, segments)."""
+    n = int(math.ceil(2 * BAND_PHI / seg_deg)); bm.faces.ensure_lookup_table(); n0 = len(bm.faces)
+
+    def wdir(s): return Vector((-s[0], -s[2], s[1]))                       # spec vector -> world
+    for sx in (1, -1):
+        cx, cy = sx * V.PIN_X, V.PIN_Y; a0 = -BAND_PHI if sx > 0 else 180.0 - BAND_PHI
+        for z0, z1 in BANDS:
+            prof = [(z0, BAND_R0), (z0 + BAND_CH, BAND_R1), (z1 - BAND_CH, BAND_R1), (z1, BAND_R0)]
+            angs = [math.radians(a0 + 2 * BAND_PHI * i / n) for i in range(n + 1)]
+            rings = [[bm.verts.new(T.spec_pt((cx + r * math.cos(a), cy + r * math.sin(a), z))) for z, r in prof] for a in angs]
+            faces = []
+            for a_, b_ in zip(rings, rings[1:]):
+                for k in range(3):
+                    f = bm.faces.new((a_[k], a_[k + 1], b_[k + 1], b_[k])); f.normal_update()
+                    c = w2s(f.calc_center_median()); out = wdir(c - np.array([cx, cy, (z0 + z1) / 2]))
+                    if f.normal.dot(out) < 0: f.normal_flip()
+            for ring, a, sgn in ((rings[0], angs[0], -1), (rings[-1], angs[-1], 1)):
+                f = bm.faces.new(ring); f.normal_update()
+                if f.normal.dot(wdir(np.array([-math.sin(a), math.cos(a), 0.0]) * sgn)) < 0: f.normal_flip()
     tag_new(bm, n0, G_METAL)
+    print(f"BANDS: 4 capped arcs of {2 * BAND_PHI:.1f} deg ({n} segments), caps >= {BAND_CLEAR * 1e3:.0f} mm from the beam end face")
+    return round(2 * BAND_PHI, 1), n
+
+
+DRUM_CLIP_A = 0.1172           # apothem of the 96-gon clip prism: inside the drum's 96-gon (chord 117.9 mm)
+DRUM_CLIP_Z = 0.170            # |z| range of the clip (drum 0.118 from z -0.182 to 0.195; beam |z| <= 0.153)
+
+
+def clip_drum_interiors(me):
+    """Step 6d: the Base faces inside the high's round drums are cut along a 96-gon prism just inside the drum
+    surface and removed (the beam passes through the drum: its buried part stayed in the high, and where the low's
+    16-gon lies inside the circle those faces baked black). The drum's own faces (rf) are not touched.
+    me in world space. Returns (faces removed, cut planes used)."""
+    feats = round_features("Base")
+    drum_rf = {i + 1 for i, F in enumerate(feats) if F["name"].startswith("drum")}
+    bm = bmesh.new(); bm.from_mesh(me); lay = bm.faces.layers.int["rf"]
+    st = 2 * math.pi / 96; ph0 = math.radians(11.25) + st / 2
+    removed = 0; cuts = 0
+    for sx in (1, -1):
+        o = np.array([sx * V.PIN_X, V.PIN_Y])
+
+        def inside(co):
+            s = w2s(co); d = s[:2] - o; r = math.hypot(d[0], d[1])
+            if abs(s[2]) >= DRUM_CLIP_Z: return False
+            if r < 1e-9: return True
+            phi = math.atan2(d[1], d[0]); j = round((phi - ph0) / st)
+            return r * math.cos(phi - (ph0 + j * st)) < DRUM_CLIP_A
+
+        def touches(f):                    # corners, edge midpoints, centre (the beam end face has all corners outside)
+            return any(inside(q) for q in [v.co for v in f.verts] + [(e.verts[0].co + e.verts[1].co) / 2 for e in f.edges]
+                       + [f.calc_center_median()])
+        def near(co):
+            s = w2s(co); return abs(s[2]) < DRUM_CLIP_Z + 0.03 and math.hypot(s[0] - o[0], s[1] - o[1]) < 0.25
+        region = {v for v in bm.verts if near(v.co)}
+        for k in range(96):
+            a = ph0 + k * st; ns = np.array([math.cos(a), math.sin(a), 0.0])
+            nw = Vector((-ns[0], -ns[2], ns[1]))                                  # spec vector -> world
+            pc = s2w(np.array([o[0], o[1], 0.0]) + ns * DRUM_CLIP_A)
+            fs = [f for f in {f for v in region if v.is_valid for f in v.link_faces} if f[lay] not in drum_rf and touches(f)]
+            sides = [f for f in fs if min((v.co - pc).dot(nw) for v in f.verts) < -1e-6 < 1e-6 < max((v.co - pc).dot(nw) for v in f.verts)]
+            if not sides: continue
+            es = list({e for f in sides for e in f.edges}); vs = list({v for f in sides for v in f.verts})
+            ret = bmesh.ops.bisect_plane(bm, geom=sides + es + vs, dist=1e-7, plane_co=pc, plane_no=nw)
+            region |= {g for g in ret["geom_cut"] if isinstance(g, bmesh.types.BMVert)}
+            cuts += 1
+        kill = [f for f in {f for v in region if v.is_valid for f in v.link_faces} if f[lay] not in drum_rf and inside(f.calc_center_median())]
+        removed += len(kill)
+        bmesh.ops.delete(bm, geom=kill, context='FACES')
+    loose = [v for v in bm.verts if not v.link_faces]; bmesh.ops.delete(bm, geom=loose, context='VERTS')
+    bm.to_mesh(me); bm.free()
+    print(f"CLIP drums: {removed} buried Base faces inside the round drums removed ({cuts} plane cuts)")
+    return removed, cuts
 
 
 def id_fill(bm, pts, nrm, lift, group):
@@ -382,12 +461,10 @@ def base_details(bm, base_low):
     note("Base", "pin cap retaining rings", 4, "6 mm groove ring, r 45 mm (front cap, face r 65) / r 60 mm (back cap, face r 85)",
          "front and back pin caps, both hinges", "reads as a retained pin; concept caps are plain discs, a ring adds the mechanical cue",
          [(0.385, 0.637 + 0.045, -0.2404), (0.385, 0.637 + 0.06, 0.2219)])
-    # drum bands (measured on the AI: two bands ~76 mm wide, 13 mm proud, 4 mm chamfers)
-    for sx in (1, -1):
-        for z0, z1 in ((-0.150, -0.072), (0.074, 0.152)):
-            band(bm, (sx * V.PIN_X, V.PIN_Y), z0, z1, V.DRUM_R + 0.0003, V.DRUM_R + 0.013, 0.004)
-    note("Base", "drum raised bands", 4, "76 mm wide, 13 mm proud, 4 mm chamfers (AI measurement); high-poly only",
-         "both drums, z -0.150..-0.072 and +0.074..+0.152", "owner list; in the AI model; the low keeps the plain drum (boss clearance)",
+    # drum bands: band_arcs, built in build() after the hidden-detail pass (Step 6d: capped arcs clear of the beam)
+    note("Base", "drum raised bands", 4, "76 mm wide, 13 mm proud, 4 mm chamfers (AI measurement); high-poly only; 6d: capped arcs "
+         f"of {2 * BAND_PHI:.0f} deg over the outer side, >= {BAND_CLEAR * 1e3:.0f} mm from the beam", "both drums, z -0.150..-0.072 and +0.074..+0.152",
+         "owner list; in the AI model; the low keeps the plain drum (boss clearance)",
          [(0.385, 0.637 - 0.13, -0.11), (0.385 + 0.13, 0.637, 0.11)])
     # hub cap concentric groove
     c = np.array([0.0, V.HUB[-1][1], 0.0])
@@ -581,18 +658,27 @@ def drop_hidden_details(me, n_body, lows, name):
 # --------------------------------------------------------------------------- body ID groups
 
 
+def pin_cap(c):
+    """spec point c on a machined pin cap (face, chamfer, collar, retaining ring): front r <= 81 mm beyond z -0.1905,
+    back r <= 101 mm beyond z 0.2035; the shoulder rings at z -0.190 / 0.203 stay painted"""
+    for sx in (1, -1):
+        rho = math.hypot(c[0] - sx * V.PIN_X, c[1] - V.PIN_Y)
+        if (c[2] < -0.1905 and rho < 0.0812) or (c[2] > 0.2035 and rho < 0.1012): return True
+    return False
+
+
 def base_body_groups(me):
-    """painted structure, except the machined pin caps (front r <= 80 mm beyond z -0.190, back r <= 100 mm beyond
-    z 0.203) and the turntable top annulus (flat top between ring 2 and the rounded edge)"""
+    """painted structure, except the machined pin caps (pin_cap, every face: 6c tested only ring members, so the flat
+    cap fills (rf 0) stayed painted) and the turntable top annulus (flat top between ring 2 and the rounded edge)"""
     rf = np.zeros(len(me.polygons), np.int32); me.attributes["rf"].data.foreach_get("value", rf)
     feats = round_features("Base"); g = np.full(len(me.polygons), G_PAINT, np.int32)
     for p in me.polygons:
+        c = w2s(p.center)
+        if pin_cap(c):
+            g[p.index] = G_METAL; continue
         if rf[p.index] == 0: continue
-        F = feats[rf[p.index] - 1]; c = w2s(p.center); n = np.array([-p.normal.x, p.normal.z, -p.normal.y])
-        if F["name"].startswith("drum"):
-            d = c - F["o"]; z = d[2]; rho = math.hypot(d[0], d[1])
-            if (z < -0.1905 and rho < 0.0812) or (z > 0.2035 and rho < 0.1012): g[p.index] = G_METAL
-        elif F["name"].startswith("turntable"):
+        F = feats[rf[p.index] - 1]; n = np.array([-p.normal.x, p.normal.z, -p.normal.y])
+        if F["name"].startswith("turntable"):
             rho = math.hypot(c[0], c[2])
             if abs(c[1] - 0.333) < 0.002 and 0.385 < rho < 0.50 and n[1] > 0.95: g[p.index] = G_METAL
     return g
@@ -635,11 +721,80 @@ def bake_low(low, coll_):
     return c
 
 
+IN_DIRS = [Vector(d).normalized() for d in ((0.31, 0.83, 0.46), (-0.60, 0.21, 0.77), (0.12, -0.91, 0.40), (0.88, -0.25, -0.40),
+                                             (-0.52, -0.47, -0.71), (-0.27, 0.70, -0.66), (0.71, 0.36, 0.60))]
+SAMPLE_N = 5                   # cage check: barycentric grid per triangle (15 points)
+CAGE_INSIDE_MAX = 0.060        # cage fix: march a sample at most this far further out
+CONTACT = 0.0025               # a sample whose low point has hidden low surface within this (~1 texel) is on a contact line
+
+
+def inside_mask(tree, pts):
+    """point inside a mesh: the first hit is a back face in most of 7 fixed directions (a miss counts as outside).
+    For the highs: their shells meet without buried faces since 6d (clip_drum_interiors), so the first hit is the
+    union's surface. Not for the lows (buried beam faces stay inside the drums): hidden_mask."""
+    out = np.zeros(len(pts), bool)
+    for i, p in enumerate(pts):
+        v = Vector(p); k = 0
+        for d in IN_DIRS:
+            h = tree.ray_cast(v, d)
+            if h[0] is not None and h[1].dot(d) > 0: k += 1
+        out[i] = 2 * k > len(IN_DIRS)
+    return out
+
+
+HEMI = V.fib_dirs(48)
+
+
+def hidden_mask(tree, pts, normals):
+    """surface point buried in other geometry (not visible): from just off the surface, most rays of the hemisphere
+    over its normal first hit a back face. Only that hemisphere: a ray back through the point's own face would meet
+    an overlapping shell's front face first (a beam face inside the drum)."""
+    out = np.zeros(len(pts), bool)
+    for i, (p, n) in enumerate(zip(pts, normals)):
+        n = Vector(n); o = Vector(p) + n * 5e-4; k = m = 0
+        for d in HEMI:
+            if d.dot(n) <= 0.1: continue
+            m += 1; h = tree.ray_cast(o, d)
+            if h[0] is not None and h[1].dot(d) > 0: k += 1
+        out[i] = 2 * k > m
+    return out
+
+
+def tri_samples(n=SAMPLE_N):
+    """barycentric weights (m, 3) of a grid of points inside a triangle (never on its edges)"""
+    return np.array([((i + 1 / 3) / n, (j + 1 / 3) / n, 1 - (i + j + 2 / 3) / n) for i in range(n) for j in range(n - i)
+                     if 1 - (i + j + 2 / 3) / n > 0])
+
+
+def cage_inside_samples(Pc, Pl, tris, high_tree, low_tree):
+    """sample points of the cage triangles (Pc[tris]) inside the high, counted only where the matching low point
+    (same weights on Pl[tris]) is visible, i.e. not inside the low: a ray from there starts inside closed geometry and
+    bakes black (6c: the beam/drum junction). Returns (triangle index, cage point, low point, contact) per bad sample;
+    contact: hidden low surface within CONTACT of the low point (a contact-line texel, tolerated like check c)."""
+    W = tri_samples(); T_ = np.asarray(tris)
+    cp = np.einsum("sk,tkd->tsd", W, Pc[T_]).reshape(-1, 3); lp = np.einsum("sk,tkd->tsd", W, Pl[T_]).reshape(-1, 3)
+    ti = np.repeat(np.arange(len(T_)), len(W))
+    hin = np.flatnonzero(inside_mask(high_tree, cp))
+    if not len(hin): return []
+    A, B_, C_ = (Pl[T_[:, i]] for i in range(3))
+    fn = np.cross(B_ - A, C_ - A); fn /= np.linalg.norm(fn, axis=1, keepdims=True).clip(1e-12)
+    vis = ~hidden_mask(low_tree, lp[hin], fn[ti[hin]])
+    out = []
+    for i in hin[vis]:
+        n = fn[ti[i]]; u = np.cross(n, [0, 0, 1.0] if abs(n[2]) < 0.9 else [1.0, 0, 0]); u /= np.linalg.norm(u); v = np.cross(n, u)
+        ring = [lp[i] + CONTACT * (u * math.cos(a) + v * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 8, endpoint=False)]
+        out.append((int(ti[i]), cp[i], lp[i], bool(hidden_mask(low_tree, ring, [n] * len(ring)).any())))
+    return out
+
+
 def make_cage(low, high, name, coll):
     """the triangulated bake low (same vertices, order, UVs, normals) pushed along its averaged vertex normals: per
     vertex just far enough that the high points nearest to its faces lie inside, + CAGE_MARGIN, one ring of
-    max-smoothing; then up to 6 passes that push the faces under any high vertex still outside. Returns
-    (object, max push, p95 push, high verts outside, passes)."""
+    max-smoothing; then up to 6 passes that push the faces under any high vertex still outside. Step 6d: then (and
+    alternating with those) up to 6 passes that push the vertices of every cage triangle with a sample point inside
+    the high (cage_inside_samples) further out along their normals, as far as the sample needs to leave the high
+    + CAGE_MARGIN. Returns
+    (object, max push, p95 push, high verts outside, passes, outside points, cage samples inside, inside passes)."""
     bm = bmesh.new(); bm.from_mesh(low.data); bm.transform(low.matrix_world); bm.normal_update()
     bm.faces.ensure_lookup_table(); bm.verts.ensure_lookup_table()
     tree = BVHTree.FromBMesh(bm)
@@ -666,7 +821,8 @@ def make_cage(low, high, name, coll):
     for p in hv:
         loc, nrm, fi, d = tree.find_nearest(Vector(p))
         if loc is not None and d <= 0.03: owner.append((p, fi))
-    passes = 0
+    htree = BVHTree.FromPolygons(hv.tolist(), [tuple(p.vertices) for p in hm.polygons])
+    passes, ipasses = 0, 0
     while True:
         P = base + vn * push[:, None]
         outs = []
@@ -676,16 +832,36 @@ def make_cage(low, high, name, coll):
             if n @ vn[faces[fi]].sum(0) < 0: n = -n
             s = (p - a_) @ n
             if s > 0.0002: outs.append((p, s, fi))
-        if not outs or passes >= 6: break
-        passes += 1
-        for p, s, fi in outs:
-            for vi in faces[fi]: push[vi] += s + 0.0005
+        if outs and passes < 6:
+            passes += 1
+            for p, s, fi in outs:
+                for vi in faces[fi]: push[vi] += s + 0.0005
+            continue
+        bad = cage_inside_samples(P, base, faces, htree, tree)
+        if not bad or ipasses >= 6: break
+        ipasses += 1; req = np.zeros(len(base)); stuck = []
+        for ti, cp, lp, _ in bad:
+            # march the sample outward (low -> cage direction) until it leaves the high; the triangle's vertices get
+            # that much more push along their normals (outward only, like the enclosure passes: the two never fight)
+            d = cp - lp; L = float(np.linalg.norm(d)); d /= max(L, 1e-9); t = L
+            while t < L + CAGE_INSIDE_MAX:
+                t += 0.002
+                if not inside_mask(htree, [lp + d * t])[0]: break
+            else:
+                stuck.append(lp); continue
+            for vi in faces[ti]: req[vi] = max(req[vi], t - L + CAGE_MARGIN)
+        print(f"     cage {name} inside pass {ipasses}: {len(bad)} samples, {len(bad) - len(stuck)} pushed (max {1e3 * req.max():.1f} mm), "
+              f"{len(stuck)} still inside after {CAGE_INSIDE_MAX * 1e3:.0f} mm" +
+              (f" (e.g. low point cradle-local {np.round(w2s(stuck[0]), 3).tolist()})" if stuck else ""))
+        if not req.any(): break
+        push += req
     for v, p in zip(bm.verts, P): v.co = Vector(p)
     bm.transform(low.matrix_world.inverted())
     me = low.data.copy(); me.name = name; bm.to_mesh(me); bm.free()
     o = bpy.data.objects.new(name, me); coll.objects.link(o); o.matrix_world = low.matrix_world.copy()
     o.display_type = 'WIRE'
-    return o, float(push.max()), float(np.percentile(push, 95)), len(outs), passes, [p for p, _, _ in outs]
+    nc = sum(1 for b in bad if b[3])
+    return o, float(push.max()), float(np.percentile(push, 95)), len(outs), passes, [p for p, _, _ in outs], (len(bad) - nc, nc), ipasses
 
 
 # --------------------------------------------------------------------------- UV seam crossing
@@ -756,9 +932,11 @@ def build(args):
     highs, hid = {}, {}
     # Base: round bevel, body groups, details on the real surface
     me, rep["round"]["Base"] = round_bevel(low["Base"], rbase, T.R_TT, "Base_high_final", "Base", concave_r=FILLET)
+    rep["drum_clip_faces_removed"] = clip_drum_interiors(me)[0]
     nb = len(me.polygons); set_groups(me, base_body_groups(me)); BODY = Body(me, base_body_groups(me))
     bm = bmesh.new(); bm.from_mesh(me); base_details(bm, low["Base"]); bm.to_mesh(me); bm.free(); set_det(me, nb)
     hid["Base"] = drop_hidden_details(me, nb, lows_all, "Base")
+    bm = bmesh.new(); bm.from_mesh(me); rep["drum_bands"] = band_arcs(bm); bm.to_mesh(me); bm.free(); set_det(me, nb)
     highs["Base"] = B.add_obj(me, "Base_high_final", hf)
     # Arm_R
     me, rep["round"]["Arm_R"] = round_bevel(low["Arm_R"], lambda p: T.R_ARM, T.R_ARM, "Arm_R_high_final", "Arm_R", concave_r=FILLET)
@@ -785,11 +963,13 @@ def build(args):
     # cages on the triangulated bake lows (identical vertices to Cradle_low.fbx)
     for k in B.PARTS:
         blo = bake_low(low[k], bl)
-        cobj, mx, p95, out, passes, outs = make_cage(blo, highs[k], f"{k}_cage", cg)
+        cobj, mx, p95, out, passes, outs, (nin, ncon), ipasses = make_cage(blo, highs[k], f"{k}_cage", cg)
         rep["cage"][k] = dict(max_push_mm=round(1e3 * mx, 1), p95_push_mm=round(1e3 * p95, 1), high_verts_outside=out, fix_passes=passes,
+                              cage_samples_inside_high=nin, contact_line_samples_inside=ncon, inside_fix_passes=ipasses,
                               verts_low=len(blo.data.vertices), verts_cage=len(cobj.data.vertices))
-        print(f"{'PASS' if out == 0 else 'FAIL'} cage {k}: max push {1e3*mx:.1f} mm, p95 {1e3*p95:.1f} mm, {out} high vertices outside "
-              f"({passes} fix passes), verts low/cage {len(blo.data.vertices)}/{len(cobj.data.vertices)}")
+        print(f"{'PASS' if out == 0 and nin == 0 else 'FAIL'} cage {k}: max push {1e3*mx:.1f} mm, p95 {1e3*p95:.1f} mm, {out} high vertices outside "
+              f"({passes} fix passes), {nin} cage samples inside the high (+{ncon} on contact lines; {ipasses} fix passes), "
+              f"verts low/cage {len(blo.data.vertices)}/{len(cobj.data.vertices)}")
         if outs:
             P = B.spec_local(outs); cells = {}
             for q in P: cells.setdefault(tuple(np.round(q / 0.05).astype(int)), []).append(q)

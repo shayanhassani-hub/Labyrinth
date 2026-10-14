@@ -7,6 +7,9 @@ Needs the build of cradle_v2_highpoly.py (HIGH_FINAL, BAKE_LOW, CAGE in the BAKE
   blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- renders   (Renders/cradle_v2_s<STEP>_*)
   blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- export    (Substance/Cradle/Mesh + README)
   blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- verify    (re-imports the three FBX files)
+  blender -b --factory-startup -P Tools/Blender/heroes/cradle_v2_bake_final.py -- checkrenders <step>   (ID caps, AO at the beam/drum junction)
+Step 6d: verify also runs the hero bake checks (ASSET_RULES "Normals and baking"): (a) cage both directions, (b) ID
+per feature (ID_FEATURES), (c) AO black scan of the verification bake.
 
 Bake: per part (<Part>_bakelow = triangulated export copy, the MikkTSpace basis of Cradle_low.fbx) from
 <Part>_high_final through <Part>_cage; 2048, 16 px margin. Maps: tangent normal (OpenGL, +Y), AO (per part,
@@ -33,7 +36,7 @@ import cradle_v2_bake_test as T          # noqa: E402
 import cradle_v2_highpoly as H           # noqa: E402
 
 CZ = V.CZ
-STEP = "6c"                              # 6c: 32-segment turntable / rings (6b maps stay in Bake_6b)
+STEP = "6d"                              # 6d: pin-cap ID, capped drum bands, drum interiors, cage out of the high (6c maps stay in Bake_6c)
 OUT = rf"D:/AI_Labyrinth/Substance/Cradle/Bake_{STEP}"
 MESH = r"D:/AI_Labyrinth/Substance/Cradle/Mesh"
 OLD = os.path.join(MESH, "_superseded_5a_AI")
@@ -346,6 +349,9 @@ FILES
   _superseded_6b\\     the Step 6b set (16-segment turntable / rings: slivers at their foot). Do not load them.
                     Step 6c: the turntable and rings 2/3 have 32 segments in the low; the low changed, so an
                     existing Painter project needs the new low (Edit > Project configuration) and a full re-bake.
+  _superseded_6c\\     the Step 6c high and cage, renamed OLD_6c_* (pin caps red in the ID, black AO at the beam/drum
+                    junction). Step 6d: new Cradle_high.fbx and Cradle_cage.fbx; Cradle_low.fbx is unchanged.
+                    An existing 6c Painter project: reload the high and the cage in the bake settings, re-bake all maps.
 
 PAINTER: NEW PROJECT
   File: Cradle_low.fbx, Normal map format: OpenGL, Compute tangent space per fragment: ON (MikkTSpace),
@@ -373,7 +379,7 @@ MAPS TO BAKE
 ID COLOURS (sRGB, exact values)
 {ids}
 
-CHECKS DONE IN BLENDER (same set, same cage, Cycles): see Documentation/HERO_SPEC.md section 3, Steps 6b / 6c.
+CHECKS DONE IN BLENDER (same set, same cage, Cycles): see Documentation/HERO_SPEC.md section 3, Steps 6b / 6c / 6d.
 """
 
 
@@ -465,7 +471,8 @@ def verify(args):
             res[fn][o.name] = dict(verts=len(o.data.vertices), faces=len(o.data.polygons), uv=len(o.data.uv_layers),
                                    colours=[x.name for x in o.data.color_attributes],
                                    ngons=sum(1 for p in o.data.polygons if len(p.vertices) > 3), co=co,
-                                   tris=[tuple(t.vertices) for t in o.data.loop_triangles])
+                                   tris=[tuple(t.vertices) for t in o.data.loop_triangles],
+                                   id_area=id_area(o.data, W) if "ID" in o.data.color_attributes else None)
     ok = True
     for k in PARTS:
         l, c, h = res["Cradle_low.fbx"].get(f"{k}_low"), res["Cradle_cage.fbx"].get(f"{k}_low"), res["Cradle_high.fbx"].get(f"{k}_high")
@@ -476,7 +483,14 @@ def verify(args):
         push = np.linalg.norm(c["co"] - l["co"], axis=1)
         tree = BVHTree.FromPolygons(h["co"].tolist(), h["tris"], all_triangles=True)
         d = np.array([tree.find_nearest(Vector(p))[3] for p in l["co"]])
-        on = float(np.median(d)) < 0.002 and float(d.max()) < 0.03          # bevel corners and the circle bulge allowed
+        # 6d: low corners buried inside the high (beam corners inside the drum, whose buried high faces are gone) are
+        # far from any high surface by design: left out of the max
+        buried = np.zeros(len(d), bool); far_ = np.flatnonzero(d > 0.003)       # on the surface the test is ill-defined
+        buried[far_] = H.inside_mask(tree, l["co"][far_])
+        dv = d[~buried]
+        on = float(np.median(d)) < 0.002 and float(dv.max()) < 0.03         # bevel corners and the circle bulge allowed
+        if buried.any(): print(f"INFO {k}: {int(buried.sum())} low vertices buried inside the high (max {1e3 * d[buried].max():.1f} mm from it), not in the max")
+        d = dv
         ok &= on
         S = np.column_stack((-l["co"][:, 0], l["co"][:, 2], -l["co"][:, 1]))  # Blender world -> spec axes, cradle origin
         a_, b_ = S.min(0), S.max(0)
@@ -485,6 +499,314 @@ def verify(args):
               f"{1e3 * np.median(d):.2f} mm, max {1e3 * d.max():.1f} mm; bounds x {a_[0]:+.3f}..{b_[0]:+.3f}, "
               f"y {a_[1]:.3f}..{b_[1]:.3f}, z {a_[2]:+.3f}..{b_[2]:+.3f}")
     print(f"{'PASS' if ok else 'FAIL'} export verify")
+    # ---- hero bake checks (Step 6d; ASSET_RULES "Normals and baking")
+    oka = check_cage(res)
+    fbx_area = {k: res["Cradle_high.fbx"][f"{k}_high"]["id_area"] for k in PARTS if f"{k}_high" in res["Cradle_high.fbx"]}
+    bpy.ops.wm.open_mainfile(filepath=B.BAKE)
+    okb = check_id(fbx_area)
+    okc = check_ao_black(STEP)
+    okr = check_rays(STEP)
+    print(f"{'PASS' if ok and oka and okb and okc and okr else 'FAIL'} verify + hero bake checks (export {ok}, a {oka}, b {okb}, c {okc}, "
+          f"visible ray misses {okr})")
+
+
+# --------------------------------------------------------------------------- hero bake checks (Step 6d)
+
+
+def id_area(me, W=None):
+    """area per ID colour (sRGB bytes) of a mesh, and the number of faces whose corners disagree"""
+    ca = me.color_attributes["ID"]; n = len(me.loops)
+    col = np.empty(n * 4, np.float32); ca.data.foreach_get("color_srgb", col); col = np.round(col.reshape(-1, 4)[:, :3] * 255).astype(int)
+    out, mixed = {}, 0
+    s = 1.0 if W is None else abs(np.linalg.det(np.array(W)[:3, :3])) ** (2 / 3)
+    for p in me.polygons:
+        cs = {tuple(col[li]) for li in p.loop_indices}
+        if len(cs) > 1: mixed += 1
+        c = next(iter(cs)); out[c] = out.get(c, 0.0) + p.area * s
+    return dict(area=out, mixed=mixed)
+
+
+def check_cage(res):
+    """(a) cage both directions on the exported files, per part: every high vertex inside the cage (over the cage
+    triangle of its nearest low triangle, as cradle_v2_highpoly.make_cage), and no cage sample point inside the high
+    where the low point is visible (H.cage_inside_samples)"""
+    from mathutils import Vector
+    from mathutils.bvhtree import BVHTree
+    ok = True
+    for k in PARTS:
+        l, c, h = res["Cradle_low.fbx"].get(f"{k}_low"), res["Cradle_cage.fbx"].get(f"{k}_low"), res["Cradle_high.fbx"].get(f"{k}_high")
+        if l is None or c is None or h is None: ok = False; continue
+        L, Cg, T_ = l["co"], c["co"], np.array(l["tris"])
+        ltree = BVHTree.FromPolygons(L.tolist(), l["tris"], all_triangles=True)
+        htree = BVHTree.FromPolygons(h["co"].tolist(), h["tris"], all_triangles=True)
+        tri_of = {tuple(sorted(t)): i for i, t in enumerate(l["tris"])}
+        outside = 0; ocells = {}
+        for p in h["co"]:
+            loc, nrm, fi, d = ltree.find_nearest(Vector(p))
+            if loc is None or d > 0.03: continue
+            t = T_[fi]; a_, b_, c_ = Cg[t]
+            n = np.cross(b_ - a_, c_ - a_); n /= np.linalg.norm(n)
+            if n @ np.array(nrm[:]) < 0: n = -n
+            s = (p - a_) @ n
+            if s > 0.0002:
+                outside += 1; q = np.array([-p[0], p[2], -p[1]])
+                ocells.setdefault(tuple(np.round(q / 0.05).astype(int)), []).append((q, s))
+        for key, qs in sorted(ocells.items(), key=lambda kv: -len(kv[1]))[:6]:
+            print(f"     outside: {len(qs)} high vertices near cradle-local {np.round(np.mean([x[0] for x in qs], 0), 3).tolist()}, "
+                  f"up to {1e3 * max(x[1] for x in qs):.1f} mm out")
+        allbad = H.cage_inside_samples(Cg, L, l["tris"], htree, ltree)
+        bad = [b for b in allbad if not b[3]]
+        good = outside == 0 and not bad; ok &= good
+        print(f"{'PASS' if good else 'FAIL'} a) cage {k}: {outside} high vertices outside the cage, {len(bad)} cage sample points "
+              f"inside the high (+{len(allbad) - len(bad)} on contact lines, tolerated; {len(T_) * len(H.tri_samples())} samples)")
+        cells = {}
+        for ti, cp, lp, _ in allbad:
+            q = np.array([-lp[0], lp[2], -lp[1]]); cells.setdefault(tuple(np.round(q / 0.05).astype(int)), []).append(q)
+        for key, qs in sorted(cells.items(), key=lambda kv: -len(kv[1]))[:6]:
+            print(f"     inside: {len(qs)} samples, low point near cradle-local {np.round(np.mean(qs, 0), 3).tolist()}")
+    return ok
+
+
+def _pin(c):
+    """distance from the nearest pin axis, z"""
+    sx = 1 if c[0] > 0 else -1
+    return math.hypot(c[0] - sx * V.PIN_X, c[1] - V.PIN_Y), c[2]
+
+
+def _in_bands(c):
+    return any(z0 - 1e-3 < c[2] < z1 + 1e-3 for z0, z1 in H.BANDS)
+
+
+# zones that must not be painted (the "rest" rule skips them, grown a little: groove walls, cap edges)
+def _base_zone(c, n):
+    r, z = _pin(c)
+    return ((r < 0.115 and abs(z) > 0.185) or (0.1170 < r < 0.1335 and _in_bands(c))
+            or (0.325 < c[1] < 0.338 and 0.38 < math.hypot(c[0], c[2]) < 0.50)
+            or (abs(c[0]) < 0.095 and 0.45 < c[1] < 0.67 and c[2] < -0.2238))
+
+
+# (b) ID per feature: (part, feature, group, selector(spec centre, spec normal, detail floater?)). HERO_SPEC section 3 table.
+# Fasteners: every detail piece no larger than FASTENER_MAX, count per part in FASTENERS; they are left out of the
+# other features. Each feature must select faces, and all of them must carry the group colour.
+ID_FEATURES = [
+    ("Base", "pin caps: face incl. flat fills, chamfer, collar, retaining rings", H.G_METAL, lambda c, n, d: H.pin_cap(c)),
+    ("Base", "drum bands", H.G_METAL, lambda c, n, d: d and 0.1190 < _pin(c)[0] < 0.1318 and _in_bands(c)),
+    ("Base", "turntable top annulus", H.G_METAL, lambda c, n, d: abs(c[1] - 0.333) < 0.0015 and 0.40 < math.hypot(c[0], c[2]) < 0.48 and n[1] > 0.95),
+    ("Base", "column access panel: fill + outline groove", H.G_PANEL, lambda c, n, d: d and abs(c[0]) < 0.09 and 0.455 < c[1] < 0.665 and c[2] < -0.22415),
+    ("Base", "painted structure: plinth, column, beam, hub, drums, grooves on them", H.G_PAINT, lambda c, n, d: not _base_zone(c, n)),
+    ("Arm_R", "arm: body and grooves", H.G_PAINT, lambda c, n, d: True),
+    ("Pad", "amber pad", H.G_AMBER, lambda c, n, d: True),
+    ("Riser", "riser body", H.G_RISER, lambda c, n, d: True),
+]
+FASTENERS = {"Base": 4, "Arm_R": 4, "Riser": 4}
+FASTENER_MAX = 0.020
+
+
+def _pieces(me, faces):
+    """connected pieces (shared vertices) of the given faces"""
+    parent = {}
+
+    def find(x):
+        while parent.setdefault(x, x) != x: parent[x] = parent[parent[x]]; x = parent[x]
+        return x
+    for i in faces:
+        vs = me.polygons[i].vertices
+        for v in vs[1:]: parent[find(vs[0])] = find(v)
+    out = {}
+    for i in faces: out.setdefault(find(me.polygons[i].vertices[0]), []).append(i)
+    return list(out.values())
+
+
+def check_id(fbx_area):
+    """(b) ID per feature on the BAKE file's highs (face attribute det), and the exported FBX: same area per colour"""
+    ok = True
+    cols = {g: tuple(c) for g, (_, c) in H.ID_GROUPS.items()}
+    for k in PARTS:
+        o = bpy.data.objects[f"{k}_high_final"]; me = o.data; W = np.array(o.matrix_world)
+        ca = me.color_attributes["ID"]; col = np.empty(len(me.loops) * 4, np.float32); ca.data.foreach_get("color_srgb", col)
+        col = np.round(col.reshape(-1, 4)[:, :3] * 255).astype(int)
+        det = np.zeros(len(me.polygons), np.int32)
+        if "det" in me.attributes: me.attributes["det"].data.foreach_get("value", det)
+        fcol = [{tuple(col[li]) for li in p.loop_indices} for p in me.polygons]
+        fast = set()
+        small = []
+        for comp in _pieces(me, np.flatnonzero(det == 1).tolist()):
+            P = B.spec_local([W[:3, :3] @ np.array(me.vertices[v].co[:]) + W[:3, 3] for i in comp for v in me.polygons[i].vertices])
+            if (P.max(0) - P.min(0)).max() <= FASTENER_MAX: small.append(comp); fast.update(comp)
+        wrong = sum(1 for comp in small for i in comp if fcol[i] != {cols[H.G_FAST]})
+        good = wrong == 0 and len(small) == FASTENERS.get(k, 0); ok &= good
+        if FASTENERS.get(k, 0) or small:
+            print(f"{'PASS' if good else 'FAIL'} b) ID {k} fasteners: {len(small)} pieces (expected {FASTENERS.get(k, 0)}), {wrong} faces not #FF00FF")
+        C_ = B.spec_local([W[:3, :3] @ np.array(p.center[:]) + W[:3, 3] for p in me.polygons])
+        N_ = [W[:3, :3] @ np.array(p.normal[:]) for p in me.polygons]
+        N_ = [np.array([-v[0], v[2], -v[1]]) / np.linalg.norm(v) for v in N_]
+        for part, name, g, sel in ID_FEATURES:
+            if part != k: continue
+            idx = [i for i in range(len(me.polygons)) if i not in fast and sel(C_[i], N_[i], bool(det[i]))]
+            bad = [i for i in idx if fcol[i] != {cols[g]}]
+            good = len(idx) > 0 and not bad; ok &= good
+            hexc = "#%02X%02X%02X" % cols[g]
+            print(f"{'PASS' if good else 'FAIL'} b) ID {k} {name}: {len(idx)} faces {hexc}, {len(bad)} wrong")
+            for i in bad[:4]: print(f"     wrong: face {i} {sorted(fcol[i])} at cradle-local {np.round(C_[i], 3).tolist()}")
+        # export: the FBX carries the same colours (area per colour, triangulated) and no face with mixed corners
+        if k in fbx_area and fbx_area[k] is not None:
+            src = id_area(me)["area"]; dst = fbx_area[k]
+            diff = max(abs(src.get(c, 0) - dst["area"].get(c, 0)) / max(src.get(c, 0), 1e-9) for c in set(src) | set(dst["area"]))
+            good = diff < 1e-3 and dst["mixed"] == 0; ok &= good
+            print(f"{'PASS' if good else 'FAIL'} b) ID {k} export: area per colour FBX vs high max diff {100 * diff:.4f} %, "
+                  f"{dst['mixed']} faces with mixed corner colours")
+    return ok
+
+
+def _visible_texels(lo, mask):
+    """mask (RES x RES) restricted to texels of this low whose surface point is visible: not buried in the low's own
+    other shells, and not in an enclosed void (Arm: the closed pocket between the arm top and the plate); returns
+    (visible mask, spec positions)"""
+    from mathutils import Vector
+    from mathutils.bvhtree import BVHTree
+    me = lo.data; Wm = np.array(lo.matrix_world)
+    lab, pos = _texel_positions(lo, lambda lt: lt.index + 1)          # label = triangle + 1
+    ys, xs = np.nonzero(mask & (lab > 0))
+    co = np.array([v.co[:] for v in me.vertices]) @ Wm[:3, :3].T + Wm[:3, 3]
+    tree = BVHTree.FromPolygons(co.tolist(), [tuple(p.vertices) for p in me.polygons])
+    me.calc_loop_triangles()
+    tn = np.array([Wm[:3, :3] @ np.array(t.normal[:]) for t in me.loop_triangles]); tn /= np.linalg.norm(tn, axis=1, keepdims=True)
+    world = np.array([H.s2w(p)[:] for p in pos[ys, xs]]) if len(ys) else np.zeros((0, 3))
+    nrm = tn[lab[ys, xs] - 1] if len(ys) else np.zeros((0, 3))
+    vis = ~H.hidden_mask(tree, world, nrm) if len(ys) else np.zeros(0, bool)
+    for i in np.flatnonzero(vis):                  # enclosed void (no ray of the hemisphere leaves the part): not visible
+        o = Vector(world[i]) + Vector(nrm[i]) * 5e-4
+        if not any(tree.ray_cast(o, d)[0] is None for d in ESCAPE if d.dot(Vector(nrm[i])) > 0.05): vis[i] = False
+    m = np.zeros(mask.shape, bool); m[ys[vis], xs[vis]] = True
+    return m, pos
+
+
+ESCAPE = V.fib_dirs(128)
+
+
+def bakechecks(args):
+    """-- bakechecks <step>: check c and the visible ray misses on the maps of Bake_<step> (same lows/UVs: earlier steps
+    can be compared)"""
+    bpy.ops.wm.open_mainfile(filepath=B.BAKE)
+    check_ao_black(args[0]); check_rays(args[0])
+
+
+def check_rays(step):
+    """ray misses and far hits of the verification bake (T_Cradle_RayCheck, red = miss, magenta = far), at RES, split
+    into visible / buried texels: a miss on a texel buried inside another shell of the low (the beam inside the drum)
+    shows nowhere. 6d: the buried beam faces inside the drums are gone from the high, so those texels now miss."""
+    img = bpy.data.images.load(os.path.join(os.path.dirname(OUT), f"Bake_{step}", f"T_Cradle_RayCheck_blender{step}.png"))
+    a = pixels(img); n = a.shape[0] // RES
+    a = a.reshape(RES, n, RES, n, 4)
+    red = ((a[..., 0] > 0.99) & (a[..., 1] < 0.01) & (a[..., 2] < 0.01)).any((1, 3))
+    mag = ((a[..., 0] > 0.99) & (a[..., 1] < 0.01) & (a[..., 2] > 0.99)).any((1, 3))
+    lo = {k: bpy.data.objects[f"{k}_bakelow"] for k in PARTS}; ok = True
+    for k in PARTS:
+        for name, mk in (("ray misses", red), ("far hits > 20 mm", mag)):
+            vm, pos = _visible_texels(lo[k], mk)
+            lab = _texel_positions(lo[k], lambda lt: 1)[0] > 0
+            tot = int((mk & lab).sum()); vis = int(vm.sum())
+            good = vis == 0 or name.startswith("far"); ok &= good
+            print(f"{'PASS' if vis == 0 else ('FAIL' if not name.startswith('far') else 'CHECK')} rays {k} {name}: {tot} texels, {vis} visible")
+            if vis:
+                P = pos[vm]; cells = {}
+                for q in P: cells.setdefault(tuple(np.round(q / 0.05).astype(int)), []).append(q)
+                for key, qs in sorted(cells.items(), key=lambda kv: -len(kv[1]))[:4]:
+                    print(f"     visible: {len(qs)} texels near cradle-local {np.round(np.mean(qs, 0), 3).tolist()}")
+    return ok
+
+
+AO_BLACK, LINE_MAX = 0.05, 2.0           # AO below this is black; a black piece thicker than LINE_MAX texels is a patch
+
+
+def check_ao_black(step):
+    """(c) AO black scan of the verification bake (Bake_<step>, RES): texels of each part's low with AO < AO_BLACK
+    whose low point is visible (not inside the low), grouped into 8-connected pieces. Thickness = texels / longest
+    bbox side: <= LINE_MAX is a contact line (OK), thicker is a patch (FAIL)."""
+    from mathutils.bvhtree import BVHTree
+    img = bpy.data.images.load(os.path.join(os.path.dirname(OUT), f"Bake_{step}", f"T_Cradle_AO_blender{step}.png"))
+    img.colorspace_settings.name = 'Non-Color'; ao = pixels(img)[..., 0]
+    lo = {k: bpy.data.objects[f"{k}_bakelow"] for k in PARTS}; ok = True
+    for k in PARTS:
+        lab = _texel_positions(lo[k], lambda lt: 1)[0]
+        dark = (lab > 0) & (ao < AO_BLACK)
+        m, pos = _visible_texels(lo[k], dark)
+        left = set(zip(*np.nonzero(m))); pieces = []
+        while left:
+            s = left.pop(); st, comp = [s], [s]
+            while st:
+                y, x = st.pop()
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        q = (y + dy, x + dx)
+                        if q in left: left.remove(q); st.append(q); comp.append(q)
+            a = np.array(comp); ext = (a.max(0) - a.min(0) + 1).max()
+            pieces.append((len(comp), len(comp) / ext, pos[a[:, 0], a[:, 1]].mean(0)))
+        patches = [p for p in pieces if p[1] > LINE_MAX]
+        good = not patches; ok &= good
+        print(f"{'PASS' if good else 'FAIL'} c) AO black {k}: {int(dark.sum())} texels AO < {AO_BLACK}, {int(m.sum())} visible; "
+              f"{len(pieces) - len(patches)} contact lines (<= {LINE_MAX:.0f} texels thick), {len(patches)} patches")
+        for n, th, c in sorted(patches, key=lambda p: -p[0])[:8]:
+            print(f"     patch: {n} texels, {th:.1f} thick, at cradle-local {np.round(c, 3).tolist()}")
+    return ok
+
+
+# --------------------------------------------------------------------------- check renders (Step 6d: before / after views of 6c)
+
+
+def checkrenders(args):
+    """-- checkrenders <step>: cradle_v2_s<step>_check_id_caps.png (Base/Arm high in ID colours, front and back pin cap)
+    and cradle_v2_s<step>_check_ao_band_L/_R.png (high in ID colours | the low with Bake_<step> AO), the 6c check views"""
+    from mathutils import Vector
+    step = args[0]
+    bpy.ops.wm.open_mainfile(filepath=B.BAKE)
+    sc = bpy.context.scene; sc.render.resolution_x, sc.render.resolution_y = 900, 700
+    tmp = os.path.join(SCR, "checkrenders"); os.makedirs(tmp, exist_ok=True)
+
+    def bl(s): return Vector((-s[0], -(s[2] + CZ), s[1]))
+    cd = bpy.data.cameras.new("c"); co = bpy.data.objects.new("c", cd); sc.collection.objects.link(co); sc.camera = co
+
+    def cam(loc, look, lens):
+        co.location = bl(loc); d = bl(look) - bl(loc); co.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler(); cd.lens = lens; cd.clip_start = 0.005
+
+    def show(names):
+        for o in bpy.data.objects:
+            if o.type == 'MESH': o.hide_render = o.name not in names
+
+    def high_mode():
+        sc.render.engine = 'BLENDER_WORKBENCH'; s = sc.display.shading; s.light = 'STUDIO'; s.color_type = 'VERTEX'; s.show_cavity = False
+        show({"Base_high_final", "Arm_R_high_final"})
+    im = bpy.data.images.load(os.path.join(os.path.dirname(OUT), f"Bake_{step}", f"T_Cradle_AO_blender{step}.png")); im.colorspace_settings.name = 'Non-Color'
+    m = node_mat("ao_emit", lambda nt, em: None); nt = m.node_tree
+    t = nt.nodes.new("ShaderNodeTexImage"); t.image = im; t.interpolation = 'Closest'
+    em = [n for n in nt.nodes if n.type == 'EMISSION'][0]; nt.links.new(t.outputs[0], em.inputs[0])
+    for n in ("Base_bakelow", "Arm_R_bakelow"):
+        o = bpy.data.objects[n]; o.data.materials.clear(); o.data.materials.append(m)
+    w = sc.world or bpy.data.worlds.new("W"); sc.world = w; w.use_nodes = True
+    w.node_tree.nodes["Background"].inputs["Color"].default_value = (0.03, 0.03, 0.04, 1)
+
+    def low_mode():
+        sc.render.engine = 'BLENDER_EEVEE'; sc.view_settings.view_transform = 'Standard'; show({"Base_bakelow", "Arm_R_bakelow"})
+
+    def shot(name):
+        p = os.path.join(tmp, name + ".png"); sc.render.filepath = p; bpy.ops.render.render(write_still=True); return p
+
+    def compose(paths, out):
+        arrs = []
+        for p in paths:
+            i = bpy.data.images.load(p); arrs.append(np.array(i.pixels[:], np.float32).reshape(i.size[1], i.size[0], 4))
+        row = arrs[0]
+        for a in arrs[1:]: row = np.concatenate([row, np.ones((a.shape[0], 8, 4), np.float32), a], 1)
+        o = bpy.data.images.new("o", row.shape[1], row.shape[0]); o.pixels[:] = row.ravel()
+        o.filepath_raw = os.path.join(C.RENDERS, out); o.file_format = 'PNG'; o.save(); print("SAVED", out)
+    high_mode()
+    cam((0.60, 0.80, -0.62), (0.385, 0.637, -0.235), 70); a = shot("id_front")
+    cam((0.60, 0.80, 0.62), (0.385, 0.637, 0.222), 70); b = shot("id_back")
+    compose([a, b], f"cradle_v2_s{step}_check_id_caps.png")
+    V1 = ((-0.20, 0.90, -0.42), (-0.32, 0.725, -0.12), 50); V2 = ((0.20, 0.90, -0.42), (0.32, 0.725, -0.12), 50)
+    high_mode(); cam(*V1); a = shot("ao_hi_L"); cam(*V2); c = shot("ao_hi_R")
+    low_mode(); cam(*V1); b = shot("ao_lo_L"); cam(*V2); d = shot("ao_lo_R")
+    compose([a, b], f"cradle_v2_s{step}_check_ao_band_L.png"); compose([c, d], f"cradle_v2_s{step}_check_ao_band_R.png")
 
 
 # --------------------------------------------------------------------------- Step 6c: round-part foot check
@@ -631,4 +953,4 @@ def overlay(args):
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else ["bake"]
     {"bake": bake, "renders": renders, "export": export, "verify": verify, "overlay": overlay,
-     "sliver": sliver, "foot": foot, "top": top}[argv[0]](argv[1:])
+     "sliver": sliver, "foot": foot, "top": top, "checkrenders": checkrenders, "bakechecks": bakechecks}[argv[0]](argv[1:])
