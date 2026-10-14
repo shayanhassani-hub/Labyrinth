@@ -267,6 +267,45 @@ strong normal slivers at the foot of every turntable/ring facet (the true-round 
   sliver on the back pin cap rim (0.44, 0.58, 0.22), plinth (-1.17, 0.20, 0.42). The junction patches are gone.
   Renders: `cradle_v2_s6d_check_id_caps.png`, `cradle_v2_s6d_check_ao_band_L/_R.png` (6c views).
 
+**Step 6e: finishing 6d (2026-10-14).** Low and UVs unchanged; 6d high/cage in `Mesh\_superseded_6d` (`OLD_6d_*`), .blend
+files in `_pre6e`; maps in `Bake_6e` (Bake_6d kept). Cradle_low.fbx byte-identical.
+- *Cage cap*: the inside fix gives a triangle exactly the push its sample needs, only if no vertex then exceeds 25 mm
+  (the 6c max); samples it can't clear are reported, not pushed. Push max / p95: Base 22.4 / 17.0 mm (6c 24.0 / 17.1, 6d
+  62.5 / 17.0), Arm_R 14.1 / 7.6, Pad 1.5 / 1.5, Riser 6.4 / 6.4.
+- *Check disagreement (6d: build 0, export 42 high vertices outside)*: the build oriented each cage triangle by bmesh vertex
+  normals, the export check by the triangle winding. They differ on **4 flipped low triangles** of the 1 mm column-top
+  ledge (winding faces down, neighbours up; Step 4 concave-quad split, at (+-0.151, 0.761, +-0.109), 675 mm2 each); nearest-face
+  ties also resolved differently. Now one function (`cradle_v2_highpoly.cage_outside`, angle-weighted vertex normals from
+  positions + triangles, all tied nearest triangles) runs in both; both report Base 0 outside, 8 samples inside (+6 contact),
+  Arm_R 0 (+2). The flipped triangles are a low defect (a fix changes the low: owner decision); they are also the source of
+  the ledge ray misses since 6b.
+- *The 7 Base AO patches of 6d/6c* (render `cradle_v2_s6e_check_ao_patches.png`, top 6d, bottom 6e): all **bake artifacts of
+  the Blender verification bake, not geometry**: every part baked into one image with its own 16 px margin, so Arm_R's margin
+  (baked after Base) overwrote Base islands 10-11 px away with black (Arm_R's enclosed plate pocket). Projection at all 7 was
+  clean (cage outside, front hit at the texel), geometric occlusion low. Fix: margin 0 per part, one dilation of the
+  composite (missed texels filled from neighbours as before, still counted as misses). Painter is not affected (one
+  dilation per texture set). The tray "slots" were this artifact, not deep cavities.
+- *Turntable notches*: none in the low or the high (wall r 0.515 at +-35 / +-145 deg as beside them); only the superseded 5a
+  AI high has them. The "four small notches: normal map" line in Dimensions is stale (owner to decide); the 6d patch at
+  (-0.04, 0.32, 0.47) was not a notch (95 deg) but the margin artifact.
+- *Verification bake*: ray misses 0.746 % of all texels (6d 0.752, 6c 0.027; the rest are low texels buried in the drums).
+  Visible misses Base 842 (6c 671 at the ledge, 6d 995), Arm_R 9, Pad 4 (unchanged). Hit distance p50 0.02 / p99 5.5 mm,
+  far hits 23 texels (beam underside; 6d's ledge far hits gone). Sliver check: trough floor 973, turntable top 773 (6c 939:
+  its UV-border row was margin bleed), ring-2 step 552 texels.
+- *Hero checks* (`verify`): **a PASS** (Base: 8 samples ACCEPTED at L1-L4), **b PASS**, **c PASS** (Base 0 patches, 49
+  visible black texels in contact lines; Arm_R 0 patches). Renders `cradle_v2_s6e_check_id_caps.png`,
+  `cradle_v2_s6e_check_ao_band_L/_R.png`, `cradle_v2_s6e_check_ao_patches.png`.
+
+**Accepted bake exceptions (Cradle)** — read by `cradle_v2_bake_final.py` checks a and c (a failing item inside an entry
+prints ACCEPTED, anything else FAIL). Documented exceptions only, not a tolerance; each entry names its cause.
+
+| ID | Part | Check | At (cradle-local x, y, z) | Radius m | Cause | Why accepted |
+|---|---|---|---|---|---|---|
+| L1 | Base | a | (0.151, 0.761, 0.109) | 0.06 | flipped low triangle (winding faces down) on the 1 mm column-top ledge, from the Step 4 concave-quad split: cage samples over it lie inside the high and can't be cleared within the 25 mm cap | fixing it changes the low (owner decision); the ledge sits between the beam and the hub collar, its misses exist since 6b |
+| L2 | Base | a | (-0.151, 0.761, 0.109) | 0.06 | as L1 (mirror) | as L1 |
+| L3 | Base | a | (0.151, 0.761, -0.109) | 0.06 | as L1 (mirror) | as L1 |
+| L4 | Base | a | (-0.151, 0.761, -0.109) | 0.06 | as L1 (mirror) | as L1 |
+
 Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
 span x −1.139 … 1.138, fixed body top y 0.884.
 

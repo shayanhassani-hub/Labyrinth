@@ -724,7 +724,7 @@ def bake_low(low, coll_):
 IN_DIRS = [Vector(d).normalized() for d in ((0.31, 0.83, 0.46), (-0.60, 0.21, 0.77), (0.12, -0.91, 0.40), (0.88, -0.25, -0.40),
                                              (-0.52, -0.47, -0.71), (-0.27, 0.70, -0.66), (0.71, 0.36, 0.60))]
 SAMPLE_N = 5                   # cage check: barycentric grid per triangle (15 points)
-CAGE_INSIDE_MAX = 0.060        # cage fix: march a sample at most this far further out
+CAGE_PUSH_CAP = 0.025          # 6e: the inside fix never takes a vertex's push beyond this (6c max 24.0 mm)
 CONTACT = 0.0025               # a sample whose low point has hidden low surface within this (~1 texel) is on a contact line
 
 
@@ -787,18 +787,55 @@ def cage_inside_samples(Pc, Pl, tris, high_tree, low_tree):
     return out
 
 
+def vertex_normals(P, tris):
+    """angle-weighted vertex normals (as bmesh) from positions and triangles only: identical for the .blend and the FBX"""
+    T_ = np.asarray(tris); fn = np.cross(P[T_[:, 1]] - P[T_[:, 0]], P[T_[:, 2]] - P[T_[:, 0]])
+    fn /= np.linalg.norm(fn, axis=1, keepdims=True).clip(1e-15)
+    vn = np.zeros_like(P, dtype=float)
+    for i in range(3):
+        a = P[T_[:, (i + 1) % 3]] - P[T_[:, i]]; b = P[T_[:, (i + 2) % 3]] - P[T_[:, i]]
+        cs = (a * b).sum(1) / (np.linalg.norm(a, axis=1) * np.linalg.norm(b, axis=1)).clip(1e-15)
+        np.add.at(vn, T_[:, i], fn * np.arccos(np.clip(cs, -1, 1))[:, None])
+    return vn / np.linalg.norm(vn, axis=1, keepdims=True).clip(1e-12)
+
+
+def cage_outside(hv, Pl, Pc, tris, low_tree, tol=2e-4, tie=1e-5):
+    """high vertices outside the cage - one rule for the build (make_cage) and the export check (bake_final verify).
+    Each high vertex within 30 mm of the low is checked against the cage triangles over its nearest low triangles (the
+    faces its rays come from; not the nearest cage face: intersecting shells would mismatch). All low triangles within
+    0.01 mm of the nearest count (find_nearest_range): equal candidates come in a different order from the .blend and
+    from the FBX. Outside = more than tol beyond every such cage triangle, its plane oriented by the low's vertex normals
+    (vertex_normals, the same function on both sides). 6d's build oriented by bmesh vertex normals, its export check by
+    the triangle winding: they differ on the 4 flipped low triangles of the column-top ledge (Step 4 concave-quad split),
+    hence 0 vs 42 there. low_tree = BVHTree.FromPolygons(Pl, tris). Returns [(point, distance out, triangle)]."""
+    T_ = np.asarray(tris); C_ = Pc[T_]; vn = vertex_normals(Pl, tris)
+    nl = vn[T_].sum(1)
+    nc = np.cross(C_[:, 1] - C_[:, 0], C_[:, 2] - C_[:, 0]); nc /= np.linalg.norm(nc, axis=1, keepdims=True).clip(1e-12)
+    nc[(nc * nl).sum(1) < 0] *= -1
+    out = []
+    for p in hv:
+        r = low_tree.find_nearest(Vector(p))
+        if r[0] is None or r[3] > 0.03: continue
+        best = min(((p - C_[fi, 0]) @ nc[fi], fi) for _, _, fi, _ in low_tree.find_nearest_range(Vector(p), r[3] + tie))
+        if best[0] > tol: out.append((p, float(best[0]), int(best[1])))
+    return out
+
+
 def make_cage(low, high, name, coll):
     """the triangulated bake low (same vertices, order, UVs, normals) pushed along its averaged vertex normals: per
     vertex just far enough that the high points nearest to its faces lie inside, + CAGE_MARGIN, one ring of
-    max-smoothing; then up to 6 passes that push the faces under any high vertex still outside. Step 6d: then (and
-    alternating with those) up to 6 passes that push the vertices of every cage triangle with a sample point inside
-    the high (cage_inside_samples) further out along their normals, as far as the sample needs to leave the high
-    + CAGE_MARGIN. Returns
-    (object, max push, p95 push, high verts outside, passes, outside points, cage samples inside, inside passes)."""
+    max-smoothing; then up to 6 passes that push the faces under any high vertex still outside (cage_outside). Step
+    6d/6e: then (alternating with those) up to 6 passes for the cage triangles with a sample point inside the high
+    over a visible low point (cage_inside_samples): each such sample is marched outward and its triangle's vertices get
+    exactly the push it needs + CAGE_MARGIN, but only if no vertex then exceeds CAGE_PUSH_CAP (6e: 6d pushed the
+    column-top ledge to 62.5 mm); samples it can't clear within the cap are reported, not pushed. Returns (object, max
+    push, p95 push, high verts outside, passes, outside points, (samples inside, on contact lines), inside passes,
+    unresolved low points)."""
     bm = bmesh.new(); bm.from_mesh(low.data); bm.transform(low.matrix_world); bm.normal_update()
     bm.faces.ensure_lookup_table(); bm.verts.ensure_lookup_table()
-    tree = BVHTree.FromBMesh(bm)
     base = np.array([v.co[:] for v in bm.verts]); vn = np.array([v.normal[:] for v in bm.verts])
+    faces = [[v.index for v in f.verts] for f in bm.faces]
+    tree = BVHTree.FromPolygons(base.tolist(), faces)
     need = np.zeros(len(bm.verts))
     hm = high.data; hv = np.empty(len(hm.vertices) * 3); hm.vertices.foreach_get("co", hv); hv = hv.reshape(-1, 3)
     Mh = np.array(high.matrix_world); hv = hv @ Mh[:3, :3].T + Mh[:3, 3]
@@ -814,24 +851,11 @@ def make_cage(low, high, name, coll):
     for v in bm.verts:
         for e in v.link_edges: sm[v.index] = max(sm[v.index], need[e.other_vert(v).index] * 0.5)
     push = sm + CAGE_MARGIN
-    faces = [[v.index for v in f.verts] for f in bm.faces]
-    # each high vertex is checked against the cage face over its nearest low face (the face its rays come from),
-    # not the nearest cage face: separate intersecting shells (drum/beam, column/rings) would mismatch
-    owner = []
-    for p in hv:
-        loc, nrm, fi, d = tree.find_nearest(Vector(p))
-        if loc is not None and d <= 0.03: owner.append((p, fi))
     htree = BVHTree.FromPolygons(hv.tolist(), [tuple(p.vertices) for p in hm.polygons])
     passes, ipasses = 0, 0
     while True:
         P = base + vn * push[:, None]
-        outs = []
-        for p, fi in owner:
-            a_, b_, c_ = (P[i] for i in faces[fi])
-            n = np.cross(b_ - a_, c_ - a_); n /= np.linalg.norm(n)
-            if n @ vn[faces[fi]].sum(0) < 0: n = -n
-            s = (p - a_) @ n
-            if s > 0.0002: outs.append((p, s, fi))
+        outs = cage_outside(hv, base, P, faces, tree)
         if outs and passes < 6:
             passes += 1
             for p, s, fi in outs:
@@ -843,15 +867,16 @@ def make_cage(low, high, name, coll):
         for ti, cp, lp, _ in bad:
             # march the sample outward (low -> cage direction) until it leaves the high; the triangle's vertices get
             # that much more push along their normals (outward only, like the enclosure passes: the two never fight)
-            d = cp - lp; L = float(np.linalg.norm(d)); d /= max(L, 1e-9); t = L
-            while t < L + CAGE_INSIDE_MAX:
+            d = cp - lp; L = float(np.linalg.norm(d)); d /= max(L, 1e-9); t = L; room = CAGE_PUSH_CAP - max(push[vi] for vi in faces[ti])
+            while t - L + CAGE_MARGIN <= room:
                 t += 0.002
                 if not inside_mask(htree, [lp + d * t])[0]: break
             else:
                 stuck.append(lp); continue
+            if t - L + CAGE_MARGIN > room: stuck.append(lp); continue
             for vi in faces[ti]: req[vi] = max(req[vi], t - L + CAGE_MARGIN)
         print(f"     cage {name} inside pass {ipasses}: {len(bad)} samples, {len(bad) - len(stuck)} pushed (max {1e3 * req.max():.1f} mm), "
-              f"{len(stuck)} still inside after {CAGE_INSIDE_MAX * 1e3:.0f} mm" +
+              f"{len(stuck)} not clearable within the {CAGE_PUSH_CAP * 1e3:.0f} mm cap" +
               (f" (e.g. low point cradle-local {np.round(w2s(stuck[0]), 3).tolist()})" if stuck else ""))
         if not req.any(): break
         push += req
@@ -861,7 +886,9 @@ def make_cage(low, high, name, coll):
     o = bpy.data.objects.new(name, me); coll.objects.link(o); o.matrix_world = low.matrix_world.copy()
     o.display_type = 'WIRE'
     nc = sum(1 for b in bad if b[3])
-    return o, float(push.max()), float(np.percentile(push, 95)), len(outs), passes, [p for p, _, _ in outs], (len(bad) - nc, nc), ipasses
+    unresolved = [w2s(b[2]) for b in bad if not b[3]]
+    return (o, float(push.max()), float(np.percentile(push, 95)), len(outs), passes, [p for p, _, _ in outs], (len(bad) - nc, nc), ipasses,
+            unresolved)
 
 
 # --------------------------------------------------------------------------- UV seam crossing
@@ -963,13 +990,15 @@ def build(args):
     # cages on the triangulated bake lows (identical vertices to Cradle_low.fbx)
     for k in B.PARTS:
         blo = bake_low(low[k], bl)
-        cobj, mx, p95, out, passes, outs, (nin, ncon), ipasses = make_cage(blo, highs[k], f"{k}_cage", cg)
+        cobj, mx, p95, out, passes, outs, (nin, ncon), ipasses, unres = make_cage(blo, highs[k], f"{k}_cage", cg)
         rep["cage"][k] = dict(max_push_mm=round(1e3 * mx, 1), p95_push_mm=round(1e3 * p95, 1), high_verts_outside=out, fix_passes=passes,
                               cage_samples_inside_high=nin, contact_line_samples_inside=ncon, inside_fix_passes=ipasses,
-                              verts_low=len(blo.data.vertices), verts_cage=len(cobj.data.vertices))
-        print(f"{'PASS' if out == 0 and nin == 0 else 'FAIL'} cage {k}: max push {1e3*mx:.1f} mm, p95 {1e3*p95:.1f} mm, {out} high vertices outside "
+                              unresolved=[np.round(q, 3).tolist() for q in unres], verts_low=len(blo.data.vertices), verts_cage=len(cobj.data.vertices))
+        # raw counts; check a (bake_final verify, same functions on the exported FBX) judges them with the accepted list
+        print(f"INFO cage {k}: max push {1e3*mx:.1f} mm, p95 {1e3*p95:.1f} mm, {out} high vertices outside "
               f"({passes} fix passes), {nin} cage samples inside the high (+{ncon} on contact lines; {ipasses} fix passes), "
               f"verts low/cage {len(blo.data.vertices)}/{len(cobj.data.vertices)}")
+        for q in unres[:6]: print(f"     inside, not clearable within the cap: low point cradle-local {np.round(q, 3).tolist()}")
         if outs:
             P = B.spec_local(outs); cells = {}
             for q in P: cells.setdefault(tuple(np.round(q / 0.05).astype(int)), []).append(q)
