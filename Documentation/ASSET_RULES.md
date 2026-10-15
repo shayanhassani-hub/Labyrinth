@@ -49,6 +49,7 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
   - Cage both ways: every high vertex inside the cage, and no cage sample point inside the high over a visible low point (contact-line samples within 1 texel tolerated).
   - ID per feature: every feature of the HERO_SPEC ID table selects faces and all of them carry its colour (flat fills included); the FBX carries the same colours.
   - AO black scan on the verification bake: visible texels with AO < 0.05 may only form contact lines (<= 2 texels thick); any patch is a FAIL.
+  - Checks and the verification bake use the export-identical triangulated high (Step 6g; `verify` FAILs if the bake file's high and the exported high differ).
 ### UVs
 - One texture set (one material) per hero where possible: fewer draw calls, SRP Batcher.
 - Texel density: hero target 512 px/m (5.12 px/cm) at 2048. Large heroes (> 2 m across)

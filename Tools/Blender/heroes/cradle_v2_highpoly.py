@@ -21,6 +21,8 @@ Step 6d (6c Painter check): pin-cap ID on every cap face (pin_cap; the flat fill
 arcs over the drums' outer side, >= 5 mm from the beam (band_arcs; 6c left stepped ends sunk into the beam); Base faces
 inside the round drums removed (clip_drum_interiors); cages also pushed out wherever a cage sample point lay inside the
 high over a visible low point (cage_inside_samples). Low and UVs unchanged.
+Step 6g: the highs are triangulated exactly as the export does (triangulate_like_export) before the cages are built, so
+cages, the verification bake and the checks use the triangles Painter gets.
 """
 import bpy
 import bmesh
@@ -711,6 +713,18 @@ def set_groups(me, groups):
 # --------------------------------------------------------------------------- cage
 
 
+def triangulate_like_export(o):
+    """Step 6g: the high triangulated exactly as the export does (env_kit_generator.triangulated_export_copy: BEAUTY,
+    custom normals carried), BEFORE the cages and the verification bake. A quad high is split by Cycles and by BVHTree on
+    its vertex-order diagonal, Painter gets BEAUTY triangles: on a twisted quad the two differ (6f: the column-top chamfer,
+    ~7 mm twist, high proud of the low at two corners and on it at the mirrored two). Face attributes (det, idg) and the ID
+    colours ride along; the export's own triangulation of these triangles is then a no-op."""
+    import env_kit_generator as K
+    c = K.triangulated_export_copy(o)
+    old = o.data; o.data = c.data; bpy.data.objects.remove(c); bpy.data.meshes.remove(old)
+    o.data.name = o.name
+
+
 def bake_low(low, coll_):
     """triangulated export copy of a low (the MikkTSpace basis of Cradle_low.fbx), in the low's frame"""
     import env_kit_generator as K
@@ -984,6 +998,7 @@ def build(args):
         for p in o.data.polygons: p.use_smooth = True
         if "rf" in o.data.attributes: o.data.attributes.remove(o.data.attributes["rf"])
         rep["id_faces"][k] = write_id_colours(o.data)
+        triangulate_like_export(o)
         o.data.calc_loop_triangles(); rep["tris"][k] = len(o.data.loop_triangles); o.color = (0.55, 0.56, 0.6, 1)
         print(f"HIGH {o.name}: {rep['tris'][k]} tris, ID faces {rep['id_faces'][k]}")
     for name, mm in GROOVE_DEV.items(): print(f"GROOVE {name}: 6a path up to {mm} mm off the real high surface (now projected)")

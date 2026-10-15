@@ -36,7 +36,7 @@ import cradle_v2_bake_test as T          # noqa: E402
 import cradle_v2_highpoly as H           # noqa: E402
 
 CZ = V.CZ
-STEP = "6f"                              # 6f: column-top ledge without folds (collar corner); 6e maps stay in Bake_6e
+STEP = "6g"                              # 6g: highs triangulated as exported, before cages and bake; 6f maps stay in Bake_6f
 OUT = rf"D:/AI_Labyrinth/Substance/Cradle/Bake_{STEP}"
 MESH = r"D:/AI_Labyrinth/Substance/Cradle/Mesh"
 OLD = os.path.join(MESH, "_superseded_5a_AI")
@@ -380,6 +380,10 @@ FILES
                     Step 6f: the hub-collar corner moved 3 mm (8 vertices), the 4 ledge bow-tie quads are re-split, 4
                     small ledge UV islands re-placed; all other UVs unchanged. NEW Cradle_low.fbx: an existing Painter
                     project needs the new low (Edit > Project configuration), the new high and cage, and a full re-bake.
+  _superseded_6f\\     the Step 6f high and cage, renamed OLD_6f_* (cage built on the quad high: on twisted low quads it
+                    did not match the BEAUTY-triangulated Cradle_high.fbx). Step 6g: new Cradle_high.fbx (same surface,
+                    the triangles the bake file now uses) and Cradle_cage.fbx; Cradle_low.fbx unchanged.
+                    Reload the high and the cage and re-bake all maps.
 
 PAINTER: NEW PROJECT
   File: Cradle_low.fbx, Normal map format: OpenGL, Compute tangent space per fragment: ON (MikkTSpace),
@@ -540,6 +544,7 @@ def verify(args):
     oka = check_cage(res)
     fbx_area = {k: res["Cradle_high.fbx"][f"{k}_high"]["id_area"] for k in PARTS if f"{k}_high" in res["Cradle_high.fbx"]}
     bpy.ops.wm.open_mainfile(filepath=B.BAKE)
+    ok &= check_high_identical(res)
     okb = check_id(fbx_area)
     okc = check_ao_black(STEP)
     check_rays(STEP)
@@ -550,6 +555,26 @@ def verify(args):
 
 
 # --------------------------------------------------------------------------- hero bake checks (Step 6d)
+
+
+def check_high_identical(res):
+    """Step 6g: the bake file's <Part>_high_final (what the cages, the verification bake and the checks use) and the
+    exported Cradle_high.fbx (what Painter gets) are identical: triangle count, vertex positions (assembled pose, 0.01 mm:
+    FBX float rounding) and the triangle list (vertex indices per triangle, in order). FAIL otherwise."""
+    asm = Matrix.Translation(-V.to_blender((0.0, 0.0, CZ))); ok = True
+    for k in PARTS:
+        h = res["Cradle_high.fbx"].get(f"{k}_high"); o = bpy.data.objects[f"{k}_high_final"]; me = o.data
+        if h is None: ok = False; print(f"FAIL high identical {k}: missing in Cradle_high.fbx"); continue
+        M = np.array(asm @ o.matrix_world); P = np.empty(len(me.vertices) * 3); me.vertices.foreach_get("co", P)
+        P = P.reshape(-1, 3) @ M[:3, :3].T + M[:3, 3]
+        tris = [tuple(p.vertices) for p in me.polygons]; ngon = sum(1 for t in tris if len(t) != 3)
+        same_n = len(tris) == len(h["tris"]) and len(P) == len(h["co"])
+        dp = float(np.abs(P - h["co"]).max()) if len(P) == len(h["co"]) else float("inf")
+        same_t = same_n and tris == [tuple(t) for t in h["tris"]]
+        good = same_n and ngon == 0 and dp < 1e-5 and same_t; ok &= good
+        print(f"{'PASS' if good else 'FAIL'} high identical {k}: bake file {len(tris)} tris ({ngon} not triangles) / FBX {len(h['tris'])}, "
+              f"positions max diff {1e3 * dp:.4f} mm, triangle list {'identical' if same_t else 'DIFFERENT'}")
+    return ok
 
 
 def id_area(me, W=None):

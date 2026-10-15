@@ -140,6 +140,68 @@ def winding_faults(P, tris, cn):
     return dict(vs_custom=len(vs_custom), folded_pairs=len(fold) // 2, same_direction_edges=len(same_dir) // 2), bad
 
 
+TWIST_MAX = 0.002              # Step 6g: quads whose two diagonals pass farther apart than this are reported (not FAIL yet)
+
+
+def planarity_report(objs, ndir=64):
+    """Step 6g (report only): low quads whose diagonals are > TWIST_MAX apart, per unique part, with the cradle-local
+    centre and whether the quad is visible from outside: from 1 mm over its centre, the number of hemisphere rays (of the
+    ndir that face out) that leave the whole cradle, closed pose / released pose. A twisted quad bakes differently with
+    each diagonal (6f: the column-top chamfer, ~7 mm); its normal map follows the diagonal Painter gets."""
+    from mathutils.bvhtree import BVHTree
+    dirs = [Vector(d) for d in fib_dirs(ndir)]
+    quads = {}
+    for name in ("Base_01", "Arm_R_01", "Pad_R_01", "Riser_L_01"):
+        o = objs[name]; me = o.data; W = o.matrix_world; rows = []
+        for p in me.polygons:
+            if len(p.vertices) != 4: continue
+            P = [np.array(me.vertices[v].co) for v in p.vertices]
+            n = np.cross(P[2] - P[0], P[3] - P[1]); ln = np.linalg.norm(n)
+            if ln < 1e-12: continue
+            t = abs((P[1] - P[0]) @ (n / ln))                                # distance between the two diagonals
+            if t > TWIST_MAX: rows.append((p.index, float(t)))
+        quads[name] = rows
+    vis = {}
+    for deg in (0.0, V.RELEASE_DEG):
+        set_pose(objs, deg); P, F, owner = [], [], []
+        for nm, o in objs.items():
+            k = len(P); W = o.matrix_world; P += [W @ v.co for v in o.data.vertices]
+            F += [tuple(k + i for i in p.vertices) for p in o.data.polygons]; owner += [(nm, p.index) for p in o.data.polygons]
+        tree = BVHTree.FromPolygons(P, F)
+        own_name = {"Base_01": "Base_01", "Arm_R_01": "Arm_R_01", "Pad_R_01": "Pad_R_01", "Riser_L_01": "Riser_L_01"}
+
+        def escapes(org, d, me_key):
+            # a twisted quad's own surface (split on some diagonal) can lie over its centre: its own hits are skipped
+            for _ in range(4):
+                h = tree.ray_cast(org, d)
+                if h[0] is None: return True
+                if owner[h[2]] != me_key: return False
+                org = h[0] + d * 1e-5
+            return False
+        for name, rows in quads.items():
+            o = objs[name]; W = o.matrix_world; R = W.to_3x3()
+            for fi, _ in rows:
+                p = o.data.polygons[fi]; c = W @ p.center; nn = (R @ p.normal).normalized(); org = c + nn * 1e-4
+                out_dirs = [d for d in dirs if d.dot(nn) > 0.05]
+                vis.setdefault((name, fi), []).append(sum(1 for d in out_dirs if escapes(org, d, (own_name[name], fi))))
+    set_pose(objs, 0.0)
+    rep = {}
+    for name, rows in quads.items():
+        o = objs[name]; W = o.matrix_world; lines = []
+        for fi, t in sorted(rows, key=lambda r: -r[1]):
+            sp = spec_world(np.array([W @ o.data.polygons[fi].center]))[0] - np.array([0, 0, V.CZ])     # cradle-local
+            sp = np.round(sp, 3).tolist()
+            v0, v1 = vis[(name, fi)]
+            lines.append(dict(face=fi, twist_mm=round(1e3 * t, 1), at=sp, visible_closed=v0, visible_released=v1))
+        rep[name] = lines
+        print(f"INFO planarity {name}: {len(lines)} quads with diagonals > {1e3 * TWIST_MAX:.0f} mm apart"
+              + ("" if lines else " (none)"))
+        for r in lines:
+            seen = "VISIBLE" if r["visible_closed"] or r["visible_released"] else "hidden"
+            print(f"     {r['twist_mm']:5.1f} mm  face {r['face']:4d} at cradle-local {r['at']}  {seen} (open rays closed {r['visible_closed']}, released {r['visible_released']})")
+    return rep
+
+
 def blend_winding(o):
     """winding_faults on an object's own triangulation (loop triangles) and corner normals, object-local"""
     me = o.data; me.calc_loop_triangles()
@@ -209,6 +271,7 @@ def topo(args):
         for h in hs[:20]: print(f"     HOLE at cradle-local {h['at_cradle_local']} (pose {h['pose_deg']:.0f} deg)")
         out[name]["hole_edges"] = hs
         if hs: out[name]["topology_pass"] = False
+    out["_planarity"] = planarity_report(objs)
     inst = sum(v["tris"] for k, v in out.items() if not k.startswith("_"))
     print(f"TOTAL unique meshes {total} tris; in the scene (pad instanced twice) {inst} tris")
     out["_total_unique"] = total; out["_total_scene"] = inst

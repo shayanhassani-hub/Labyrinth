@@ -341,6 +341,38 @@ them. 6e low/high/cage in `Mesh\_superseded_6e` (`OLD_6e_*`), .blend files in `_
   6e version `cradle_v2_s6e_check_ledge.png`), `cradle_v2_s6f_check_id_caps.png`, `cradle_v2_s6f_check_ao_band_L/_R.png`.
 - An existing Painter project needs the new low, high and cage and a full re-bake (the low changed).
 
+**Step 6g: checks and bake on the export-identical high (2026-10-15).** Low and UVs unchanged (Cradle_low.fbx
+byte-identical: re-export content-identical, the 6f file kept). 6f high/cage in `Mesh\_superseded_6f` (`OLD_6f_*`), .blend
+files in `_pre6g`; maps in `Bake_6g` (Bake_6f kept).
+- *Cause of the 6f open item* (column-top chamfer misses at (-0.146, 0.743, 0.162) / (0.146, 0.743, -0.162), visible from
+  the player view, renders `cradle_v2_s6f_check_coltop.png`): the four corner chamfer quads (column ring y 0.724 -> column
+  top y 0.761) are twisted, diagonals 3.7 mm apart. The bake low splits them on BEAUTY diagonals (mirror-symmetric);
+  `Base_high_final` stayed in quads, which Cycles and BVHTree split on the vertex-order diagonal, flipping between
+  mirrored corners: at +x+z / -x-z the high stood up to ~3.5 mm proud of the low (cage pushed 5-6 mm, clean), at the other
+  two it lay exactly on the low (cage ~1 mm) and ~80 % of the facet's texels missed. Not a generator asymmetry; Painter
+  (BEAUTY-triangulated `Cradle_high.fbx`) had the high on the low at all four corners.
+- *Fix* (`cradle_v2_highpoly.triangulate_like_export`): each high is triangulated with the export's own function
+  (`env_kit_generator.triangulated_export_copy`, BEAUTY, custom normals carried) right after its ID colours, before the
+  cages; the export's triangulation is then a no-op. New check in `verify` (`check_high_identical`): bake-file high vs
+  exported high, tri count, positions, triangle list: PASS for all four parts (79,280 / 13,826 / 478 / 1,150 tris, max
+  0.0001 mm). Cage push max / p95 unchanged (Base 20.8 / 17.0, Arm_R 14.1 / 7.6, Pad 1.5, Riser 6.4 mm).
+- *Planarity report* (`cradle_v2_check topo`, report only): quads with diagonals > 2 mm apart (distance between the two
+  diagonals; the 6f investigation quoted twice that: "18.9 mm" = 9.4 mm) and outside visibility (hemisphere rays escaping
+  the cradle, closed / released): Base 12 - the 4 column-top chamfers 3.7 mm, **visible**; 4 beam quads at
+  (+-0.296, 0.58, +-0.129) 9.4 mm and 4 at (+-0.296, 0.71, +-0.129) 5.7 mm, **hidden** (inside the drums, 0.106 / 0.115 m
+  from the pin axis, r 0.118). Arm_R, Pad, Riser: none.
+- *Verification bake*: ray misses 0.729 % of all texels (6f 0.756; buried drum texels). Visible misses: column-top
+  chamfers **0** (6f 624: 0 / 281 / 343 / 0 per corner), beam/drum junction quads 44 within 30 mm (6f 44; the quads are
+  hidden, these lie on the beam waist beside the drum, as since 6d), total 245 (6f 892): Base 232 (beam waist / drum gap at
+  (+-0.269, 0.646, +-0.153) and (+-0.283, 0.691, +-0.148)), Arm_R 9, Pad 4. Hit distance p50 0.02 / p99 4.3 mm, 13 far
+  texels. Sliver check: 973 / 773 / 552 (as 6f).
+- *Hero checks* (`verify`): a, b, c PASS, winding PASS, high identical PASS; no exceptions.
+- *Renders* `cradle_v2_s6g_check_twist.png` (Bake_6g normal map on the low, glossy grey, sun ~10 deg over the facet plane):
+  top the +x front column-top chamfer, player view (eye 1.36, ~1.8 m) | close; bottom the 9.4 mm junction quad, player
+  view (hidden by the drum) | close cutaway (near clip past the drum wall, no shadows). Owner to judge whether the fold
+  reads as a crease.
+- An existing Painter project: reload the high and the cage, re-bake all maps (the low is the same).
+
 **Accepted bake exceptions (Cradle)** — read by `cradle_v2_bake_final.py` checks a and c (a failing item inside an entry
 prints ACCEPTED, anything else FAIL). Documented exceptions only, not a tolerance; each entry names its cause. An entry that matches nothing in a
 `verify` run prints UNUSED and is removed. No entries since Step 6f (L1-L4, the folded ledge triangles, fixed).
