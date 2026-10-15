@@ -83,6 +83,72 @@ def set_pose(objs, deg):
 # --------------------------------------------------------------------------- topology
 
 
+FOLD_DOT = -0.95               # neighbours whose face normals point this much against each other: folded (> ~162 deg)
+
+
+def quad_faults(me):
+    """Step 6f: quads that are bow-ties (self-intersecting) or concave, in their own plane. The generator splits concave
+    quads (SpecMesh.finish), so both must be 0: a bow-tie folds whatever the split (6e: 4 at the column-top ledge), a
+    concave quad folds if the exporter splits it on the wrong diagonal. Returns (bow-tie faces, concave faces)."""
+    P = np.empty(len(me.vertices) * 3); me.vertices.foreach_get("co", P); P = P.reshape(-1, 3)
+    bow, conc = [], []
+    for p in me.polygons:
+        if len(p.vertices) != 4: continue
+        q = P[list(p.vertices)]; n = np.zeros(3)
+        for i in range(4): n += np.cross(q[i], q[(i + 1) % 4])                       # Newell normal
+        n /= max(np.linalg.norm(n), 1e-15)
+        u = q[1] - q[0]; u -= n * (u @ n); u /= max(np.linalg.norm(u), 1e-15); v = np.cross(n, u)
+        q2 = np.column_stack(((q - q[0]) @ u, (q - q[0]) @ v))
+        def cr(o, a, b): return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+        def cross_seg(a, b, c, d): return cr(a, b, c) * cr(a, b, d) < 0 and cr(c, d, a) * cr(c, d, b) < 0
+        if cross_seg(q2[0], q2[1], q2[2], q2[3]) or cross_seg(q2[1], q2[2], q2[3], q2[0]): bow.append(p.index)
+        elif any(cr(q2[i - 1], q2[i], q2[(i + 1) % 4]) < -1e-12 for i in range(4)): conc.append(p.index)
+    # a bow-tie already split into two triangles (6e): coplanar triangles sharing an edge, both far corners on one side
+    tri = {p.index: list(p.vertices) for p in me.polygons if len(p.vertices) == 3}
+    e2t = {}
+    for fi, t in tri.items():
+        for k in range(3): e2t.setdefault(tuple(sorted((t[k], t[(k + 1) % 3]))), []).append(fi)
+    for (a, b), fs in e2t.items():
+        if len(fs) != 2: continue
+        c, d = (next(v for v in tri[f] if v not in (a, b)) for f in fs)
+        n1 = np.cross(P[b] - P[a], P[c] - P[a]); n2 = np.cross(P[b] - P[a], P[d] - P[a])
+        l1, l2 = np.linalg.norm(n1), np.linalg.norm(n2)
+        if l1 < 1e-15 or l2 < 1e-15: continue
+        if (n1 @ n2) / (l1 * l2) > 0.9999: bow.append(tuple(sorted(fs)))          # coplanar, c and d on the same side of a-b
+    return bow, conc
+
+
+def winding_faults(P, tris, cn):
+    """Step 6f: every triangle's winding must agree with its custom normals and with its neighbours. P (n, 3) positions,
+    tris (m, 3) vertex indices, cn (m, 3, 3) custom corner normals, all in one frame. Counts: triangles whose geometric
+    normal points against the mean of their corner normals; neighbour pairs folded onto each other (normals dot <
+    FOLD_DOT); shared edges walked in the same direction by both triangles. Returns (counts dict, faulty triangles)."""
+    T = np.asarray(tris); fn = np.cross(P[T[:, 1]] - P[T[:, 0]], P[T[:, 2]] - P[T[:, 0]])
+    ok_area = np.linalg.norm(fn, axis=1) > 1e-12
+    fn = fn / np.linalg.norm(fn, axis=1, keepdims=True).clip(1e-15)
+    vs_custom = np.flatnonzero(ok_area & ((fn * np.asarray(cn).mean(1)).sum(1) <= 0))
+    e2t = {}
+    for ti, t in enumerate(T):
+        for k in range(3): e2t.setdefault(tuple(sorted((t[k], t[(k + 1) % 3]))), []).append((ti, (t[k], t[(k + 1) % 3])))
+    fold, same_dir = [], []
+    for e, lst in e2t.items():
+        if len(lst) != 2: continue
+        (a, da), (b, db) = lst
+        if da == db: same_dir += [a, b]
+        if ok_area[a] and ok_area[b] and fn[a] @ fn[b] < FOLD_DOT: fold += [a, b]
+    bad = sorted(set(vs_custom.tolist()) | set(fold) | set(same_dir))
+    return dict(vs_custom=len(vs_custom), folded_pairs=len(fold) // 2, same_direction_edges=len(same_dir) // 2), bad
+
+
+def blend_winding(o):
+    """winding_faults on an object's own triangulation (loop triangles) and corner normals, object-local"""
+    me = o.data; me.calc_loop_triangles()
+    P = np.empty(len(me.vertices) * 3); me.vertices.foreach_get("co", P); P = P.reshape(-1, 3)
+    T = np.array([t.vertices[:] for t in me.loop_triangles]); L = np.array([t.loops[:] for t in me.loop_triangles])
+    N = np.empty(len(me.loops) * 3); me.corner_normals.foreach_get("vector", N); N = N.reshape(-1, 3)
+    return winding_faults(P, T, N[L])
+
+
 def topo(args):
     objs = open_file()
     out = {}; total = 0
@@ -111,10 +177,19 @@ def topo(args):
         out[name] = dict(mesh=me.name, tris=tris, quads=q, tris_faces=tr, ngons=ng, open_border_edges=border,
                          nonmanifold=nonman, wire_edges=wire, loose_verts=loose, zero_area=zero, duplicates=dup,
                          winding_inconsistent=inconsistent, sharp_edges=sharp, verts=len(me.vertices))
+        # Step 6f: edge contiguity alone passes a fold (6e: 4 flipped ledge triangles from bow-tie quads); also bow-tie and
+        # concave quads, and every triangle's winding against its custom normals and its neighbours
+        bow, conc = quad_faults(me)
+        wcount, _ = blend_winding(o)
+        out[name].update(bowtie_quads=len(bow), concave_quads=len(conc), **wcount)
         ok = ng == 0 and nonman == 0 and wire == 0 and loose == 0 and zero == 0 and dup == 0 and inconsistent == 0
-        out[name]["topology_pass"] = ok
+        ok2 = not bow and not conc and not any(wcount.values())
+        out[name]["topology_pass"] = ok and ok2
         print(f"{'PASS' if ok else 'FAIL'} {name}: {tris} tris ({q} quads, {tr} tris, {ng} n-gons), open border {border}, "
               f"non-manifold {nonman}, loose {loose}, dup {dup}, zero-area {zero}, winding errors {inconsistent}, sharp {sharp}")
+        print(f"{'PASS' if ok2 else 'FAIL'} {name} folds: bow-tie quads {len(bow)}, concave quads {len(conc)}, triangles against "
+              f"custom normals {wcount['vs_custom']}, folded neighbour pairs {wcount['folded_pairs']}, same-direction edges "
+              f"{wcount['same_direction_edges']}" + (f" (bow-tie faces {bow[:8]})" if bow else ""))
     # Arm_L must be the exact mirror of Arm_R (object-local, Blender x -> -x)
     def local(o):
         v = np.empty(len(o.data.vertices) * 3); o.data.vertices.foreach_get("co", v); return v.reshape(-1, 3)

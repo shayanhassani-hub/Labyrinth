@@ -96,7 +96,7 @@ y 0.246, chamfer to (r 0.841, y 0.274), sloped top to (0.769, 0.288), chamfer up
 y 0.318 (r 0.744). Inner top y 0.300, octagon flats 0.75. **Trough** r 0.522 … 0.642, floor y 0.253
 (47 mm deep), rounded outer edge (~12 mm).
 
-**Turntable and rings** (32 segments in the low since Step 6c). Disc r 0.505 (four small notches: normal map), y 0.253 … 0.334, top
+**Turntable and rings** (32 segments in the low since Step 6c). Disc r 0.505 (no notches, owner decision, Step 3c), y 0.253 … 0.334, top
 chamfer 14 mm. Ring 2 r 0.385, y 0.334 … 0.356. Ring 3 slightly elliptical 0.295 (X) × 0.267 (Z),
 y 0.356 … 0.392.
 
@@ -109,7 +109,9 @@ z 4.500 and 4.893 (0.393 deep), bottom y 0.52, top y 0.756. **Pin caps**: front 
 Ø 0.16 chamfered base, **50 mm proud** (face z 4.450); back Ø 0.17 face, chamfer to Ø 0.20,
 19 mm proud (face z 4.912).
 
-**Hub** (on the beam). Collar y 0.756 … 0.810, X ±0.165 × Z ±0.152, chamfered corners; cap round
+**Hub** (on the beam). Collar y 0.756 … 0.810, X ±0.165 × Z ±0.152, chamfered corners (generator `COLLAR_Q`: sides at
+x ±0.167 and z ±0.152, corner chamfer (±0.164, ±0.102) → (±0.117, ±0.152); the corner was ±0.167 before Step 6f, where it
+sat 2.1 mm outside the column-top edge and made the 1 mm column-top ledge quads bow-ties, see Step 6f); cap round
 r 0.150 (16 segments), y 0.81 … 0.882, top chamfer ~20 mm.
 
 **Arm (Arm_R; Arm_L mirrored).** Depth 0.302 (z 4.541 … 4.843), centred z 4.692. Path in the front
@@ -296,15 +298,55 @@ files in `_pre6e`; maps in `Bake_6e` (Bake_6d kept). Cradle_low.fbx byte-identic
   visible black texels in contact lines; Arm_R 0 patches). Renders `cradle_v2_s6e_check_id_caps.png`,
   `cradle_v2_s6e_check_ao_band_L/_R.png`, `cradle_v2_s6e_check_ao_patches.png`.
 
+**Step 6f: column-top ledge without folds (2026-10-15).** Owner decision: fix the 4 flipped ledge triangles, don't accept
+them. 6e low/high/cage in `Mesh\_superseded_6e` (`OLD_6e_*`), .blend files in `_pre6f`; maps in `Bake_6f` (Bake_6e kept).
+- *Cause*: not a wrong concave-quad split. The 4 source quads (column top -> collar at y 0.761) were **bow-ties**: the
+  collar corner `COLLAR_Q` (0.167, 0.102) sat 2.1 mm *outside* the column-top edge (0.168, 0.074) -> (0.162, 0.128), so the
+  1 mm ledge folded over itself there; any split of those positions leaves one triangle facing down. A winding-only fix
+  was not possible with fixed positions (owner decision: move the corner).
+- *Fix in the generator* (`cradle_v2.py`): collar corner **(0.167, 0.102) -> (0.164, 0.102)** (all quadrants), now 0.9 mm
+  inside the column-top edge. The collar is a prism, so **8 vertices** move 3.0 mm in x (y 0.761 and 0.810). The collar
+  chamfer changes from 50 x 50 to 47 x 50 mm and the collar side x 0.167 -> 0.164 tilts 2.4 deg over its last 72 mm (hidden
+  between beam and hub cap). Hub cap, column, beam and every other vertex unchanged.
+- *Why Step 4 missed it*: `cradle_v2_check topo` tested only edge contiguity (each shared edge walked in opposite directions);
+  a fold passes that (its edges agree with its neighbours, its geometric normal points down), and the folded triangles'
+  custom normals also pointed down (hard edges around them), so they agreed with their own winding. New checks
+  (`cradle_v2_check.quad_faults`, `winding_faults`): bow-tie quads (also already split into two coplanar triangles), concave
+  quads, triangles against their custom normals, folded neighbour pairs (normals dot < -0.95), same-direction shared
+  edges - in `topo` on the .blend (all parts) and in `verify` on the triangulated `Cradle_low.fbx` (all four parts). 6e
+  low: Base 8 bow-tie pairs + 8 folded pairs (FAIL); 6f: 0 everywhere.
+- *UVs* (`cradle_v2_uvkeep.py`; a full `cradle_v2.py` run would repack every island): 6e UVs and seams kept; Arm, Pad,
+  Riser byte-identical UVs. The 4 re-split pairs plus their 36 mm2 slivers (cut off only by the fold's hard edges) became
+  4 small islands at 438 px/m, placed in free space (the ledge strips have no spare padding: solved in place they came to
+  8.07 px from a neighbour); the 4 one-face islands of the flipped triangles are gone. Moved collar vertices solved in
+  their islands (LSCM, rest pinned), 0.50 / 1.31 px. UV check: 435.1 px/m, Base 138 islands, 0 overlap, padding PASS,
+  distortion unchanged (max 42.2 deg, mean 2.26).
+- *Cradle_low.fbx 6e -> 6f*: vertices 1,491 / tris 2,800 (Base) unchanged, vertex order unchanged; positions: 8 vertices,
+  3.0 mm; triangles: 8 re-split (761, 765, 769, 773, 1405, 1408, 1411, 1414: the 4 bow-tie pairs, both halves); UVs: 68 loops;
+  normals: 194 loops on the ledge region only (re-split triangles; the column-top chamfer y 0.70-0.761 up to 33 deg, where
+  6e's fold-induced hard edges are gone; ledge 19.5 deg; collar walls <= 1.3; collar top <= 0.1). Arm, Pad, Riser identical.
+- *Low checks*: topology PASS, Arm_L mirror PASS; clearances identical to 6e (contact 3.04 / 2.97 mm, fold min 11.1 mm at
+  3 deg); deviation acceptance PASS (Base "other > 15 mm" 0.11 %, 6e 0.14 %).
+- *High / cages*: high Base 79,280 tris (6e 79,408; the bevel at the fold is gone), others unchanged. Cages enclose their high
+  with no inside fix needed at the ledge: push max / p95 Base 20.8 / 17.0 mm (6e 22.4 / 17.0), Arm_R 14.1 / 7.6, Pad 1.5,
+  Riser 6.4.
+- *Verification bake*: ray misses 0.756 % of all texels (6e 0.746; buried drum texels). Visible misses Base 879, of them
+  647 in the column-top zone (6c 651, 6e 649): **unchanged - the flipped triangles were not their source** (6e's note was
+  wrong). They sit on the column-top chamfer below the ledge at (-0.146, 0.743, 0.162) and (0.146, 0.743, -0.162), two
+  diagonal corners only; open item. Arm_R 9, Pad 4. Hit distance p50 0.02 / p99 4.3 mm, far hits 13 texels (beam top at the
+  drum, 6e 23). Sliver check: trough floor 973, turntable top 773, ring-2 step 552 texels (as 6e).
+- *Hero checks* (`verify`): **a PASS** (Base 0 outside, 0 inside; no exception used), **b PASS**, **c PASS** (Base 0 patches,
+  Arm_R 0); winding PASS on all four parts. L1-L4 printed UNUSED and are removed; the checks now print UNUSED for any list
+  entry that matched nothing. Renders `cradle_v2_s6f_check_ledge.png` (new: high | AO | ray check at the +x+z collar corner;
+  6e version `cradle_v2_s6e_check_ledge.png`), `cradle_v2_s6f_check_id_caps.png`, `cradle_v2_s6f_check_ao_band_L/_R.png`.
+- An existing Painter project needs the new low, high and cage and a full re-bake (the low changed).
+
 **Accepted bake exceptions (Cradle)** — read by `cradle_v2_bake_final.py` checks a and c (a failing item inside an entry
-prints ACCEPTED, anything else FAIL). Documented exceptions only, not a tolerance; each entry names its cause.
+prints ACCEPTED, anything else FAIL). Documented exceptions only, not a tolerance; each entry names its cause. An entry that matches nothing in a
+`verify` run prints UNUSED and is removed. No entries since Step 6f (L1-L4, the folded ledge triangles, fixed).
 
 | ID | Part | Check | At (cradle-local x, y, z) | Radius m | Cause | Why accepted |
 |---|---|---|---|---|---|---|
-| L1 | Base | a | (0.151, 0.761, 0.109) | 0.06 | flipped low triangle (winding faces down) on the 1 mm column-top ledge, from the Step 4 concave-quad split: cage samples over it lie inside the high and can't be cleared within the 25 mm cap | fixing it changes the low (owner decision); the ledge sits between the beam and the hub collar, its misses exist since 6b |
-| L2 | Base | a | (-0.151, 0.761, 0.109) | 0.06 | as L1 (mirror) | as L1 |
-| L3 | Base | a | (0.151, 0.761, -0.109) | 0.06 | as L1 (mirror) | as L1 |
-| L4 | Base | a | (-0.151, 0.761, -0.109) | 0.06 | as L1 (mirror) | as L1 |
 
 Overall: plinth 2.428 across the axis faces, plate tops y 1.699 (1.764 with the left pad), plate
 span x −1.139 … 1.138, fixed body top y 0.884.

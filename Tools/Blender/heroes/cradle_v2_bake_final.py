@@ -36,7 +36,7 @@ import cradle_v2_bake_test as T          # noqa: E402
 import cradle_v2_highpoly as H           # noqa: E402
 
 CZ = V.CZ
-STEP = "6e"                              # 6e: capped cage fix, one cage check, composite bake (6d maps stay in Bake_6d)
+STEP = "6f"                              # 6f: column-top ledge without folds (collar corner); 6e maps stay in Bake_6e
 OUT = rf"D:/AI_Labyrinth/Substance/Cradle/Bake_{STEP}"
 MESH = r"D:/AI_Labyrinth/Substance/Cradle/Mesh"
 OLD = os.path.join(MESH, "_superseded_5a_AI")
@@ -376,6 +376,10 @@ FILES
   _superseded_6d\\     the Step 6d high and cage, renamed OLD_6d_* (cage pushed to 62.5 mm at the column-top ledge).
                     Step 6e: new Cradle_cage.fbx (and Cradle_high.fbx, same content); Cradle_low.fbx unchanged.
                     Reload the cage (and high) and re-bake all maps.
+  _superseded_6e\\     the Step 6e low, high and cage, renamed OLD_6e_* (4 folded low triangles at the column-top ledge).
+                    Step 6f: the hub-collar corner moved 3 mm (8 vertices), the 4 ledge bow-tie quads are re-split, 4
+                    small ledge UV islands re-placed; all other UVs unchanged. NEW Cradle_low.fbx: an existing Painter
+                    project needs the new low (Edit > Project configuration), the new high and cage, and a full re-bake.
 
 PAINTER: NEW PROJECT
   File: Cradle_low.fbx, Normal map format: OpenGL, Compute tangent space per fragment: ON (MikkTSpace),
@@ -403,7 +407,7 @@ MAPS TO BAKE
 ID COLOURS (sRGB, exact values)
 {ids}
 
-CHECKS DONE IN BLENDER (same set, same cage, Cycles): see Documentation/HERO_SPEC.md section 3, Steps 6b / 6c / 6d.
+CHECKS DONE IN BLENDER (same set, same cage, Cycles): see Documentation/HERO_SPEC.md section 3, Steps 6b - 6f.
 """
 
 
@@ -492,7 +496,8 @@ def verify(args):
             if o.type != 'MESH': continue
             W = np.array(o.matrix_world); co = np.array([v.co[:] for v in o.data.vertices]) @ W[:3, :3].T + W[:3, 3]
             o.data.calc_loop_triangles()
-            res[fn][o.name] = dict(verts=len(o.data.vertices), faces=len(o.data.polygons), uv=len(o.data.uv_layers),
+            res[fn][o.name] = dict(wind=C.blend_winding(o) if fn == "Cradle_low.fbx" else None,
+                                   verts=len(o.data.vertices), faces=len(o.data.polygons), uv=len(o.data.uv_layers),
                                    colours=[x.name for x in o.data.color_attributes],
                                    ngons=sum(1 for p in o.data.polygons if len(p.vertices) > 3), co=co,
                                    tris=[tuple(t.vertices) for t in o.data.loop_triangles],
@@ -522,6 +527,14 @@ def verify(args):
               f"(push {1e3 * push.min():.1f}-{1e3 * push.max():.1f} mm), ID on the high; low on high: median "
               f"{1e3 * np.median(d):.2f} mm, max {1e3 * d.max():.1f} mm; bounds x {a_[0]:+.3f}..{b_[0]:+.3f}, "
               f"y {a_[1]:.3f}..{b_[1]:.3f}, z {a_[2]:+.3f}..{b_[2]:+.3f}")
+    # Step 6f: winding of the triangulated low export against its custom normals and its neighbours (6e: 4 folded
+    # ledge triangles that Step 4's edge-contiguity check could not see)
+    for k in PARTS:
+        l = res["Cradle_low.fbx"].get(f"{k}_low")
+        if l is None: continue
+        cnt, bad = l["wind"]; good = not any(cnt.values()); ok &= good
+        print(f"{'PASS' if good else 'FAIL'} winding {k} (Cradle_low.fbx): triangles against custom normals {cnt['vs_custom']}, "
+              f"folded neighbour pairs {cnt['folded_pairs']}, same-direction edges {cnt['same_direction_edges']}" + (f" (triangles {bad[:8]})" if bad else ""))
     print(f"{'PASS' if ok else 'FAIL'} export verify")
     # ---- hero bake checks (Step 6d; ASSET_RULES "Normals and baking")
     oka = check_cage(res)
@@ -530,6 +543,9 @@ def verify(args):
     okb = check_id(fbx_area)
     okc = check_ao_black(STEP)
     check_rays(STEP)
+    # Step 6f: list entries that matched nothing are stale: UNUSED (remove them from HERO_SPEC)
+    for e in accepted_exceptions():
+        if e["id"] not in USED_EXCEPTIONS: print(f"UNUSED accepted exception {e['id']} ({e['part']}, check {e['check']}, at {e['at'].tolist()})")
     print(f"{'PASS' if ok and oka and okb and okc else 'FAIL'} verify + hero bake checks (export {ok}, a {oka}, b {okb}, c {okc})")
 
 
@@ -571,6 +587,9 @@ def accepted_exceptions(hero="Cradle"):
     return out
 
 
+USED_EXCEPTIONS = set()                  # exception IDs that matched something in this run (verify prints the rest UNUSED)
+
+
 def judge(part, check, items, label):
     """items: [(spec point, text)] that fail a check; each one inside a listed exception (same part and check, within
     its radius) is ACCEPTED, the rest FAIL. Prints one line per exception used and per failing cluster; returns ok"""
@@ -580,6 +599,7 @@ def judge(part, check, items, label):
         e = next((e for e in ex if np.linalg.norm(q - e["at"]) <= e["radius"]), None)
         if e is None: fail.append((q, txt))
         else: used.setdefault(e["id"], []).append(q)
+    USED_EXCEPTIONS.update(used)
     for e in ex:
         if e["id"] in used: print(f"ACCEPTED {check}) {part} {label}: {len(used[e['id']])} at {e['id']} {e['at'].tolist()} - {e['cause']}")
     cells = {}
@@ -800,8 +820,10 @@ def check_ao_black(step):
 
 
 def checkrenders(args):
-    """-- checkrenders <step>: cradle_v2_s<step>_check_id_caps.png (Base/Arm high in ID colours, front and back pin cap)
-    and cradle_v2_s<step>_check_ao_band_L/_R.png (high in ID colours | the low with Bake_<step> AO), the 6c check views"""
+    """-- checkrenders <step> [ledge]: cradle_v2_s<step>_check_id_caps.png (Base/Arm high in ID colours, front and back pin
+    cap) and cradle_v2_s<step>_check_ao_band_L/_R.png (high in ID colours | the low with Bake_<step> AO), the 6c check views;
+    Step 6f: cradle_v2_s<step>_check_ledge.png (the column-top ledge: high | low with AO | low with the ray check map, red =
+    miss). "ledge" renders only that view (for an earlier step's file, without redoing its other views)."""
     from mathutils import Vector
     step = args[0]
     bpy.ops.wm.open_mainfile(filepath=B.BAKE)
@@ -844,6 +866,13 @@ def checkrenders(args):
         for a in arrs[1:]: row = np.concatenate([row, np.ones((a.shape[0], 8, 4), np.float32), a], 1)
         o = bpy.data.images.new("o", row.shape[1], row.shape[0]); o.pixels[:] = row.ravel()
         o.filepath_raw = os.path.join(C.RENDERS, out); o.file_format = 'PNG'; o.save(); print("SAVED", out)
+    V3 = ((0.36, 1.02, 0.34), (0.15, 0.765, 0.105), 55)                      # +x+z collar corner, from above
+    high_mode(); cam(*V3); a = shot("ledge_hi")
+    low_mode(); cam(*V3); b = shot("ledge_ao")
+    t.image = bpy.data.images.load(os.path.join(os.path.dirname(OUT), f"Bake_{step}", f"T_Cradle_RayCheck_blender{step}.png"))
+    cam(*V3); c = shot("ledge_rays"); t.image = im
+    compose([a, b, c], f"cradle_v2_s{step}_check_ledge.png")
+    if args[1:] == ["ledge"]: return
     high_mode()
     cam((0.60, 0.80, -0.62), (0.385, 0.637, -0.235), 70); a = shot("id_front")
     cam((0.60, 0.80, 0.62), (0.385, 0.637, 0.222), 70); b = shot("id_back")
