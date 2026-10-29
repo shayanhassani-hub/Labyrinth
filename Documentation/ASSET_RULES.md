@@ -135,6 +135,29 @@ Lessons from the Cradle: AI meshes come normalised (~1 m) and may be thin hollow
 parts can overlap at joints and carry extra cut faces; front/back and left/right are only roughly
 symmetric. Mechanical fit (pivots, clearances, motion range) is the modeller's job, never the AI's.
 
+## Hero workflow v3 (fast, Blender-textured)
+Owner decision 2026-10-29. Applies to **ServiceArm, Terminal, LeverStand, Gate**. The Cradle stays on
+workflow v2 (the owner textures it in Substance Painter). Code models **and** textures in Blender: no
+Substance, no separate high-poly, no cage.
+1. **Design**: built from HERO_SPEC and the owner's concept image; the design is approved on renders
+   (Renders/<hero>_g1_*.png) before texturing starts. HERO_SPEC sizes and positions win over the concept.
+2. **Low-poly** by construction (generator script, Tools/Blender/heroes/<hero>.py): real chamfers on the
+   large edges and custom normals (face-area weighted, hard edges only on UV seams). Detail >= 15 mm is
+   geometry (depth rule).
+3. **Small detail** (< 15 mm: seams, bolts, panel lines, small bevels) is baked in Cycles from a procedural
+   bevel / bump shader onto the low itself (no high-poly).
+4. **Materials**: procedural Blender materials baked to **BaseColor** (sRGB), **Normal** (OpenGL),
+   **Mask** (R metallic, G AO, A smoothness), **Emission** only if needed. Palette and wear per
+   STYLE_GUIDE.md.
+5. **Each hero is finished end-to-end** (design, low, UVs, textures, Unity import, Quest check) before the
+   next one starts.
+
+All other Hero-standard rules stay: real-world scale and pivots, chamfers, depth rule, round segment counts,
+UVs at 512 px/m with the padding rules, one texture set per hero, ASTC, naming, validation renders, hero
+export mode. Hero checks kept: topology (incl. hidden faces), winding / bow-tie, planarity report, and the
+AO black scan on the baked AO. Dropped with the high-poly: cage both ways, ID per feature (the materials are
+assigned on the low itself).
+
 ## AI tool choice
 - **Hunyuan 3D Global** (hy3d.tencent.ai): first choice for hard-surface generation, part
   splitting and texture sources.

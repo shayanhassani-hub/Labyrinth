@@ -510,14 +510,63 @@ The opening in `LAB_ENV_Wall_Door_01` (x −1.8 … −0.2, y 0 … 2.4, far wal
 
 | Part | Size / placement |
 |---|---|
-| Leaf | 1.70 × 2.45 × 0.06, on the **room side** of the far wall at z 7.88 … 7.94 (clear of the trim), covering x −1.85 … −0.15. Slide reference: its +X edge. |
-| Rail | 3.60 × 0.10 × 0.08 on the wall above the opening, y 2.45 … 2.55, x −3.60 … 0.00 |
+| Leaf | 1.70 × 2.45 × 0.06, on the **room side** of the far wall at z 7.88 … 7.94 (clear of the trim), covering x −1.85 … −0.15, **y 0.010 … 2.460** (G1: 10 mm floor gap). Slide reference: its +X edge. |
+| Rail | 3.60 × 0.10 × 0.08 on the wall above the opening, **y 2.475 … 2.575** (G1: raised 25 mm so the leaf top clears it by 15 mm; at 2.45 … 2.55 the leaf touched it), x −3.60 … 0.00, z 7.92 … 8.00 |
 | GateButton panel | 0.08 × 0.30 × 0.22 on the corridor's −X wall (x −2.0), centre (−1.96, 1.20, 8.70); button Ø 0.07 facing +X, cyan ring light. On the player's right as they face the gate. |
 
 - **Open:** the leaf slides −X by 1.70 (to x −3.55 … −1.85) in 2.0 s, ease-in-out, along the room
   side of the wall; the 2 m of solid wall left of the door takes it.
 - The leaf carries a BoxCollider so, while closed, it blocks the player and the teleport ray.
 - Player spawn: **(−1, 0, 13.0), yaw 180**, 1 m in front of the corridor's end cap.
+
+### Design (Step G1, hero workflow v3, 2026-10-29 — awaiting owner review)
+Generator `Tools/Blender/heroes/gate.py`, checks and renders `gate_check.py`, review file
+`D:\AI_Labyrinth\Blender\Source\Heroes\Gate\LAB_HERO_Gate_v1.blend`, renders `Renders/gate_g1_*.png`.
+Design reference: the owner's concept `D:\AI_Labyrinth\Gemini\References\Gate\gate_front.jpg` (room side);
+colours and wear from STYLE_GUIDE.md, not from the concept.
+
+| Part | Origin (Unity) | Motion | Tris |
+|---|---|---|---|
+| `LAB_HERO_Gate_Leaf_01` | (−0.15, 0.010, 7.91): +X edge, leaf bottom, mid thickness | −X 1.70 m, 2.0 s | 1,048 |
+| `LAB_HERO_Gate_Rail_01` | (−1.80, 2.475, 8.00): wall face under the rail centre | static | 272 |
+| `LAB_HERO_Gate_ButtonPanel_01` | (−2.00, 1.20, 8.70): wall face, panel centre | static | 156 |
+| `LAB_HERO_Gate_Button_01` | (−1.893, 1.235, 8.70): front face centre at rest | −X 0.008 | 58 |
+
+Total 1,534 tris (no LOD needed). Leaf coordinates below: u from the leaf's −X edge, v from its bottom, d = depth from either face.
+- **Leaf** (both faces the same, mirrored through the mid plane; band and light on the physical +X / −X edges):
+  outline with 90 mm corner cuts top-left and bottom-left, 25 mm on the +X corners, 8 mm edge chamfer all round.
+  Recessed channel on the −X side, u 0.115 … 0.205 (widening to 0.235 at v 0.85 … 1.64), v 0.20 … 2.25, 18 mm deep,
+  polymer; **cyan light strip** u 0.150 … 0.185, v 0.93 … 1.53 (35 × 600 mm, 8 mm proud of the channel floor).
+  Main field u 0.245 … 1.48 (0.275 beside the light), v 0.12 … 2.25, 18 mm deep (sloped 10 mm walls), with three
+  raised panels (10 mm above the field floor, 20 mm gaps): top, waisted middle, bottom; dividers at v 1.89 / 1.62 and
+  0.57 / 0.87, diagonal between u 0.585 and 1.010. **Hazard band** u 1.52 … 1.64, v 0.10 … 2.35 (ochre / black
+  45° stripes; texture). Core between the two recesses 24 mm. Corridor side: the outer 50 mm of each side edge
+  stays behind the jambs, so channel, light and band were placed inside the visible width (u ≥ 0.05, ≤ 1.65).
+- **Hangers** (room side, u 0.40 and 1.36): bolted plate 160 × 150 × 10 mm on the frame top band, strap
+  60 × 12 mm rising in front of the rail (38 mm clear of the bracket plates) to a 136 mm wide head carrying **twin rollers**
+  (Ø 80 mm 12-gon with a flat on the rail, 25 mm wide, axles Ø 16 mm at ±50 mm, y 2.616; they show 22 mm either side of the head); the rollers sit on the
+  rail top (1 mm gap), so the leaf visibly hangs from the rail.
+- **Rail**: 3.60 m bar, 100 × 80 mm, 6 mm front chamfers, 40 mm high × 16 mm deep groove along the front; four
+  bolted bracket plates (100 mm wide) at x −3.53, −2.40, −1.20, −0.07; end stops 40 mm wide on the rail top at
+  both ends. Back face against the wall deleted.
+- **Button panel**: 80 × 300 × 220 mm, 10 mm front chamfer; polymer bezel Ø 110 mm, 15 mm proud, with the **cyan
+  ring light** (annulus Ø 74 … 92 mm) round a Ø 74 mm hole 35 mm deep; amber status lamp Ø 24 mm at y 1.105.
+  **Button** Ø 70 mm, 3 mm chamfer, 12 mm proud of the bezel; pressed (−8 mm) it is still 4 mm proud and 2 mm above
+  the hole floor.
+- Bolts, panel seams and stripe edges are left for the v3 texture bake (normal map).
+
+**Clearances** (`gate_check.py -- clearance`, 35 positions over the slide; room geometry from the GreyboxBuilder
+table, not read live): leaf vs rail min 15 mm (rollers excluded, they ride at 1 mm), leaf vs room min 10 mm (the
+far-wall trims, z 7.95); leaf top → rail 15 mm, → bracket plates 18 mm; leaf → wall face 60 mm; floor gap 10 mm;
+leaf covers the doorway by 50 mm each side and 60 mm above. Rollers over the whole slide at x −3.240 … −0.400, rail
+free between the end stops −3.560 … −0.040 (margins 320 / 360 mm). Button rest and pressed: 1.9 mm to the panel.
+
+**UVs**: one 2048 set for all four parts, 118 islands (Leaf 69, Rail 40, ButtonPanel 7, Button 2), **474 px/m**
+(target 512, within −10 %); leaf top/bottom edges and downward faces at half density (237 px/m). Padding 8 px /
+border 4 px PASS, packing 56.8 %. No overlapping UVs.
+**Topology**: 0 n-gons, non-manifold, loose, duplicate or zero-area elements; 0 bow-tie / concave quads, 0 winding
+faults; planarity: 0 quads over 2 mm. Deliberate open borders: leaf bottom (10 mm over the floor) and roller backs
+(facing the wall), rail back, panel back, button back, the hole floor under the button.
 
 ## 8. Labyrinth v2 — panel, stand and tilt mechanic (props, not heroes)
 
