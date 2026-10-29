@@ -232,3 +232,21 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
 - Next: Painter - new project with the 6c Cradle_low.fbx, bake (1024 test, check the turntable
   foot, then 2048 2x2), save; start the base materials per ID group.
   Hours today: ~5
+
+## 2026-10-13 to 2026-10-29
+- Done: Cradle v2 Steps 6d-6g: pin-cap ID fix, drum bands as capped arcs, buried beam faces removed,
+  cage inside-fix capped at 25 mm, collar corner 0.167 -> 0.164 (bow-tie ledge quads gone), checks
+  and verification bake on the export-identical triangulated high. New hero bake checks: cage both
+  ways, ID per feature, AO black scan, winding/bow-tie, planarity report. Commits d0e945c, 462d696,
+  45a8fcb, ca0e1b2. Owner's final Substance Painter bake of the 6g set: Normal, World Space Normal,
+  ID, Position at 4x4; Curvature at 2x2; AO and Thickness without antialiasing; project normal
+  format corrected to OpenGL and Use Cage turned on before the final bake. Saved as
+  D:\AI_Labyrinth\Substance\Cradle\LAB_HERO_Cradle_v01_baked.spp, backed up to G:.
+- Decisions: model all heroes first, Substance texturing afterwards; a hero counts as modelled only
+  after a verified bake; the university character project stays outside this game.
+- Problems: Painter AO/Curvature/Thickness bakes fail with antialiasing on the GTX 960M (GPU limit);
+  a Painter project had DirectX normals and the cage off (check both before every bake).
+- Open: STYLE_GUIDE.md (at the start of texturing), service arm HERO_SPEC §4 conflict,
+  DroneHoverAIV2 yaw.
+- Next: Service Arm, starting with the §4 conflict.
+  Hours: not logged
