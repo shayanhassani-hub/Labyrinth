@@ -107,6 +107,23 @@ def padding(lab, gap_px=8, border_px=4):
     return close, border
 
 
+FLAT_TOL = 0.5                 # G2: a flat face's corner normals may deviate this much from its face normal
+
+
+def flat_normals(me):
+    """G2 shading check: every FLAT face (face attribute kind) must shade flat, i.e. all its corner normals equal its
+    face normal; returns (faces over FLAT_TOL, worst deviation in degrees)"""
+    kind = me.attributes["kind"].data
+    N = np.empty(len(me.loops) * 3); me.corner_normals.foreach_get("vector", N); N = N.reshape(-1, 3)
+    bent, worst = 0, 0.0
+    for p in me.polygons:
+        if kind[p.index].value != G.FLAT: continue
+        fn = np.array(p.normal)
+        d = max(math.degrees(math.acos(max(-1.0, min(1.0, float(N[li] @ fn))))) for li in p.loop_indices)
+        worst = max(worst, d); bent += d > FLAT_TOL
+    return bent, worst
+
+
 def topo(args):
     objs = open_file(); out = {}; total = 0
     for name, o in objs.items():
@@ -139,6 +156,10 @@ def topo(args):
         print(f"{'PASS' if ok2 else 'FAIL'} {name} folds: bow-tie {len(bow)}, concave {len(conc)}, against custom normals "
               f"{wcount['vs_custom']}, folded pairs {wcount['folded_pairs']}, same-direction edges {wcount['same_direction_edges']}")
         print(f"INFO planarity {name}: {len(twist)} quads with diagonals > {TWIST_MAX * 1e3:.0f} mm apart")
+        bent, worst = flat_normals(me)
+        out[name].update(flat_faces_bent=bent, flat_bend_max_deg=round(worst, 2))
+        print(f"{'PASS' if bent == 0 else 'FAIL'} {name} shading: {bent} flat faces with a corner normal > "
+              f"{FLAT_TOL} deg off the face normal (worst {worst:.2f} deg)")
     print(f"INFO total {total} tris")
     # UVs: density per part, islands, padding, overlaps
     lab, owner = raster_labels(objs)
@@ -384,6 +405,33 @@ def renders(args):
         uv_layout()
 
 
+SHADING_VIEWS = {
+    "room": dict(loc=(-1.8, 1.42, 2.0), look=(-1.8, 1.42, 7.9), ortho=4.3),
+    "34": dict(loc=(0.9, 1.8, 5.1), look=(-1.3, 1.35, 7.9), lens=32),
+    "corridor": dict(loc=(-1.0, 1.36, 12.6), look=(-1.05, 1.25, 8.0), lens=28),
+    "button": dict(loc=(-1.3, 1.40, 8.95), look=(-1.94, 1.21, 8.70), lens=45),
+}
+
+
+def shading(args):
+    """G2: flat grey render of the untextured low (one glossy grey for every face): a flat face must show no
+    gradient; any smear means bent normals. Renders/gate_<step>_shading_<view>.png (step = first arg, default g2)."""
+    step = args[0] if args else "g2"
+    objs = open_file()
+    scene_setup(samples=64)
+    add_room()
+    add_light("Key", (-0.6, 3.6, 4.4), (-1.6, 1.2, 7.9), 160, 2.0)
+    add_light("Fill", (1.6, 1.4, 5.0), (-1.4, 1.2, 7.9), 60, 2.5)
+    add_light("CorrKey", (-1.0, 2.8, 11.5), (-1.0, 1.2, 8.0), 90, 1.5)
+    m = bpy.data.materials.new("M_ShadingGrey"); m.use_nodes = True
+    b = m.node_tree.nodes["Principled BSDF"]; b.inputs["Base Color"].default_value = (0.30, 0.30, 0.30, 1)
+    b.inputs["Roughness"].default_value = 0.35
+    for o in objs.values():
+        for i in range(len(o.data.materials)): o.data.materials[i] = m
+    for k, v in SHADING_VIEWS.items():
+        camera(v["loc"], v["look"], v.get("lens", 40), v.get("ortho")); shot(f"gate_{step}_shading_{k}.png")
+
+
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    {"topo": topo, "clearance": clearance, "renders": renders}[argv[0]](argv[1:])
+    {"topo": topo, "clearance": clearance, "renders": renders, "shading": shading}[argv[0]](argv[1:])

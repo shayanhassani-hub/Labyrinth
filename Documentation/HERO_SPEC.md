@@ -519,7 +519,7 @@ The opening in `LAB_ENV_Wall_Door_01` (x −1.8 … −0.2, y 0 … 2.4, far wal
 - The leaf carries a BoxCollider so, while closed, it blocks the player and the teleport ray.
 - Player spawn: **(−1, 0, 13.0), yaw 180**, 1 m in front of the corridor's end cap.
 
-### Design (Step G1, hero workflow v3, 2026-10-29 — awaiting owner review)
+### Design (Step G1, hero workflow v3, 2026-10-29 — approved by the owner; G2 fixes below)
 Generator `Tools/Blender/heroes/gate.py`, checks and renders `gate_check.py`, review file
 `D:\AI_Labyrinth\Blender\Source\Heroes\Gate\LAB_HERO_Gate_v1.blend`, renders `Renders/gate_g1_*.png`.
 Design reference: the owner's concept `D:\AI_Labyrinth\Gemini\References\Gate\gate_front.jpg` (room side);
@@ -529,10 +529,10 @@ colours and wear from STYLE_GUIDE.md, not from the concept.
 |---|---|---|---|
 | `LAB_HERO_Gate_Leaf_01` | (−0.15, 0.010, 7.91): +X edge, leaf bottom, mid thickness | −X 1.70 m, 2.0 s | 1,048 |
 | `LAB_HERO_Gate_Rail_01` | (−1.80, 2.475, 8.00): wall face under the rail centre | static | 272 |
-| `LAB_HERO_Gate_ButtonPanel_01` | (−2.00, 1.20, 8.70): wall face, panel centre | static | 156 |
-| `LAB_HERO_Gate_Button_01` | (−1.893, 1.235, 8.70): front face centre at rest | −X 0.008 | 58 |
+| `LAB_HERO_Gate_ButtonPanel_01` | (−2.00, 1.20, 8.70): wall face, panel centre | static | 298 |
+| `LAB_HERO_Gate_Button_01` | (−1.893, 1.235, 8.70): front face centre at rest | −X 0.008 | 118 |
 
-Total 1,534 tris (no LOD needed). Leaf coordinates below: u from the leaf's −X edge, v from its bottom, d = depth from either face.
+Total 1,736 tris (G2; no LOD needed). Leaf coordinates below: u from the leaf's −X edge, v from its bottom, d = depth from either face.
 - **Leaf** (both faces the same, mirrored through the mid plane; band and light on the physical +X / −X edges):
   outline with 90 mm corner cuts top-left and bottom-left, 25 mm on the +X corners, 8 mm edge chamfer all round.
   Recessed channel on the −X side, u 0.115 … 0.205 (widening to 0.235 at v 0.85 … 1.64), v 0.20 … 2.25, 18 mm deep,
@@ -546,27 +546,66 @@ Total 1,534 tris (no LOD needed). Leaf coordinates below: u from the leaf's −X
   60 × 12 mm rising in front of the rail (38 mm clear of the bracket plates) to a 136 mm wide head carrying **twin rollers**
   (Ø 80 mm 12-gon with a flat on the rail, 25 mm wide, axles Ø 16 mm at ±50 mm, y 2.616; they show 22 mm either side of the head); the rollers sit on the
   rail top (1 mm gap), so the leaf visibly hangs from the rail.
-- **Rail**: 3.60 m bar, 100 × 80 mm, 6 mm front chamfers, 40 mm high × 16 mm deep groove along the front; four
+- **Rail**: charcoal paint, machined steel only on the top the rollers ride on (G2); 3.60 m bar, 100 × 80 mm, 6 mm front chamfers, 40 mm high × 16 mm deep groove along the front; four
   bolted bracket plates (100 mm wide) at x −3.53, −2.40, −1.20, −0.07; end stops 40 mm wide on the rail top at
   both ends. Back face against the wall deleted.
-- **Button panel**: 80 × 300 × 220 mm, 10 mm front chamfer; polymer bezel Ø 110 mm, 15 mm proud, with the **cyan
+- **Button panel**: 80 × 300 × 220 mm, 10 mm front chamfer; polymer bezel Ø 110 mm (24 segments, G2), 15 mm proud, with the **cyan
   ring light** (annulus Ø 74 … 92 mm) round a Ø 74 mm hole 35 mm deep; amber status lamp Ø 24 mm at y 1.105.
-  **Button** Ø 70 mm, 3 mm chamfer, 12 mm proud of the bezel; pressed (−8 mm) it is still 4 mm proud and 2 mm above
+  **Button** Ø 70 mm (24 segments; lamp 16), 3 mm chamfer, 12 mm proud of the bezel; pressed (−8 mm) it is still 4 mm proud and 2 mm above
   the hole floor.
-- Bolts, panel seams and stripe edges are left for the v3 texture bake (normal map).
+- Bolts, panel seams and stripe edges: texture and normal map (G2, below).
 
 **Clearances** (`gate_check.py -- clearance`, 35 positions over the slide; room geometry from the GreyboxBuilder
 table, not read live): leaf vs rail min 15 mm (rollers excluded, they ride at 1 mm), leaf vs room min 10 mm (the
 far-wall trims, z 7.95); leaf top → rail 15 mm, → bracket plates 18 mm; leaf → wall face 60 mm; floor gap 10 mm;
 leaf covers the doorway by 50 mm each side and 60 mm above. Rollers over the whole slide at x −3.240 … −0.400, rail
-free between the end stops −3.560 … −0.040 (margins 320 / 360 mm). Button rest and pressed: 1.9 mm to the panel.
+free between the end stops −3.560 … −0.040 (margins 320 / 360 mm). Button rest and pressed: 2.0 mm to the panel (G2).
 
-**UVs**: one 2048 set for all four parts, 118 islands (Leaf 69, Rail 40, ButtonPanel 7, Button 2), **474 px/m**
-(target 512, within −10 %); leaf top/bottom edges and downward faces at half density (237 px/m). Padding 8 px /
-border 4 px PASS, packing 56.8 %. No overlapping UVs.
+**UVs** (G2, re-packed after the hard-edge fix): one 2048 set for all four parts, 268 islands (Leaf 218, Rail 40,
+ButtonPanel 7, Button 3), **487 px/m** (target 512, within −10 %); leaf top/bottom edges and downward faces at half
+density (243 px/m). Padding 8 px / border 4 px PASS, packing 59.8 %. No overlapping UVs.
 **Topology**: 0 n-gons, non-manifold, loose, duplicate or zero-area elements; 0 bow-tie / concave quads, 0 winding
 faults; planarity: 0 quads over 2 mm. Deliberate open borders: leaf bottom (10 mm over the floor) and roller backs
 (facing the wall), rail back, panel back, button back, the hole floor under the button.
+
+### Shading and textures (Step G2, 2026-10-29)
+**Shading fix** (the owner's circled smears in gate_g1_room.png: angled top-left corner, channel ends, corner above
+the band; cause: normals smoothed across sharp angles). Every face carries a kind (face attribute `kind`): FLAT,
+CHAMFER (the 8 mm leaf edge chamfer, the rail's 6 mm chamfers, the panel and button chamfers) or ROUND (cylinder
+sides). Hard edge + UV seam on flat | flat and round | flat above **30°** (owner: ~35°; the panel walls bend 32–34° at
+the divider corners), chamfer | chamfer above 15° (outline corners), chamfer | flat above 50°; round | round smooth.
+Normals: face-area weighted with face influence (flat strong, round medium, chamfer weak), so flat faces keep their
+own normal and only the chamfers blend. Check `gate_check.py -- topo` (permanent): 0 flat faces with a corner normal
+more than 0.5° off their face normal (worst 0.03°); flat grey renders `gate_check.py -- shading` →
+`Renders/gate_g2_shading_{room,34,corridor,button}.png`, no gradients on flat faces.
+
+**Textures** (`Tools/Blender/heroes/gate_tex.py`, hero workflow v3): procedural Blender materials baked in Cycles onto
+the export-identical triangulated low (`env_kit_generator.triangulated_export_copy`, the hero export function, so the
+tangent-space normals match MikkTSpace). One 2048 set, every part baked on its own (others hidden), margin 0, one 8 px
+dilation of the composite. Files in `D:\AI_Labyrinth\Blender\Export\Heroes\Gate\`:
+`T_LAB_HERO_Gate_BaseColor.png` (sRGB), `_Normal.png` (OpenGL), `_Mask.png` (linear: R metallic, G AO, B 0,
+A smoothness), `_Emission.png` (sRGB colour; strength set in Unity).
+- Inputs: texel positions from the triangulated lows (closed pose); detail maps in numpy (bolt heights + masks,
+  seams, rust streaks, rust base, band edge); Cycles pre-bakes per part: convex edges (AO node, inside, 8 mm), cavity
+  (AO node, 50 mm, self), AO (0.3 m, self only).
+- Materials (STYLE_GUIDE): leaf frame and panels, hanger plates and straps, rail body, button panel = charcoal paint
+  with large mottling, roughness breakup (wipes), fine horizontal scratches, edge wear to bare machined steel
+  (metallic) on convex edges, grime in recesses and towards the floor, light rust (spots on edges, round some bolts
+  — about a third of them stay clean —, along the leaf's bottom edge; streaks below about half the bolts and the
+  lowest seam corners); channel, bezel, button = polymer (scuffs, no metal, no rust); rollers, axles, rail running
+  surface = machined steel (light grime and rust); hazard band = ochre / black 45° stripes (85 mm pitch, world
+  space), worn to the charcoal under-paint along its edges and in scuffs; light strip and ring light emission
+  sRGB (70, 170, 255), amber lamp (240, 150, 60).
+- Detail in the normal map: 88 bolts (hex heads with washers, random turn: 16 on the frame per face, 14 panel corners
+  per face, 4 per hanger plate, 4 per rail bracket, 4 on the button panel), a 3 mm frame groove 24 mm inside the
+  outline and one groove 40 mm inside each panel (both faces), a 1.5 mm bevel on every edge, fine noise.
+- Checks (`gate_tex.py -- check`): AO black scan PASS (Leaf: contact lines only, plus the 10 mm strip behind each
+  strap above its plate; Rail: contact lines, plus the groove behind the bracket plates — both enclosed crevices,
+  accepted); PBR PASS (non-metal albedo sRGB 30–240: 0 % outside; metal ≥ 175: all; metallic transitions 0.1–0.9 on
+  ~3–4 % of the texels: worn edges, rust, grime); normal seams on the leaf faces PASS (seam edges < 40 mm across the
+  panel gaps skipped: the walls' bevel zone); no white clipping in the review renders (emission strength 1.0).
+- Renders with the baked maps on the low, dim facility light: `Renders/gate_g2_{room,room_vs_concept,corridor,34,
+  open,hanger,button,detail}.png`; flat maps `Renders/gate_g2_map_*.png`.
 
 ## 8. Labyrinth v2 — panel, stand and tilt mechanic (props, not heroes)
 

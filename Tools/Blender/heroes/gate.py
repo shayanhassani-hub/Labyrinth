@@ -90,11 +90,20 @@ BEZEL_R, RING_R, HOLE_R, BEZEL_T, HOLE_DEPTH = 0.055, 0.046, 0.037, 0.015, 0.035
 BUTTON_R, BUTTON_CH, BUTTON_PROUD, BUTTON_BACK = 0.035, 0.003, 0.012, 0.025
 BUTTON_TRAVEL = 0.008
 LAMP_C, LAMP_R, LAMP_T = (1.105, 8.70), 0.012, 0.008
+BUTTON_SEG, LAMP_SEG = 24, 16                # G2: bezel, ring light, hole, button 24; lamp 16
 
 MATS = [("M_Gate_Paint", (0.046, 0.052, 0.062)), ("M_Gate_Polymer", (0.017, 0.018, 0.020)),
         ("M_Gate_Steel", (0.50, 0.51, 0.53)), ("M_Gate_Hazard", (0.34, 0.19, 0.04)),
-        ("M_Gate_Cyan", (0.05, 0.70, 0.80)), ("M_Gate_Amber", (0.80, 0.27, 0.04))]
+        ("M_Gate_Cyan", (0.061, 0.402, 1.0)), ("M_Gate_Amber", (0.80, 0.27, 0.04))]
 PAINT, POLYMER, STEEL, HAZARD, CYAN, AMBER = range(6)
+
+# face kinds (face attribute "kind") for hard edges and normals (G2): FLAT faces keep their own normal, CHAMFER strips
+# are the only smoothed transitions, ROUND sides of cylinders are smooth among themselves
+FLAT, CHAMFER, ROUND = 0, 1, 2
+HARD_ANGLE = 30.0                            # flat | flat and round | flat above this: hard (and a UV seam); 30 not 35:
+                                             # the panel walls bend 32-34 deg at the divider corners
+CHAMFER_MAX = 50.0                           # chamfer | flat up to this stays smooth (a 45 deg chamfer)
+CHAMFER_CORNER = 15.0                        # chamfer | chamfer above this (at outline corners): hard
 
 
 def to_blender(p):
@@ -166,12 +175,14 @@ class GateMesh(CV.SpecMesh):
     def __init__(self):
         super().__init__()
         self.mat = PAINT
+        self.kind = FLAT
         self.known = set()
+        self.kind_layer = self.bm.faces.layers.int.new("kind")
 
     def tag(self):
         for f in self.bm.faces:
             if f not in self.known:
-                f.material_index = self.mat; self.known.add(f)
+                f.material_index = self.mat; f[self.kind_layer] = self.kind; self.known.add(f)
 
     def f(self, *pts):
         r = super().f(*pts); self.tag(); return r
@@ -252,7 +263,9 @@ def build_leaf():
     pnl = panels()
     for side in (1, -1):
         sm.mat = PAINT
+        sm.kind = CHAMFER
         sm.tube([loop3(face_out, 0.0, side), loop3(OUTLINE, CH, side)])               # edge chamfer
+        sm.kind = FLAT
         holes = [CHANNEL, FIELD, BAND]
         plates = []
         if side > 0:
@@ -312,16 +325,22 @@ def build_strap(sm, hc, d_back, side):
     for a in axles:
         sm.mat = STEEL
         hd = circle(a, AXLE_HEAD_R, 8)
+        sm.kind = ROUND
         sm.tube([loop3(hd, d_front, side), loop3(hd, d_front - AXLE_HEAD_T, side)])
+        sm.kind = FLAT
         sm.f(*loop3(hd, d_front - AXLE_HEAD_T, side))
         ax = circle(a, AXLE_R, 8)
+        sm.kind = ROUND
         sm.tube([loop3(ax, d_back, side), loop3(ax, z_roll0, side)])
+        sm.kind = FLAT
         rr = ROLLER_A / math.cos(math.pi / 12)
         ring = [(a[0] + rr * math.cos(math.radians(15 + 30 * k)), a[1] + rr * math.sin(math.radians(15 + 30 * k)))
                 for k in range(12)]                                         # flats at the bottom and top
         z1 = z_roll0 + ROLLER_W
         sm.region([loop3(ring, z_roll0, side), loop3(ax, z_roll0, side)])
+        sm.kind = ROUND
         sm.tube([loop3(ring, z_roll0, side), loop3(ring, z1, side)])
+        sm.kind = FLAT
         sm.f(*loop3(ring, z1, side))
 
 
@@ -336,14 +355,22 @@ def box(sm, x0, x1, y0, y1, z0, z1, xs=()):
     sm.f(*reversed(ring(x0))); sm.f(*ring(x1))
 
 
+RAIL_CHAMFER_SEG = (1, 7)                    # profile segments i -> i+1 that are the 6 mm chamfers
+RAIL_RUN_SEG = 8                             # the top the rollers ride on: machined steel (G2)
+
+
 def build_rail():
-    sm = GateMesh(); sm.mat = STEEL
+    sm = GateMesh(); sm.mat = PAINT
     xs = sorted({RAIL_X0, RAIL_X1} | {c + s * RAIL_PLATE["hw"] for c in RAIL_PLATES for s in (-1, 1)}
                 | {RAIL_X0 + STOP["w"], RAIL_X1 - STOP["w"]})
     prof = lambda x: [(x, y, z) for y, z in RAIL_PROFILE]
-    sm.tube([prof(x) for x in xs])                                          # closed: the back strip goes to the ray test
+    n = len(RAIL_PROFILE)
+    for i in range(n):                                                      # closed: the back strip goes to the ray test
+        sm.mat = STEEL if i == RAIL_RUN_SEG else PAINT
+        sm.kind = CHAMFER if i in RAIL_CHAMFER_SEG else FLAT
+        sm.tube([[prof(x)[i], prof(x)[(i + 1) % n]] for x in xs], closed=False)
+    sm.mat = PAINT; sm.kind = FLAT
     sm.f(*reversed(prof(RAIL_X0))); sm.f(*prof(RAIL_X1))
-    sm.mat = PAINT
     for c in RAIL_PLATES:
         p = RAIL_PLATE
         box(sm, c - p["hw"], c + p["hw"], p["y0"], p["y1"], p["z0"], RAIL_Z0)
@@ -361,23 +388,32 @@ def build_panel():
     xf = cx + dx                                                           # front face x
     rect = lambda x, i: [(x, cy - hy + i, cz - hz + i), (x, cy - hy + i, cz + hz - i), (x, cy + hy - i, cz + hz - i),
                          (x, cy + hy - i, cz - hz + i)]
-    sm.tube([rect(cx, 0), rect(xf - PANEL_CH, 0), rect(xf, PANEL_CH)])
+    sm.tube([rect(cx, 0), rect(xf - PANEL_CH, 0)])
+    sm.kind = CHAMFER
+    sm.tube([rect(xf - PANEL_CH, 0), rect(xf, PANEL_CH)])
+    sm.kind = FLAT
     sm.f(*reversed(rect(cx, 0)))                                           # back (deleted by the ray test)
     yz = lambda pts, x: [(x, y, z) for y, z in pts]
-    bez = circle(BEZEL_C, BEZEL_R, 12); lamp = circle(LAMP_C, LAMP_R, 8)
+    bez = circle(BEZEL_C, BEZEL_R, BUTTON_SEG); lamp = circle(LAMP_C, LAMP_R, LAMP_SEG)
     sm.region([rect(xf, PANEL_CH), yz(bez, xf), yz(lamp, xf)])
     sm.mat = POLYMER
     xb = xf + BEZEL_T
-    ring = circle(BEZEL_C, RING_R, 12); hole = circle(BEZEL_C, HOLE_R, 12)
+    ring = circle(BEZEL_C, RING_R, BUTTON_SEG); hole = circle(BEZEL_C, HOLE_R, BUTTON_SEG)
+    sm.kind = ROUND
     sm.tube([yz(bez, xf), yz(bez, xb)])
-    sm.bridge(yz(bez, xb), yz(ring, xb))
+    sm.kind = FLAT
+    sm.bridge(yz(bez, xb), yz(ring, xb)); sm.tag()
     sm.mat = CYAN
-    sm.bridge(yz(ring, xb), yz(hole, xb))
+    sm.bridge(yz(ring, xb), yz(hole, xb)); sm.tag()
     sm.mat = POLYMER
+    sm.kind = ROUND
     sm.tube([yz(hole, xb), yz(hole, xb - HOLE_DEPTH)])
+    sm.kind = FLAT
     sm.f(*yz(hole, xb - HOLE_DEPTH))
     sm.mat = AMBER
+    sm.kind = ROUND
     sm.tube([yz(lamp, xf), yz(lamp, xf + LAMP_T)])
+    sm.kind = FLAT
     sm.f(*yz(lamp, xf + LAMP_T))
     return sm.finish(f"{HERO}_ButtonPanel_01", (cx, cy, cz))
 
@@ -390,8 +426,12 @@ def build_button():
     sm = GateMesh(); sm.mat = POLYMER
     xf = button_front(); xb = xf - BUTTON_PROUD - BUTTON_BACK
     yz = lambda pts, x: [(x, y, z) for y, z in pts]
-    outer = circle(BEZEL_C, BUTTON_R, 12); top = circle(BEZEL_C, BUTTON_R - BUTTON_CH, 12)
-    sm.tube([yz(outer, xb), yz(outer, xf - BUTTON_CH), yz(top, xf)])
+    outer = circle(BEZEL_C, BUTTON_R, BUTTON_SEG); top = circle(BEZEL_C, BUTTON_R - BUTTON_CH, BUTTON_SEG)
+    sm.kind = ROUND
+    sm.tube([yz(outer, xb), yz(outer, xf - BUTTON_CH)])
+    sm.kind = CHAMFER
+    sm.tube([yz(outer, xf - BUTTON_CH), yz(top, xf)])
+    sm.kind = FLAT
     sm.f(*yz(top, xf)); sm.f(*reversed(yz(outer, xb)))
     return sm.finish(f"{HERO}_Button_01", (xf, BEZEL_C[0], BEZEL_C[1]))
 
@@ -505,10 +545,72 @@ def build():
     parts = [leaf, rail, panel, button]
     removed = delete_hidden(parts, leaf, room)
     bpy.data.objects.remove(room)
-    uv_report = UV.unwrap_and_pack(parts, uv_density)
+    uv_report = unwrap_and_pack(parts)
     for o in parts:
-        CV.apply_shading(o)
+        apply_shading(o)
     return parts, removed, uv_report
+
+
+# --------------------------------------------------------------------------- hard edges, UVs, normals (G2)
+
+
+def hard_edge_keys(me):
+    """edges that get a hard edge (and a UV seam), by face kind and angle (see FLAT / CHAMFER / ROUND)"""
+    kind = me.attributes["kind"].data
+    faces = {}
+    for p in me.polygons:
+        for k in p.edge_keys: faces.setdefault(k, []).append(p)
+    hard = set()
+    for k, fs in faces.items():
+        if len(fs) != 2: continue
+        a = math.degrees(fs[0].normal.angle(fs[1].normal, 0.0))
+        ka, kb = kind[fs[0].index].value, kind[fs[1].index].value
+        if ka == ROUND and kb == ROUND: continue
+        if ka == CHAMFER and kb == CHAMFER: lim = CHAMFER_CORNER
+        elif CHAMFER in (ka, kb): lim = CHAMFER_MAX
+        else: lim = HARD_ANGLE
+        if a > lim: hard.add(k)
+    return hard
+
+
+_HARD = set()
+
+
+def _is_hard(e):
+    return len(e.link_faces) == 2 and tuple(sorted(v.index for v in e.verts)) in _HARD
+
+
+def unwrap_and_pack(parts):
+    """cradle_v2_uv per object, with the Gate's hard-edge rule in place of the dihedral bands"""
+    UV.is_hard = _is_hard
+    UV.HARD_DEG = 0.0                         # no pruning of short hard runs: every hard edge is wanted
+    rep = {}
+    for o in parts:
+        if not o.data.uv_layers: o.data.uv_layers.new(name="UVMap")
+        _HARD.clear(); _HARD.update(hard_edge_keys(o.data))
+        rep[o.name] = UV.unwrap_object(o)
+        UV.scale_islands(o, lambda isl, o=o: uv_density(o, isl))
+    rep["px_per_m"] = round(UV.pack(parts), 1)
+    return rep
+
+
+FACE_STRENGTH = {FLAT: 3, ROUND: 2, CHAMFER: 1}        # weighted normal face influence: strong / medium / weak
+
+
+def apply_shading(obj):
+    """face-area weighted normals with face influence: flat faces keep their own normal, chamfers blend between
+    their neighbours (the only smoothed transitions), hard edges as marked by the unwrap"""
+    me = obj.data
+    kind = me.attributes["kind"].data
+    fw = me.attributes.get("__mod_weightednormals_faceweight") or \
+        me.attributes.new("__mod_weightednormals_faceweight", 'INT', 'FACE')
+    for p in me.polygons:
+        fw.data[p.index].value = FACE_STRENGTH[kind[p.index].value]; p.use_smooth = True
+    mod = obj.modifiers.new("WN", 'WEIGHTED_NORMAL'); mod.mode = 'FACE_AREA'; mod.weight = 50
+    mod.keep_sharp = True; mod.use_face_influence = True; mod.thresh = 0.01
+    for o in bpy.context.view_layer.objects: o.select_set(False)
+    bpy.context.view_layer.objects.active = obj; obj.select_set(True)
+    bpy.ops.object.modifier_apply(modifier=mod.name)
 
 
 def main():

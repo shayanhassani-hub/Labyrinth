@@ -32,12 +32,16 @@ smoothness 0.54 (p10 0.28, p90 0.75); grey metal parts 111 111 111, metallic 0.8
 | **Machined steel** | rails, rollers, pins, axles, exposed metal at worn edges | **188 190 192** (>= 180) | 1 | 0.55-0.70 |
 | **Ochre** | drone-handling parts (cradle pads, service-arm tool head, lever grip), hazard stripes | **159 120 58** (drone median) | 0 | 0.45-0.55 |
 | Hazard black | the dark stripes between ochre | 35 37 39 (polymer value) | 0 | 0.35 |
-| **Cyan emissive** (main accent) | light strips, ring lights, screens | emission **64 214 230**; off-state albedo 30 45 48 | 0 | 0.6 |
+| **Cyan emissive** (main accent) | light strips, ring lights, screens | emission **70 170 255** (bluer cyan, owner 2026-10-29; was 64 214 230); off-state albedo 30 45 55 | 0 | 0.6 |
+| Rust (wear only) | spots and streaks, see Wear | 120 62 34 (range 95-140 R) | 0 | 0.10-0.25 |
 | Amber lamp | small status lamps | emission 240 150 60 | 0 | 0.6 |
 | Red | Armed state only (terminal indicators, beacon) | emission 230 35 25 | 0 | 0.6 |
 
 Values follow ASSET_RULES (non-metal albedo 30-240, metal >= 180, metallic 0 or 1 except transitions).
-Emission intensity is set in Unity per light role (lighting pass); textures carry the colour.
+Emission intensity is set in Unity per light role (lighting pass); textures carry the colour. **The emission
+must never clip to white**, in renders or in Unity: keep the strength low enough that the brightest channel
+saturates but the other two stay well below it (the colour stays readable as blue-cyan); check the pixels of
+light strips in every review render (no white core).
 
 ## Wear (match the drone)
 - **Grime**: moderate, in cavities and on lower parts (AO / cavity driven): albedo x0.75-0.85, smoothness
@@ -45,8 +49,11 @@ Emission intensity is set in Unity per light role (lighting pass); textures carr
 - **Edge wear**: on convex edges only (curvature from the bevel bake), 2-6 mm wide, paint chipped to
   machined steel; denser on edges people or machines touch (leaf closing edge, handles, pads).
 - **Scratches**: sparse, fine, on large painted faces; no big damage.
-- **No rust anywhere** (high-tech facility): no orange streaks, no corrosion, no peeling to brown. Worn
-  hazard stripes show the charcoal under-paint, not rust.
+- **Light rust** (owner decision 2026-10-29, room-wide, all heroes incl. the Cradle; replaces "no rust"; it makes
+  the facility more mysterious): rust spots on exposed edges, around bolts and along the bottom edge; a few rust
+  streaks running down from bolts and seams. Laid on top of the edge scratches and grime. Moderate, not a wreck:
+  a few percent of a painted face at most, none on the emissive parts and polymer. Worn hazard stripes show the
+  charcoal under-paint.
 - Overall the facility stays darker and cleaner-looking than the drone; the drone's yellow and the cyan
   lights are the brightest things in the room.
 
