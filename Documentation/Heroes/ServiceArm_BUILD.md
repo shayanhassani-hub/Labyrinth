@@ -255,7 +255,7 @@ One look iteration on the owner's review (limited budget).
 - **Links:** upper arm 0.12 × 0.16, forearm 0.10 × 0.14 (were 0.12 / 0.10 tall). The upper arm's root is now its full
   r 0.08 end (8 mm under the turret hub; the lug / ramp of H1 is gone).
 - **Joints:** the concept's big shoulder housing on −X (lobe r 0.10, reaching 0.125 fore and aft, outer cap r 0.068
-  with 8 bolts) and the big slotted cap r 0.064 × 8 mm on the shoulder (+X, camera side; 18 mm touched the stowed forearm); elbow disc r 0.095 with an 8-bolt
+  with 8 bolts) and the big slotted cap r 0.064 × 6 mm on the shoulder (+X, camera side; 18 and 8 mm came too close to the stowed forearm); elbow disc r 0.095 with an 8-bolt
   circle (r 0.072) and hub r 0.045 (was r 0.06); upper-arm elbow cap r 0.085; wrist knuckle r 0.065, cap r 0.046
   (6 bolts), neck r 0.044 (r 0.05 grazed the forearm side). Link widths stay 0.12 / 0.10 (the 0.12 / 0.10 offsets would otherwise close the gaps).
 - **Cables:** the thick corrugated conduit (Ø 24 mm) plus a thin black cable (Ø 11 mm) beside it on the link tops,
