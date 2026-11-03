@@ -649,8 +649,30 @@ reused: same geometry and edge distance).
 - Review renders (JPG): `Documentation/Media/gate_g2b/` — front (room side), 3/4, open, hanger, corridor, button,
   detail, dim facility light, the concept-light render and `gate_g2b_room_vs_concept.jpg` (left: the baked Gate in
   neutral even light on the concept's mid-grey 67, right: the concept); flat maps.
-- Differences to the concept that are geometry, not texture (unchanged by design): the concept's darker outer frame
-  band and its hanger shapes.
+- Differences to the concept that are geometry, not texture (unchanged by design): the concept's hanger shapes.
+
+### Look pass G2c (2026-11-03)
+Owner review of `gate_g2b_room_vs_concept.jpg`. Same geometry, UVs and pre-bakes (`-- bake reuse edge`); the textures
+in `Assets/Environment/Heroes/Gate/Textures/` and the G2b render files are replaced (file names kept).
+- **Rust**: panel centres stay clean (scratches and grime only). Rust, except the run-off streaks, now appears only
+  near features: convex edges, seams / recess corners (low cavity), grooves, bolt and panel-corner blotches, two new
+  blotches at the leaf's bottom corners, and the bottom 0.35 m. Coverage: **5.7 % of the leaf paint** (11.7 % below
+  y 0.8, 3.5 % above y 1.6); in the panel centres (68 % of the leaf paint: no edge, seam or bolt, above 0.35 m)
+  0.8 %, from the streaks.
+- **Bolts**: painted like the surface they sit on (gunmetal, darker on the frame band); only speckled spots on some
+  head tops are worn to steel. **Roller wheels**: dark polymer (STYLE_GUIDE 35 37 39; baked median 36 38 40,
+  non-metal); the axles and axle heads stay steel, rougher (steel smoothness median 0.37, G2b ~0.51). Edge-wear
+  sections are finer and sparser, so short parts (straps, plates) get no continuous bright outline; bare steel is
+  0.05 % of the leaf paint.
+- **Frame band**: the leaf's un-recessed face planes and outline sides/chamfers are gunmetal x 0.6 (linear),
+  about sRGB 70 81 90, as in the concept; the panels and the field keep 90 104 115.
+- **Hairline scratches** lighten relative to the local paint (x 1.9), so they stay subtle on the darker frame.
+- **Light strip**: the emission map holds sRGB 70 170 255 (STYLE_GUIDE). The pale lavender in the G2b renders came
+  from the render's AgX view transform, which shifts saturated blue; the review renders now use the Standard view
+  (Khronos PBR Neutral was tried and crushed the grey background). No white clipping in any render.
+- Checks (2048): AO black PASS; PBR PASS (non-metal 30–240: 0 % outside; metal albedo >= 180: 0.09 % of 66,665
+  metal texels below); normal seams PASS (1 of 96 over 6°, the same bolt sample). Bake with reused pre-bakes ~6 min.
+- Open: the axle heads (steel, by design) still read light grey in close key-lit views.
 
 ## 8. Labyrinth v2 — panel, stand and tilt mechanic (props, not heroes)
 

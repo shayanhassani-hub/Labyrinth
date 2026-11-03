@@ -69,6 +69,7 @@ PAINT_C, POLY_C, STEEL_C = lin((90, 104, 115)), lin((35, 37, 39)), lin((188, 190
 OCHRE_C, BLACK_C, RUST_C, GRIME_C = lin((159, 120, 58)), lin((35, 37, 39)), lin((120, 62, 34)), lin((44, 41, 37))
 CYAN_E, AMBER_E = lin((70, 170, 255)), lin((240, 150, 60))
 CYAN_OFF, AMBER_OFF = lin((30, 45, 55)), lin((60, 46, 32))
+FRAME_SHADE = (0.60, 0.60, 0.60)       # G2c: frame band = gunmetal x 0.6 (linear) -> about sRGB 70 81 90
 RUST_DARK, RUST_EDGE = lin((66, 44, 34)), lin((112, 64, 38))   # rust centre brown-black, patch edge orange-brown
 
 
@@ -241,13 +242,37 @@ def details(part, mat, P, N):
     # rust base along the leaf's bottom edge; hazard band paint edge
     v = P[..., 1] - G.LEAF_Y0
     # (G2b: the bottom-edge rust is a patchy shader term, see surface_material)
+    # G2c: rust blotches at the leaf's two bottom corners (all faces near the corner, both sides)
+    for cu, cv in ((0.045, 0.045), (1.69, 0.012)):
+        c2 = np.array((G.LEAF_X0 + cu, G.LEAF_Y0 + cv)); R = RNG.uniform(0.09, 0.13)
+        ys, xs = np.nonzero(lf & (np.hypot(P[..., 0] - c2[0], P[..., 1] - c2[1]) < 2.2 * R))
+        x, y = P[ys, xs, 0] - c2[0], P[ys, xs, 1] - c2[1]
+        r = np.hypot(x, y) * wobble(np.arctan2(y, x), RNG, 0.9)
+        RUSTB[ys, xs] = np.maximum(RUSTB[ys, xs], np.clip(1 - r / R, 0, 1) ** 0.7)
+    # G2c masks: roller wheels (leaf steel texels farther than the axle head from an axle axis) and the leaf's outer
+    # frame band (paint on the un-recessed face planes and on the outline sides / chamfers)
+    ROLL = np.zeros_like(H); FRAME = np.zeros_like(H)
+    st = lf & (mat == G.STEEL)
+    ys, xs = np.nonzero(st)
+    if len(ys):
+        ax = [(G.LEAF_X0 + hc + s_ * G.AXLE_DU, G.LEAF_Y0 + G.AXLE_V) for hc in G.HANGERS for s_ in (-1, 1)]
+        r = np.min([np.hypot(P[ys, xs, 0] - a, P[ys, xs, 1] - bb) for a, bb in ax], axis=0)
+        ROLL[ys, xs] = (r > G.AXLE_HEAD_R + 0.0008).astype(np.float32)
+    pz = P[..., 2]
+    pl = lf & (mat == G.PAINT) & (pz > G.LEAF_Z0 - 0.0005) & (pz < G.LEAF_Z1 + 0.0005) & (P[..., 1] < G.LEAF_Y0 + 2.4505)
+    face = pl & ((np.abs(pz - G.LEAF_Z0) < 0.0005) | (np.abs(pz - G.LEAF_Z1) < 0.0005))
+    ys, xs = np.nonzero(pl & ~face)
+    uv = np.column_stack((P[ys, xs, 0] - G.LEAF_X0, P[ys, xs, 1] - G.LEAF_Y0))
+    side = seg_dist(uv, G.OUTLINE) < 0.012
+    FRAME[face] = 1.0; FRAME[ys[side], xs[side]] = 1.0
+    print(f"INFO masks: roller texels {int(ROLL.sum())}, frame band texels {int(FRAME.sum())}")
     bm = lf & (mat >= 0) & ((np.abs(P[..., 2] - G.LEAF_Z0) < 0.0005) | (np.abs(P[..., 2] - G.LEAF_Z1) < 0.0005))
     ys, xs = np.nonzero(bm)
     uv = np.column_stack((P[ys, xs, 0] - G.LEAF_X0, P[ys, xs, 1] - G.LEAF_Y0))
     BANDE[ys, xs] = np.clip(1 - seg_dist(uv, G.BAND) / 0.010, 0, 1)
     Hn = (np.clip(H, H_LO, H_HI) - H_LO) / (H_HI - H_LO)
     print(f"INFO details: {len(bl)} bolts ({len(pnl)} panel corners per face), {len(streak_starts)} rust streaks")
-    return np.stack([Hn, BOLT, STREAK, GROOVE], 2), RUSTB, BANDE
+    return np.stack([Hn, BOLT, STREAK, GROOVE], 2), RUSTB, BANDE, np.stack([ROLL, FRAME], 2)
 
 
 def new_image(name, arr=None, size=TEX):
@@ -427,7 +452,7 @@ class NB:
         return t.outputs["Fac"]
 
 
-def surface_material(slot, d1, d2, ao_img):
+def surface_material(slot, d1, d2, d3):
     """the procedural material of one slot; returns the material with sockets named for the channel bakes"""
     name = G.MATS[slot][0] + "_Tex"
     m = bpy.data.materials.new(name); m.use_nodes = True; nt = m.node_tree
@@ -445,6 +470,8 @@ def surface_material(slot, d1, d2, ao_img):
     b.link(t1.outputs["Color"], s1.inputs[0]); b.link(t2.outputs["Color"], s2.inputs[0])
     Hn, BO, ST = s1.outputs[0], s1.outputs[1], s1.outputs[2]; GR = t1.outputs["Alpha"]
     E, C, RB = s2.outputs[0], s2.outputs[1], s2.outputs[2]; BE = t2.outputs["Alpha"]
+    t3 = b.n("ShaderNodeTexImage", image=d3, interpolation='Linear'); s3 = b.n("ShaderNodeSeparateColor")
+    b.link(t3.outputs["Color"], s3.inputs[0]); ROLL, FRAME = s3.outputs[0], s3.outputs[1]
     nf = b.noise(obj, 90.0, 6.0); nw = b.noise(obj, 2.5, 4.0); nr = b.noise(obj, 22.0, 10.0, 0.65)
     nr2 = b.noise(obj, 140.0, 4.0)
     # scratches (G2b): long fine hairlines, mostly horizontal / diagonal, plus a few longer streaks; no short dashes.
@@ -469,6 +496,7 @@ def surface_material(slot, d1, d2, ao_img):
     if kind == "paint":
         base = b.mix(b.remap(nf, 0.3, 0.7), b.rgb(tuple(0.88 * c for c in PAINT_C)), b.rgb(tuple(1.12 * c for c in PAINT_C)))
         base = b.mix(b.mul(b.remap(nw, 0.35, 0.65), 0.5), base, b.rgb(tuple(0.8 * c for c in PAINT_C)))      # large mottling
+        base = b.mix(FRAME, base, FRAME_SHADE, 'MULTIPLY')                    # G2c: darker gunmetal on the outer frame band
         if slot == G.HAZARD:                                                  # 45 deg ochre / black stripes, 85 mm pitch
             sx = b.math('MULTIPLY', pos.outputs[0], -1.0)
             ph = b.math('FRACT', b.math('DIVIDE', b.add(sx, sy), 0.12))
@@ -480,9 +508,9 @@ def surface_material(slot, d1, d2, ao_img):
             base = b.mix(chip, hz, base)                                       # worn band edge: charcoal under-paint
         # edge wear (G2b): no continuous outline. A coarse noise switches whole edge sections on/off, so bare steel
         # shows on exposed corners (strongest edge mask) and some edge sections only, 1-6 mm wide.
-        sect = b.remap(b.noise(obj, 7.0, 3.0), 0.42, 0.60)
+        sect = b.remap(b.noise(obj, 12.0, 3.0), 0.48, 0.62)                 # G2c: finer, sparser sections (short parts too)
         wear = b.remap(b.add(b.mul(E, b.add(0.5, b.mul(sect, 0.9))), b.mul(b.sub(nr, 0.5), 0.7), b.mul(scratch, 0.25)),
-                       0.58, 0.70)
+                       0.63, 0.73)
         # rust (G2b, STYLE_GUIDE "Rust rule"): patchy on exposed edges / corners and the bottom, blotches in some panel
         # corners and round some bolts (RB), run-off streaks (ST); more towards the floor. rv = rust "depth".
         hb = b.remap(sy, 0.0, 1.3, 0.18, 0.0)                                                         # more towards the floor
@@ -494,18 +522,24 @@ def surface_material(slot, d1, d2, ao_img):
                    b.mul(b.sub(nr, 0.5), 1.1), b.mul(b.sub(nr2, 0.5), 0.3))
         if slot == G.HAZARD:                                                  # the band is worn and rusty, as in the concept
             rv = b.add(rv, b.mul(b.remap(b.noise(obj, 6.0, 4.0), 0.4, 0.7), 0.3))
-        rust = b.clamp(b.add(b.remap(rv, 0.40, 0.52), b.mul(ST, b.remap(nf, 0.2, 0.6, 0.55, 1.0))))
-        col = b.mix(b.mul(scratch, 0.8), base, b.rgb(tuple(2.4 * c for c in PAINT_C)))                    # hairlines read lighter
+        # G2c: panel centres stay clean. Rust (except the run-off streaks) only near features: convex edges, concave
+        # seams / recess corners (low cavity), grooves, bolt and corner blotches (RB) and the bottom 0.35 m.
+        near = b.clamp(b.add(b.remap(b.sub(1.0, C), 0.04, 0.25), b.remap(E, 0.10, 0.40), GR, b.mul(RB, 2.0),
+                             b.remap(sy, 0.0, 0.35, 1.0, 0.0)))
+        rust = b.clamp(b.add(b.mul(b.remap(rv, 0.40, 0.52), near), b.mul(ST, b.remap(nf, 0.2, 0.6, 0.55, 1.0))))
+        col = b.mix(b.mul(scratch, 0.6), base, (1.9, 1.9, 1.9), 'MULTIPLY')                   # hairlines: lighter than the local paint                    # hairlines read lighter
         col = b.mix(wear, col, b.rgb(STEEL_C))
-        col = b.mix(BO, col, b.rgb(tuple(0.95 * c for c in STEEL_C)))
+        # G2c: bolts are painted like their surface; only the tips of some heads are worn to steel (Hn ~0.93 on the head top)
+        tip = b.mul(b.mul(b.mul(BO, b.remap(Hn, 0.86, 0.93)), b.remap(nr2, 0.60, 0.72)), b.remap(nr, 0.35, 0.55))
+        col = b.mix(tip, col, b.rgb(STEEL_C))
         rcol = b.mix(b.remap(rv, 0.62, 0.95), b.rgb(RUST_EDGE), b.rgb(RUST_DARK))                         # dark centres
         rcol = b.mix(b.mul(b.remap(nr2, 0.3, 0.8), 0.35), rcol, b.rgb(tuple(0.85 * c for c in RUST_C)))
         col = b.mix(rust, col, rcol)
-        bare = b.mul(b.math('MAXIMUM', wear, BO), b.sub(1.0, rust))
+        bare = b.mul(b.math('MAXIMUM', wear, tip), b.sub(1.0, rust))
         col = b.mix(b.mul(b.mul(grime, 0.7), b.sub(1.0, b.mul(bare, 0.9))), col, b.rgb(GRIME_C))   # grime spares bare steel
         metal = bare                                                                                    # metallic 1 on bare steel
         rough = b.add(0.58, b.mul(b.sub(nw, 0.5), 0.35), b.mul(scratch, -0.25))
-        rough = b.mixf(b.math('MAXIMUM', wear, BO), rough, b.add(0.50, b.mul(b.sub(nf, 0.5), 0.1), b.mul(grime, 0.25)))
+        rough = b.mixf(b.math('MAXIMUM', wear, tip), rough, b.add(0.60, b.mul(b.sub(nf, 0.5), 0.1), b.mul(grime, 0.25)))
         rough = b.mixf(rust, rough, b.add(0.85, b.mul(b.sub(nr2, 0.5), 0.1)))
         rough = b.add(rough, b.mul(grime, 0.12))
         emis = b.rgb((0, 0, 0))
@@ -527,7 +561,13 @@ def surface_material(slot, d1, d2, ao_img):
         g2 = b.mul(grime, 0.45)
         col = b.mix(b.mul(g2, 0.15), col, b.rgb(GRIME_C))                    # G2b: grime mostly in roughness, albedo stays >= 180
         metal = b.sub(1.0, rust)
-        rough = b.add(0.48, b.mul(b.sub(nw, 0.5), 0.2), b.mul(scratch, 0.1), b.mul(rust, 0.4), b.mul(g2, 0.45))
+        rough = b.add(0.62, b.mul(b.sub(nw, 0.5), 0.2), b.mul(scratch, 0.1), b.mul(rust, 0.3), b.mul(g2, 0.35))
+        # G2c: roller wheels are dark polymer (STYLE_GUIDE 35 37 39); the axles stay steel
+        pcol = b.mix(b.remap(nf, 0.3, 0.7), b.rgb(tuple(0.9 * c for c in POLY_C)), b.rgb(tuple(1.1 * c for c in POLY_C)))
+        pcol = b.mix(b.mul(grime, 0.5), pcol, b.rgb(GRIME_C))
+        col = b.mix(ROLL, col, pcol)
+        metal = b.mixf(ROLL, metal, 0.0)
+        rough = b.mixf(ROLL, rough, b.add(0.66, b.mul(b.sub(nw, 0.5), 0.15)))
         emis = b.rgb((0, 0, 0))
         hgt = b.add(Hn, b.mul(b.sub(nf, 0.5), 0.012))
     else:
@@ -583,7 +623,7 @@ def bake(args):
     part, mat, P, N = texel_maps(lows)
     np.savez_compressed(os.path.join(WORK, "texels.npz"), part=part, mat=mat, P=P, N=N)
     cover = part > 0
-    d1, rustb, bande = details(part, mat, P, N)
+    d1, rustb, bande, d3 = details(part, mat, P, N)
     # pre-bakes: edges, cavity, AO (self only)
     # "-- bake reuse [edge]": cavity and AO (and with "edge" the edge mask) from the last run's pre-bakes, when their
     # inputs (geometry, EDGE_DIST) did not change
@@ -602,8 +642,8 @@ def bake(args):
     cav = blur_masked(res["cavity"], cover, 1)
     print(f"INFO edge mask p90 / p99 {np.percentile(edge[cover], 90):.2f} / {np.percentile(edge[cover], 99):.2f}")
     np.savez_compressed(os.path.join(WORK, "masks.npz"), edge=edge, cavity=cav, ao=res["ao"], d1=d1, rustb=rustb, bande=bande)
-    D1 = new_image("D1", d1); D2 = new_image("D2", np.stack([edge, cav, rustb, bande], 2))
-    mats = [surface_material(s, D1, D2, None) for s in range(len(G.MATS))]
+    D1 = new_image("D1", d1); D2 = new_image("D2", np.stack([edge, cav, rustb, bande], 2)); D3 = new_image("D3", d3)
+    mats = [surface_material(s, D1, D2, D3) for s in range(len(G.MATS))]
     keep = swap_materials(lows, lambda i: mats[i][0])
     maps = {}
     for ch, kind, smp in (("base", "EMIT", "emit"), ("rough", "EMIT", "emit"), ("metal", "EMIT", "emit"),
@@ -799,6 +839,7 @@ def renders(args):
     fast = "fast" in args
     only = set(a for a in args if a != "fast")
     GC.scene_setup(samples=24 if fast else 96)
+    sc.view_settings.view_transform = 'Standard'   # G2c: AgX turned the blue strip pale lavender; PBR Neutral crushed the greys
     if fast: sc.render.resolution_percentage = 50
     sc.world.node_tree.nodes["Background"].inputs[0].default_value = (0.006, 0.008, 0.011, 1)
     room = GC.add_room(); floor = bpy.data.objects["Floor"]

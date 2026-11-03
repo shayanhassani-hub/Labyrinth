@@ -307,3 +307,16 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   dim render); Gate Unity import (textures + FBX, importer settings per EXPORT_CONTRACT /
   ASSET_RULES, commit the .meta files) and Quest check; then ServiceArm.
   Hours: not logged
+
+## 2026-11-03 (Gate G2c)
+- Done: look pass G2c after the owner's review of gate_g2b_room_vs_concept.jpg (cloud, bpy 5.2.2): rust moved off the
+  panel centres to edges, seams, bolts, bottom corners and the bottom (5.7 % of the leaf paint, 0.8 % in the panel
+  centres); bolts painted with worn tip spots; roller wheels dark polymer, axles steel (rougher); leaf frame band
+  darker gunmetal (about 70 81 90); hairlines relative to the paint; renders on the Standard view so the strip shows
+  the STYLE_GUIDE blue (AgX made it lavender). Four look iterations, final 2048 bake with reused pre-bakes; checks
+  PASS. Textures and renders replaced (same names); HERO_SPEC §7 "Look pass G2c".
+- Decisions: G2b texture commit replaced by the G2c textures before it was ever pushed; lfs.github.com allowed in the
+  environment's network settings, so the textures go through Git LFS from the cloud.
+- Problems: the axle heads still read light grey in close key-lit views (steel, albedo >= 180 by rule).
+- Next: owner review of the G2c renders; Gate Unity import and Quest check; then ServiceArm.
+  Hours: not logged
