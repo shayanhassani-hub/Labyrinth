@@ -28,6 +28,10 @@ public class DroneHoverAIV2 : MonoBehaviour
     [Tooltip("How quickly the drone rotates to face the target.")]
     public float rotationSpeed = 3f;
 
+    [Header("Take-off")]
+    [Tooltip("Seconds after enable during which the hover fades in and the drone turns on yaw only (no pitch).")]
+    public float takeoffBlend = 1.5f;
+
     // --------------------------------------------------------
     // [2] SHOOTING VARIABLES
     // --------------------------------------------------------
@@ -62,19 +66,14 @@ public class DroneHoverAIV2 : MonoBehaviour
     // Internal navigation tracking
     private Vector3 targetPoint;
     private Vector3 basePosition;
+    private float enabledTime;
 
     // ========================================================
     // UNITY METHODS
     // ========================================================
 
-    void Start()
+    void Awake()
     {
-        // Pick the very first random destination inside our bounding box
-        targetPoint = GetRandomPointInBounds();
-
-        // Record where the drone is currently sitting in the world
-        basePosition = transform.position;
-
         // Initialize the MaterialPropertyBlock. 
         // I use this instead of modifying the material directly so Unity doesn't 
         // accidentally create a duplicate material in memory, which would hurt VR performance.
@@ -84,8 +83,21 @@ public class DroneHoverAIV2 : MonoBehaviour
         emissionPropertyID = Shader.PropertyToID("_Ring_Intensity");
     }
 
+    void OnEnable()
+    {
+        // Runs on every enable (FacilitySequence enables the drone at release),
+        // so take-off always starts from the current (docked) pose without a jump.
+        targetPoint = GetRandomPointInBounds();
+        basePosition = transform.position;
+        enabledTime = Time.time;
+        shootTimer = 0f;
+    }
+
     void Update()
     {
+        float sinceEnable = Time.time - enabledTime;
+        float takeoff = takeoffBlend > 0f ? Mathf.Clamp01(sinceEnable / takeoffBlend) : 1f;
+
         // --------------------------------------------------------
         // 1. HANDLE VFX (The Emissive Flash Decay)
         // --------------------------------------------------------
@@ -114,9 +126,10 @@ public class DroneHoverAIV2 : MonoBehaviour
             moveSpeed * Time.deltaTime
         );
 
-        // Calculate the physical bobbing motion using a Sine wave (Mathf.Sin)
-        // Time.time keeps it smoothly animating forever based on the game clock
-        float hoverOffset = Mathf.Sin(Time.time * hoverFrequency) * hoverAmplitude;
+        // Bobbing starts at phase 0 when the drone is enabled and fades in over takeoffBlend,
+        // so the first frame after release does not jump by up to hoverAmplitude.
+        float hoverOffset = Mathf.Sin(sinceEnable * hoverFrequency) * hoverAmplitude
+                            * Mathf.SmoothStep(0f, 1f, takeoff);
 
         // Apply the physical bobbing offset to the base position
         Vector3 finalPosition = basePosition + new Vector3(0, hoverOffset, 0);
@@ -129,6 +142,10 @@ public class DroneHoverAIV2 : MonoBehaviour
         {
             // Find the direction from the drone to the target
             Vector3 lookDir = labyrinthBall.transform.position - transform.position;
+
+            // During take-off turn on yaw only, so the body doesn't tip into the opening cradle arms.
+            if (takeoff < 1f)
+                lookDir.y = 0f;
 
             // Only rotate if the target isn't sitting inside the drone (prevents math errors)
             if (lookDir.sqrMagnitude > 0.001f)
@@ -153,7 +170,7 @@ public class DroneHoverAIV2 : MonoBehaviour
         // 4. HANDLE NAVIGATION (Picking a new target)
         // --------------------------------------------------------
         // If the drone is close enough to its current destination, pick a new one
-        if (Vector3.Distance(transform.position, targetPoint) < reachThreshold)
+        if (Vector3.Distance(basePosition, targetPoint) < reachThreshold)
         {
             targetPoint = GetRandomPointInBounds();
         }
