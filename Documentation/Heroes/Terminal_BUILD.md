@@ -268,5 +268,12 @@ Holo screen: `terminal_holo.py` → `T_LAB_HERO_Terminal_Holo.png`, 1024 × 512 
 
 ## Open questions for the owner
 1. Pillar width: keep 0.30 (spec) or widen towards the concept (e.g. 0.36 → desk 1.68 wide, footprint unchanged)?
-2. Screen aspect: spec 1.50 × 0.85 vs the concept's ≈ 2.2 : 1 (e.g. 1.50 × 0.68).
+2. Screen aspect: spec 1.50 × 0.85 vs the concept's ≈ 2.2 : 1 (e.g. 1.50 × 0.68 would read closer to the concept).
 3. Which indicator group turns red: player's right (chosen) or left (with the beacon)?
+4. Holo colour: STYLE_GUIDE cyan 70 170 255 (used) or the concept's paler teal glass?
+5. Rust: 5.3 % of the paint (the rule's lower end, edges / corners / bolts / floor zone); the concept carries more rust
+   inside the panel fields — raise it?
+6. Beacon when Armed / Released: steady (default) or a slow pulse (TerminalController.pulseWhenArmed /
+   pulseWhenReleased, off)?
+7. Poke: like the Gate, the button is selected with the rig's ray / near-far interactors; HERO_SPEC §10 asks for poke
+   (needs a poke interactor on the rig and an XRPokeFilter on the button).
