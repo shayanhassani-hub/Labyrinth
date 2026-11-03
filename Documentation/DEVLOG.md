@@ -320,3 +320,18 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
 - Problems: the axle heads still read light grey in close key-lit views (steel, albedo >= 180 by rule).
 - Next: owner review of the G2c renders; Gate Unity import and Quest check; then ServiceArm.
   Hours: not logged
+
+## 2026-11-03 (Gate G3a, cloud)
+- Done: Gate Unity import prepared in the cloud (no Unity): hero-mode FBX export of the four parts (gate_export.py,
+  one material slot per part) with a bpy re-import check (tris, origins, identity, custom normals: PASS);
+  GateBuilder.cs (import settings for models and textures, URP Lit material from the G2c maps, HERO_Gate hierarchy and
+  prefab, primitive colliders, Verify); SlideDriver.cs and GateButton.cs (leaf slide -X 1.70 m / 2.0 s ease-in-out,
+  button -X 8 mm, onPressed -> Open). C# syntax-checked with a C# parser; Unity APIs read against the repo's
+  existing builders, NOT compiled.
+- Decisions: one material slot per exported part (one draw per part); button selected with the existing XRI
+  interactors until the rig has poke; rail without collider.
+- Problems: no Unity in the cloud: compile, import, .meta files and Play Mode are untested.
+- Next: G3b (local): recompile, Gate: Apply Import Settings, Build Gate, Verify Gate, hero-mode import verification
+  per EXPORT_CONTRACT (vertex/normal/tangent comparison), Play Mode press test, commit the .meta files, prefab,
+  material and scene; Quest check.
+  Hours: not logged

@@ -674,6 +674,33 @@ in `Assets/Environment/Heroes/Gate/Textures/` and the G2b render files are repla
   metal texels below); normal seams PASS (1 of 96 over 6°, the same bolt sample). Bake with reused pre-bakes ~6 min.
 - Open: the axle heads (steel, by design) still read light grey in close key-lit views.
 
+### Unity import, cloud part (Step G3a, 2026-11-03)
+Written and checked in a cloud container (bpy 5.2.2, no Unity); G3b runs it in the Editor.
+- **FBX** (`Tools/Blender/heroes/gate_export.py`, EXPORT_CONTRACT hero mode): `Assets/Environment/Heroes/Gate/`
+  `LAB_HERO_Gate_{Leaf,Rail,ButtonPanel,Button}_01.fbx` (Git LFS). Each part is exported at identity (its mesh is local
+  to its origin) with **one material slot** (the six review-file slots only drive the bake; one slot = one submesh in
+  Unity). Re-import check in bpy, all PASS: 1,048 / 272 / 298 / 118 tris (= export copy = this spec), root transform
+  identity, one slot, review-file origins = the origins above, custom normals: every re-imported corner matches the
+  export copy (worst 0.009°). World boxes (origin + local bounds): Leaf x −1.85 … −0.15, y 0.010 … 2.656 (roller tops),
+  z 7.852 … 7.952; Rail x −3.60 … 0.00, y 2.475 … 2.625; ButtonPanel x −2.000 … −1.905; Button x −1.930 … −1.893.
+- **Builder** `Assets/Environment/Editor/GateBuilder.cs` (CradleBuilder pattern; menu Tools > Labyrinth > Gate: Apply
+  Import Settings / Build Gate / Verify Gate): model import settings (hero mode: normals and tangents imported, no
+  materials, no animation, no colliders); textures: BaseColor and Emission sRGB, Normal as normal map, Mask linear
+  with alpha, mipmaps, max 2048, Android ASTC 6x6 (4x4 for the normal map). Material `M_LAB_HERO_Gate` (URP Lit,
+  metallic workflow): Mask in the Metallic slot (R metallic, smoothness from A, multiplier 1) and in the Occlusion
+  slot (G), emission map at intensity 1. `HERO_Gate` at the world origin, parts at the origins above; prefab
+  `HERO_Gate.prefab`. Colliders are primitives: Leaf box 1.70 × 2.45 × 0.06 (+ kinematic Rigidbody, it moves),
+  ButtonPanel box, Button box; none on the rail (above reach). Verify: tris, origins, material, no mesh colliders,
+  open pose x −3.55 … −1.85, button wiring, material keywords, texture settings.
+- **Runtime** (`Assets/Scripts/Facility/`, namespace LabyrinthVR.Gameplay): `SlideDriver` (§10; Leaf: −X 1.70 m,
+  2.0 s, smoothstep ease-in-out; Open/Close/Toggle, reversible mid-move; events onOpenStarted / onOpened /
+  onCloseStarted / onClosed) and `GateButton` (XRSimpleInteractable select → cap −X 0.008 in 0.08 s, onPressed at the
+  bottom, 0.10 s hold, back in 0.15 s; presses during a stroke ignored; context menu "Press" for Play Mode tests).
+  GateBuilder wires GateButton.onPressed → SlideDriver.Open (persistent). FacilitySequence (not written) enables the
+  room teleport collider from SlideDriver.onOpenStarted (§1 state 1, §10). All timings and distances are public fields.
+- BasicScene's rig has no poke interactor, so the button is selected with the existing ray / near-far interactors;
+  poke (§10) needs a poke interactor on the rig and an XRPokeFilter on the button (G3b or later).
+
 ## 8. Labyrinth v2 — panel, stand and tilt mechanic (props, not heroes)
 
 The current panel is a placeholder: loosely modelled, with its origin at a corner, so any tilt
