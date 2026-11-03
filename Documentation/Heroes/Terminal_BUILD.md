@@ -57,36 +57,36 @@ Method: **G** = geometry (≥ 15 mm, depth rule), **N** = normal map (H2 bake), 
 
 | # | Feature (concept) | Where | Method | H0 | H1 | H2 |
 |---|---|---|---|---|---|---|
-| P1 | Chunky pillar blocks, chamfered vertical edges (plan octagon: big outer chamfers, small inner) | both pillars | G (half-space block: outer 40 mm, inner-front 8 mm) | ✓ | ✓ | |
-| P2 | Large top-front chamfer, smaller top-side chamfers | pillar tops | G (150 / 30 mm) | ✓ | ✓ | |
-| P3 | Top cap seam under the top-front chamfer | pillar fronts | G (55 mm cap band above the field) + N (groove) | | ✓ (band) | |
-| P4 | Base band | pillars, lower body | G (plinth 0.16 high, 15 mm inset; also the trim notch) | ✓ | ✓ | |
-| P5 | Front: recessed field with a raised "dog-bone" plate (wide top / bottom, narrow waist, 45° tapers) | pillar fronts | G (field 18 mm, plate 12 mm proud) | | ✓ | |
-| P6 | Vertical cyan light strip in the plate's waist | pillar fronts | G (slot 15 mm) + emission | | ✓ | |
-| P7 | Hazard stripes on the outer vertical chamfers (front and back) | pillars | T (ochre / black 45°), faces split at y 0.22 / 1.04 | ✓ | ✓ (faces) | |
-| P8 | Outer side: framed field, three panels with stepped (Z) dividers | pillar outer sides | G (field 18 mm, panels 10 mm proud) | | ✓ | |
-| P9 | Inner side: big plate with a cut corner | pillar inner sides | N (panel groove); only ~0.2 m shows above the desk at spec heights | | | |
-| P10 | Bolts at plate / panel / frame corners | everywhere | N (hex heads, washers) | | | |
-| P11 | Pillar top: corner bolts, seams | pillar tops | N | | | |
-| P12 | Rust on edges, corners, bottom, streaks; worn hazard paint | everywhere | T (STYLE_GUIDE rust rule) | | | |
-| B1 | Beacon base (black) | Pillar_L top | G (Ø 0.10 × 0.022, 16 seg) | ✓ | ✓ | |
-| B2 | Red beacon lens (dome) | Pillar_L top | G, own mesh (Ø 0.08, dome) | ✓ | ✓ | |
-| B3 | Wire cage round the lens | Pillar_L top | G (4 posts 6 mm, ring, top cross) | | ✓ | |
+| P1 | Chunky pillar blocks, chamfered vertical edges (plan octagon: big outer chamfers, small inner) | both pillars | G (half-space block: outer 40 mm, inner-front 8 mm) | ✓ | ✓ | ✓ |
+| P2 | Large top-front chamfer, smaller top-side chamfers | pillar tops | G (150 / 30 mm) | ✓ | ✓ | ✓ |
+| P3 | Top cap seam under the top-front chamfer | pillar fronts | G (55 mm cap band above the field) + N (groove) | | ✓ (band) | ✓ (groove) |
+| P4 | Base band | pillars, lower body | G (plinth 0.16 high, 15 mm inset; also the trim notch) | ✓ | ✓ | ✓ |
+| P5 | Front: recessed field with a raised "dog-bone" plate (wide top / bottom, narrow waist, 45° tapers) | pillar fronts | G (field 18 mm, plate 12 mm proud) | | ✓ | ✓ |
+| P6 | Vertical cyan light strip in the plate's waist | pillar fronts | G (slot 15 mm) + emission | | ✓ | ✓ |
+| P7 | Hazard stripes on the outer vertical chamfers (front and back) | pillars | T (ochre / black 45°), faces split at y 0.22 / 1.04 | ✓ | ✓ (faces) | ✓ |
+| P8 | Outer side: framed field, three panels with stepped (Z) dividers | pillar outer sides | G (field 18 mm, panels 10 mm proud) | | ✓ | ✓ |
+| P9 | Inner side: big plate with a cut corner | pillar inner sides | – left plain: at spec heights only ~0.2 m of it shows above the desk | | – | – |
+| P10 | Bolts at plate / panel / frame corners | everywhere | N (hex heads, washers) | | | ✓ (70 bolts) |
+| P11 | Pillar top: corner bolts, seams | pillar tops | N | | | ✓ (bolts) |
+| P12 | Rust on edges, corners, bottom, streaks; worn hazard paint | everywhere | T (STYLE_GUIDE rust rule) | | | ✓ (5.3 %) |
+| B1 | Beacon base (black) | Pillar_L top | G (Ø 0.10 × 0.022, 16 seg) | ✓ | ✓ | ✓ |
+| B2 | Red beacon lens (dome) | Pillar_L top | G, own mesh (Ø 0.08, dome) | ✓ | ✓ | ✓ (white emission, MPB) |
+| B3 | Wire cage round the lens | Pillar_L top | G (4 posts 6 mm, ring, top cross) | | ✓ | ✓ |
 | B4 | Red glow halo around the beacon | – | – (Unity bloom / a light in the lighting pass, not geometry) | – | – | – |
-| D1 | Desk slab: thick front edge, top-front chamfer | desk | G (50 mm edge, 8 mm chamfers) | ✓ | ✓ | |
-| D2 | Deep shadow under the desk slab (overhang over the lower body) | desk | G (100 mm overhang) | ✓ | ✓ | |
-| D3 | Framed desk panel: border with 45° cut ends, five panels | desk top | N (grooves) | | | |
-| D4 | Bolts at the desk panel corners | desk top | N | | | |
-| D5 | 6 indicator slots with cyan strips (2 × 3) | desk top | G (slots 15 mm) + emission; 3 = Indicators_01 | | ✓ | |
-| D6 | Button guard: flange, thick collar with a notch | desk centre | G (flange 8 mm, collar 35 mm, 24 seg) | ✓ (plain collar) | ✓ | |
-| D7 | Red cap with chamfer, steel cup ring under it | desk centre | G (cap Ø 0.12, 24 seg) + T (steel cup floor) | ✓ | ✓ (cap) | |
-| D8 | Display base bar / slot along the back | desk shelf | G (1.60 × 0.05 × 0.07) | ✓ | ✓ | |
-| S1 | Transparent holo panel, glowing frame with corner tabs | display | own holo texture (≤ 1024) + transparent material | ✓ (quad) | ✓ (quad) | |
-| S2 | Holo UI: room / drone wireframe, graphs, grid, data blocks | display | holo texture; no readable text | | | |
-| L1 | Three recessed front panels | lower body | G (18 mm) | | ✓ | |
-| L2 | Stepped divider: lower panel raised in the middle | lower body | G (panels 10 mm proud) | | ✓ | |
-| L3 | Bolts at the lower panel corners | lower body | N | | | |
-| C1 | Overall colour: blue-grey gunmetal, darker frames | all | T | | | |
+| D1 | Desk slab: thick front edge, top-front chamfer | desk | G (50 mm edge, 8 mm chamfers) | ✓ | ✓ | ✓ |
+| D2 | Deep shadow under the desk slab (overhang over the lower body) | desk | G (100 mm overhang) | ✓ | ✓ | ✓ |
+| D3 | Framed desk panel: border with 45° cut ends, five panels | desk top | N (grooves) | | | ✓ |
+| D4 | Bolts at the desk panel corners | desk top | N | | | ✓ |
+| D5 | 6 indicator slots with cyan strips (2 × 3) | desk top | G (slots 15 mm) + emission; 3 = Indicators_01 | | ✓ | ✓ |
+| D6 | Button guard: flange, thick collar with a notch | desk centre | G (flange 8 mm, collar 35 mm, 24 seg) | ✓ (plain collar) | ✓ | ✓ |
+| D7 | Red cap with chamfer, steel cup ring under it | desk centre | G (cap Ø 0.12, 24 seg) + T (steel cup floor) | ✓ | ✓ (cap) | ✓ (cup ring steel) |
+| D8 | Display base bar / slot along the back | desk shelf | G (1.60 × 0.05 × 0.07) | ✓ | ✓ | ✓ |
+| S1 | Transparent holo panel, glowing frame with corner tabs | display | own holo texture (≤ 1024) + transparent material | ✓ (quad) | ✓ (quad) | ✓ (holo texture) |
+| S2 | Holo UI: room / drone wireframe, graphs, grid, data blocks | display | holo texture; no readable text | | | ✓ |
+| L1 | Three recessed front panels | lower body | G (18 mm) | | ✓ | ✓ |
+| L2 | Stepped divider: lower panel raised in the middle | lower body | G (panels 10 mm proud) | | ✓ | ✓ |
+| L3 | Bolts at the lower panel corners | lower body | N | | | ✓ |
+| C1 | Overall colour: blue-grey gunmetal, darker frames | all | T | | | ✓ |
 
 ## Deviations from the concept (spec wins)
 | Concept | Model | Reason |
@@ -117,12 +117,12 @@ Method: **G** = geometry (≥ 15 mm, depth rule), **N** = normal map (H2 bake), 
 
 | Part | Tris | Faces | UV islands | Notes |
 |---|---|---|---|---|
-| Body_01 | 1,654 | 714 quads, 226 tris (flat regions only), 0 n-gons | 443 | open borders = deliberate: backs on the wall, floor contacts, the body ↔ pillar cut |
+| Body_01 | 1,670 | 722 quads, 226 tris (flat regions only), 0 n-gons | 443 | open borders = deliberate: backs on the wall, floor contacts, the body ↔ pillar cut |
 | Button_01 | 140 | 70 quads | 3 | 24 segments, 3 mm top chamfer |
 | Indicators_01 | 30 | 15 quads | 15 | 3 strips (top + walls; they sit on the slot floors) |
 | Beacon_01 | 112 | 48 quads, 16 tris (dome apex fan) | 2 | 16 segments, open bottom on the base |
 | Display_01 | 2 | 1 quad | 1 (own 0–1 UV) | holo material |
-| **Total** | **1,938** | | | no LOD needed (< 10k, ASSET_RULES) |
+| **Total** | **1,954** | | | no LOD needed (< 10k, ASSET_RULES) |
 
 - **Construction:** pillars = half-space blocks (outer vertical chamfers 40 mm = hazard bands, inner-front 8 mm chamfer
   strip, top-front 150 mm (concept side view ≈ 170 mm), top sides 30 mm). Front: field 18 mm deep (frame 25 mm, cap band
@@ -132,15 +132,16 @@ Method: **G** = geometry (≥ 15 mm, depth rule), **N** = normal map (H2 bake), 
   fields 18 mm, two panels each, the lower one rising in the middle (concept). Desk: 6 slots 245 × 34 × 15 mm (strips
   7 mm below the surface), guard flange Ø 0.23 × 8 mm, collar Ø 0.20 / 0.15 × 35 mm with a 45° notch toward the
   player's front-right, cup floor and a hole Ø 0.123 for the cap's stroke. Display bar 1.60 × 0.05 × 0.07 on the shelf.
-  Beacon: base Ø 0.10 × 22 mm, lens Ø 0.08 with a dome, cage of four 6 mm posts, a ring and a top cross.
+  Beacon: base Ø 0.10 × 22 mm, lens Ø 0.08 with a dome, cage of four 6 mm posts, a ring and a top cross (one
+  plus-shaped piece 2 mm above the ring since H2: two crossing bars and coplanar tops left hidden, black-AO faces).
 - **Shading:** every face has a kind (FLAT / CHAMFER / ROUND, as on the Gate). Hard edge + UV seam: flat | flat at any
   crease (> 1°, so the desk's 15° crease to the shelf is hard), round | flat > 30°, chamfer | flat > 50°, chamfer |
   chamfer > 15°. Face-weighted normals (Gate `apply_shading`).
 - **UVs:** `cradle_v2_uv` unwrap with the hard-edge rule, packed at a fixed **512 px/m** (the densest fit would be
   583; ASSET_RULES target 512 ± 10 %), padding 8 px, border 4 px, **43.7 %** of the 2048 sheet. Undersides 0.5,
   plinths 0.6, Pillar_R's outer side (0.6 m from the room's side wall) 0.5. The display has its own 0–1 UV.
-- **Hidden faces:** 25 deleted by construction (backs on the wall, floor contacts, the body's end caps inside the
-  pillars), 8 of 109 ray candidates (plinth slots, cage bar ends) deleted by the ray test (96 directions, button at
+- **Hidden faces:** 29 deleted by construction (backs on the wall, floor contacts, the body's end caps inside the
+  pillars, the cage post tops inside the ring), 6 of 115 ray candidates (plinth slots, cage bar ends) deleted by the ray test (96 directions, button at
   rest and pressed, room proxy: back wall, floor trim, side wall).
 
 **Checks** (`terminal_check.py -- topo / clearance`), all PASS:
@@ -169,6 +170,101 @@ emission).
 **Iteration against the concept:** the H1 side view showed the outer-side dividers stepping the wrong way and a top
 chamfer about half the concept's; both fixed (dividers reversed, front strip added, top-front chamfer 90 → 150 mm),
 front field cap band added for the concept's seam under the chamfer.
+
+### H2 — textures (2026-11-03)
+`terminal_tex.py` (Gate pipeline, `gate_tex` helpers reused unchanged) → one 2048 set
+`Assets/Environment/Heroes/Terminal/Textures/T_LAB_HERO_Terminal_{BaseColor,Normal,Mask,Emission}.png` (Git LFS):
+BaseColor sRGB, Normal OpenGL, Mask linear (R metallic, G AO, A smoothness), Emission sRGB colour. Baked on the
+export-identical triangulated lows (Body, Button, Indicators, Beacon), Cycles CPU, 4 cores: full bake 13.3 min
+(pre-bakes 6.6 min), with reused pre-bakes ~7 min (normal map at 32 samples 4 min); 512 test bakes 40 s.
+Holo screen: `terminal_holo.py` → `T_LAB_HERO_Terminal_Holo.png`, 1024 × 512 RGBA (683 × 602 px/m on the
+1.50 × 0.85 quad), the one allowed second texture.
+- **Materials** (STYLE_GUIDE): gunmetal paint 90 104 115 (baked median 86 98 108) with large mottling, roughness
+  breakup, hairline scratches (three angle sets), sparse edge wear to bare steel on convex edges (0.25 % of the
+  texels metal), grime in cavities and towards the floor; recess floors and walls ×0.72 (the concept's darker fields);
+  beacon cage ×0.55. Polymer 35 37 39 (slots, beacon base). Steel cup ring under the button. Hazard bands: ochre /
+  black 45° stripes, 85 mm pitch, across the 40 mm outer chamfers, worn at their edges. Red cap: red polymer
+  168 40 30 (the arming-button exception). Lens: dark red glass 96 20 16, smoothness 0.88. Cyan strips: emission
+  70 170 255, off-state albedo 30 45 55.
+- **Switching texels** (Indicators, Beacon lens): emission WHITE; TerminalController sets the colour per renderer
+  (MaterialPropertyBlock), so the map never decides cyan or red there.
+- **Normal-map detail** (numpy height map + Cycles bevel 1.5 mm / bump): 70 hex bolts with washers (dog-bone plate
+  corners, cap band, outer-side panel and frame corners, pillar tops, top-front chamfers, desk panel corners, lower
+  panel corners, display bar ends), the desk's panel frame (border with 45° cut ends, four dividers) and the pillar cap
+  seam as 4.8 mm grooves, 1.2 mm deep. Detail inputs are dilated 6 px past the island borders before the bake.
+- **Rust** (STYLE_GUIDE rust rule): patchy on exposed edges and corners, round ~60 % of the bolts (irregular, off-centre),
+  blotches at the plinth / body / desk corners, 12 run-off streaks below rusty bolts and the desk frame's front corners,
+  patchy (not banded) near the floor; non-metal, smoothness ~0.15. Coverage **5.3 % of the Body paint** (8.3 % below
+  y 0.6, 2.8 % above y 1.0).
+- **Checks** (`terminal_tex.py -- check`, 2048), all PASS: AO black scan (Body: contact lines plus 6 accepted crevices =
+  the 4 mm gaps beside the pillar light strips and the 8 mm gaps in the desk slots, polymer walls 15 mm deep);
+  PBR: non-metal albedo 30–240: 0.15 % below, 0 % above; metal albedo ≥ 180: 0.06 % of 4,666 metal texels below;
+  emission: cyan strips exactly 70 170 255, switching texels 255 255 255; normal seams on the Body's flat faces: 61
+  samples, 0 over 6° (worst 1.9°). The Gate's seam check stepped 2.5 px toward each face's centroid, which on an
+  oblique seam put the two samples ~5 mm apart (one in a groove, one not: false 16° readings); the Terminal's check
+  samples the same 3D point from both islands and skips samples on deliberate relief (grooves, bolts) or within 4 mm
+  of a real edge (bevel zone).
+- **Iterations:** 512 test bake → 2048; dark metal texels in the cup ring (grime spared bare steel only partly) fixed;
+  black-AO patches at the beacon cage (overlapping cross bars, post tops inside the ring) fixed in the geometry; rust
+  4.7 → 7.1 % then the floor band removed (patchy instead) and the level set to 5.3 %; the concept-light renders were
+  too bright at first (paint read pale) — lights halved to the concept's values.
+- **Renders** (`Documentation/Media/terminal/`): `terminal_h2_vs_concept.jpg` (four concept cameras, concept-like
+  neutral light on the concept's mid-grey, beacon lit as in the concept), room position, 3/4, player view, button,
+  beacon, pillar, lower panels, side, Armed (3/4 and beacon close-up: three strips red, beacon red), dim facility light
+  (lamps at 40 %), flat maps. No white clipping in the render checks.
+- **Differences to the concept that remain** (texture level): the concept's rust reaches further into the panel
+  fields; its holo glass is paler / more teal than STYLE_GUIDE cyan; its frames read darker relative to the plates.
+
+### H3a — Unity preparation (cloud, no Unity)
+- **FBX** (`terminal_export.py`, EXPORT_CONTRACT hero mode, same procedure as `gate_export.py`):
+  `Assets/Environment/Heroes/Terminal/LAB_HERO_Terminal_{Body,Button,Indicators,Beacon,Display}_01.fbx` (Git LFS),
+  each at identity (mesh local to its origin), one material slot. Re-import check in bpy, all PASS: tris 1,670 / 140 / 30 / 112 / 2 (= export copy), root
+  transform identity, one material slot, review-file origins = the table above, custom normals (worst 0.027°, every
+  corner matched). World boxes: Body x −3.4 … −1.0, y 0 … 1.346, z −2.0 … −1.2; Button x −2.259 … −2.141, y 0.940 …
+  1.046; Indicators x −2.754 … −2.526; Beacon y 1.272 … 1.336; Display y 1.10 … 1.942, z −1.968 … −1.85.
+- **Textures** (Git LFS): `Textures/T_LAB_HERO_Terminal_{BaseColor,Normal,Mask,Emission}.png` (2048) and
+  `T_LAB_HERO_Terminal_Holo.png` (1024 × 512 RGBA).
+- **Builder** `Assets/Environment/Editor/TerminalBuilder.cs` (GateBuilder pattern; menu Tools > Labyrinth > Terminal:
+  Apply Import Settings / Build Terminal / Verify Terminal): model import settings (hero mode: normals + tangents
+  imported, no materials / animation / colliders), texture settings (BaseColor + Emission sRGB, Normal as normal map,
+  Mask linear with alpha; mipmaps; max 2048; Android ASTC 6x6, normal 4x4; Holo sRGB + alpha, clamp, max 1024,
+  ASTC 6x6). Materials `M_LAB_HERO_Terminal` (URP Lit, as M_LAB_HERO_Gate) and `M_LAB_HERO_Terminal_Holo` (URP Unlit,
+  transparent alpha blend, both faces, no depth write). `HERO_Terminal` at (−2.2, 0, −2.0) yaw 0 (HERO_SPEC §5), the
+  parts at their origins (table above), prefab `HERO_Terminal.prefab`. Colliders are primitives: Body 3 boxes
+  (Pillar_L, Pillar_R, desk + lower body), Button a sphere (r 0.06) for XRI; none on the display, indicators, beacon.
+  Verify: root placement, tris, origins, materials, no mesh colliders, footprint, button wiring and travel,
+  controller wiring, material keywords, holo material, texture settings.
+- **Runtime** (`Assets/Scripts/Facility/`): the button reuses **GateButton** unchanged (XRSimpleInteractable select →
+  cap moves `pressOffset` = −0.015 × desk normal = (0, −0.01449, −0.00388) in 0.08 s, `onPressed` at the bottom, back
+  in 0.15 s). New **TerminalController** (root): states Standby / Armed / Released; `Arm()` (wired persistently from
+  GateButton.onPressed; only the first press counts) turns the three indicators red and the beacon on at once
+  (HERO_SPEC §1 state 2) and invokes `onArmed` for FacilitySequence; `Release()` keeps them red (§9). Colours, emission
+  intensities and an optional beacon pulse are public fields. MaterialPropertyBlock on the Indicators and Beacon
+  renderers (`_EmissionColor`), no material copies; `[ExecuteAlways]`, so the Editor shows the Standby colours.
+- C# syntax-checked with tree-sitter-c-sharp (0 errors in both files); the Unity APIs follow GateBuilder /
+  GateButton. **Not compiled** (no Unity in the container).
+
+#### To verify in Unity (H3b, local)
+1. Recompile; no errors. Tools > Labyrinth > Terminal: Apply Import Settings; then `git diff` the .meta files
+   (normalImportMode 0, tangentImportMode 0, materialImportMode 0, Android overrides).
+2. Build Terminal on BasicScene (not saved by the builder); Verify Terminal → RESULT: PASS. Save the scene only when
+   asked. Commit the .meta files, prefab and the two materials.
+3. EXPORT_CONTRACT hero-mode comparison (vertex / normal / tangent) for at least the Body and the Button (first v3
+   hero import together with the Gate).
+4. Look: the switching strips show cyan in Edit Mode (TerminalController applies the block; if they glow white, the
+   block is missing); Body strips and the switching strips must match in colour and brightness (indicatorIntensity =
+   material emission intensity); no white clipping with the room's bloom / tonemapping.
+5. Holo screen: transparent both ways, readable from the player position, not sorting wrongly against the room's
+   other transparent objects (queue 3000); check its brightness against the strips (Unlit: its texture is its colour).
+6. Play Mode: GateButton context menu "Press" on Button → the cap moves 15 mm into the desk along its normal and back;
+   TerminalController goes Armed, three strips red, beacon red, `onArmed` fires once; a second press does nothing.
+   With the rig's ray / near-far interactor: select the button from the player position (0.15–0.30 in front).
+7. Teleport: the Body's box colliders block the teleport ray at the terminal (HERO_SPEC §10: the footprint may need
+   excluding from NAV_TeleportFloor); the player can stand 0.15–0.30 in front of the pillars.
+8. Quest: frame time with the two MaterialPropertyBlock renderers (they leave the SRP Batcher; 2 small meshes), the
+   transparent holo quad (1.5 × 0.85 m overdraw), ASTC quality of the normal map on the desk grooves; decide 2048 vs 1024.
+9. Lightmapping: the Body and Display can be static; the Button, Indicators and Beacon should not be baked with
+   emission (their emission changes at runtime).
 
 ## Open questions for the owner
 1. Pillar width: keep 0.30 (spec) or widen towards the concept (e.g. 0.36 → desk 1.68 wide, footprint unchanged)?

@@ -458,19 +458,19 @@ def beacon_seat(FC, sm, loop):
         a = math.radians(45 + 90 * k); cx, cz = c2[0] + r * math.cos(a), c2[1] + r * math.sin(a)
         sq = [(cx - t / 2, cz - t / 2), (cx + t / 2, cz - t / 2), (cx + t / 2, cz + t / 2), (cx - t / 2, cz + t / 2)]
         sm.tube([[P(q, h0 - 0.002) for q in sq], [P(q, h1 - t / 2) for q in sq]])
-        sm.f(*[P(q, h1 - t / 2) for q in reversed(sq)])
+        sm.set(cull=CULL); sm.f(*[P(q, h1 - t / 2) for q in reversed(sq)]); sm.set(cull=RAY)   # post top: inside the ring
     ro, ri = ring(r + t / 2, 16), ring(r - t / 2, 16)
     sm.tube([[P(q, h1 - t) for q in ro], [P(q, h1) for q in ro]])
     sm.tube([[P(q, h1 - t) for q in ri], [P(q, h1) for q in ri]])
     sm.bridge([P(q, h1) for q in ro], [P(q, h1) for q in ri]); sm.bridge([P(q, h1 - t) for q in ri], [P(q, h1 - t) for q in ro])
     sm.tag()
-    for a in (0.0, 90.0):                                                     # cross bars on the ring
-        e = (math.cos(math.radians(a)), math.sin(math.radians(a))); nrm = (-e[1], e[0]); L = r
-        q = lambda s_, w: (c2[0] + e[0] * s_ + nrm[0] * w, c2[1] + e[1] * s_ + nrm[1] * w)
-        sec = [q(-L, -t / 2), q(L, -t / 2), q(L, t / 2), q(-L, t / 2)]
-        hh = h1 - t / 2 + (0.0015 if a else 0.0)
-        sm.tube([[P(p, hh - t / 2) for p in sec], [P(p, hh + t / 2) for p in sec]])
-        sm.f(*[P(p, hh + t / 2) for p in reversed(sec)]); sm.f(*[P(p, hh - t / 2) for p in sec])
+    # top cross: one plus-shaped piece (two overlapping bars would leave hidden, black-AO faces where they cross)
+    h, L = t / 2, r
+    plus = [(h, -h), (L, -h), (L, h), (h, h), (h, L), (-h, L), (-h, h), (-L, h), (-L, -h), (-h, -h), (-h, -L), (h, -L)]
+    plus = [(c2[0] + u, c2[1] + w) for u, w in plus]
+    hp = h1 + 0.002                                                           # 2 mm above the ring: no coplanar tops
+    sm.tube([[P(q, hp - t) for q in plus], [P(q, hp) for q in plus]])
+    sm.f(*[P(q, hp) for q in reversed(plus)]); sm.f(*[P(q, hp - t) for q in plus])
     sm.set(zone=Z_NONE)
 
 

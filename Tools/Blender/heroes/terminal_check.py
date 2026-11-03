@@ -292,16 +292,16 @@ def concept_room(bg=67):
     lin = lambda v: ((v / 255.0 + 0.055) / 1.055) ** 2.4
     g = lin(bg)
     wt = sc.world.node_tree; wb = wt.nodes["Background"]
-    wb.inputs[0].default_value = (g, g, g, 1); wb.inputs[1].default_value = 0.6
+    wb.inputs[0].default_value = (g, g, g, 1); wb.inputs[1].default_value = 0.35
     cam_bg = wt.nodes.new("ShaderNodeBackground"); cam_bg.inputs[0].default_value = (g, g, g, 1)
     lp = wt.nodes.new("ShaderNodeLightPath"); mx = wt.nodes.new("ShaderNodeMixShader")
     wt.links.new(lp.outputs["Is Camera Ray"], mx.inputs[0]); wt.links.new(wb.outputs[0], mx.inputs[1])
     wt.links.new(cam_bg.outputs[0], mx.inputs[2])
     wt.links.new(mx.outputs[0], wt.nodes["World Output"].inputs["Surface"])
-    GC.add_light("CKey", L((-0.8, 3.4, 2.6)), L((0.0, 1.0, 0.4)), 140, 2.5)
-    GC.add_light("CFill", L((1.6, 1.6, 3.4)), L((0.0, 0.9, 0.4)), 70, 3.0)
-    GC.add_light("CTop", L((0.0, 4.0, 0.6)), L((0.0, 1.0, 0.4)), 60, 3.0)
-    GC.add_light("CSide", L((-3.5, 1.4, 0.6)), L((0.0, 0.9, 0.4)), 40, 2.0)
+    GC.add_light("CKey", L((-0.8, 3.4, 2.6)), L((0.0, 1.0, 0.4)), 75, 2.5)
+    GC.add_light("CFill", L((1.6, 1.6, 3.4)), L((0.0, 0.9, 0.4)), 30, 3.0)
+    GC.add_light("CTop", L((0.0, 4.0, 0.6)), L((0.0, 1.0, 0.4)), 35, 3.0)
+    GC.add_light("CSide", L((-3.5, 1.4, 0.6)), L((0.0, 0.9, 0.4)), 20, 2.0)
     hide_lights()
 
 
@@ -364,7 +364,7 @@ def concept(args):
     objs = open_file()
     if mode == "baked":
         import terminal_tex as TT
-        TT.apply_baked(objs)
+        TT.apply_baked(objs, beacon_on=True)                                 # the concept shows the beacon lit
     scene(samples=64 if mode == "baked" else 32)
     concept_room()
     comps = []
@@ -412,9 +412,9 @@ def hide_lights():
 
 
 def standard_lights():
-    return [GC.add_light("Key", L((0.8, 3.2, 2.2)), L((0.0, 1.0, 0.4)), 180, 1.6, (0.85, 0.92, 1.0)),
-            GC.add_light("Fill", L((-1.8, 1.6, 2.4)), L((0.0, 0.9, 0.4)), 45, 2.0, (0.7, 0.85, 1.0)),
-            GC.add_light("Rim", L((2.4, 2.6, 0.6)), L((1.0, 1.0, 0.4)), 30, 1.0, (1.0, 0.85, 0.7))]
+    return [GC.add_light("Key", L((0.8, 3.2, 2.2)), L((0.0, 1.0, 0.4)), 95, 1.6, (0.85, 0.92, 1.0)),      # Gate review levels
+            GC.add_light("Fill", L((-1.8, 1.6, 2.4)), L((0.0, 0.9, 0.4)), 22, 2.0, (0.7, 0.85, 1.0)),
+            GC.add_light("Rim", L((2.4, 2.6, 0.6)), L((1.0, 1.0, 0.4)), 15, 1.0, (1.0, 0.85, 0.7))]
 
 
 def _hide_after(f):
