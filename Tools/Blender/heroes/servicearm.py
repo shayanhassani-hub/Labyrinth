@@ -58,42 +58,44 @@ O = np.zeros(3)
 
 # --------------------------------------------------------------------------- dimensions (Unity metres, part-local)
 CH = 0.006                                    # large-edge chamfer (links, plate, disc)
+# H1b (owner review 2026-11-03: "thin and spindly", stowed layer may go to y 3.60): taller stack (turret hinge 0.07
+# under the ceiling, shoulder 0.16 under the turret: ceiling -> shoulder axis 0.23, concept ~0.25), links 0.16 / 0.14
+# tall, joints r 0.08-0.10. Widths and the X offsets (0.12 / 0.10) stay as HERO_SPEC.
 # Mount
-PLATE_H, PLATE_T, PLATE_CLIP = 0.20, 0.025, 0.012
-FRUST_TOP, FRUST_TOP_CLIP, FRUST_BOT, FRUST_BOT_CLIP, FRUST_Y0, FRUST_Y1 = 0.170, 0.060, 0.140, 0.050, 0.020, 0.048
+PLATE_H, PLATE_T, PLATE_CLIP = 0.20, 0.035, 0.012
+FRUST_TOP, FRUST_TOP_CLIP, FRUST_BOT, FRUST_BOT_CLIP, FRUST_Y0, FRUST_Y1 = 0.170, 0.060, 0.140, 0.050, 0.030, 0.068
 NUT_AT, NUT_AF, NUT_T = 0.172, 0.030, 0.016
-# Turret (origin 0.05 below the ceiling)
+# Turret (origin 0.07 below the ceiling)
 DISC_R, DISC_Y0, DISC_Y1 = 0.13, -0.002, -0.050       # bearing disc d 0.26 ...
-HUB_R, HUB_Y1 = 0.075, -0.072                         # ... over a narrower hub: total 0.07 (spec); the stowed forearm end
-                                              # passes under the disc at r >= 0.086 (a full-height disc would touch it)
+HUB_R, HUB_Y1 = 0.080, -0.072                         # ... over a narrower hub (the stowed forearm passes under the disc)
 BOSS_R, BOSS_Y, BOSS_X1 = 0.015, -0.026, 0.145     # on the disc side, clear of its chamfers
-SHOULDER_Y = -0.12                            # = T_UPPER
-CHEEK_X0, CHEEK_X1, CHEEK_R = -0.068, -0.108, 0.055
-CHEEK_CAP_R, CHEEK_CAP_X1 = 0.040, -0.123
-SWIVEL_X, SWIVEL_R = -0.145, 0.016            # cable swivel on the shoulder axis (-X side)
-CONN = dict(x0=-0.100, x1=-0.166, y0=-0.018, y1=-0.060, hz=0.022)
+SHOULDER_Y = -0.16                            # = T_UPPER
+CHEEK_X0, CHEEK_X1, CHEEK_R = -0.068, -0.118, 0.100   # the concept's big shoulder housing (-X), lobe r 0.10
+CHEEK_CAP_R, CHEEK_CAP_X1 = 0.068, -0.134
+SWIVEL_X, SWIVEL_R = -0.160, 0.016            # cable swivel on the shoulder axis (-X side)
+CONN = dict(x0=-0.100, x1=-0.182, y0=-0.018, y1=-0.062, hz=0.024)
 # UpperArm
-UA_HW, UA_HH, LUG_R = 0.06, 0.06, 0.044
-UA_TOP_RAMP = (0.135, 0.165)                  # lug top (0.044) -> link top (0.06): outside the turret disc (r 0.13)
-SLOT_CAP_R, SLOT_CAP_T = 0.036, 0.015
-ELBOW_CAP_R = 0.045
+UA_HW, UA_HH, LUG_R = 0.06, 0.08, 0.08        # 0.12 wide x 0.16 tall; the root is the full r 0.08 end (8 mm under the hub)
+SLOT_CAP_R, SLOT_CAP_T = 0.064, 0.018         # the concept's big slotted cap on the shoulder (+X, camera side)
+ELBOW_CAP_R = 0.085
 # Forearm
-FA_HW, FA_HH = 0.05, 0.05
-ELBOW_DISC_R, ELBOW_DISC_X1, ELBOW_HUB_R, ELBOW_HUB_X1 = 0.060, 0.067, 0.030, 0.082
-P_X = 0.115                                    # elbow swivel: forearm-local x (upper-local 0.235)
+FA_HW, FA_HH = 0.05, 0.07                     # 0.10 wide x 0.14 tall
+ELBOW_DISC_R, ELBOW_DISC_X1, ELBOW_HUB_R, ELBOW_HUB_X1 = 0.095, 0.072, 0.045, 0.090
+P_X = 0.128                                    # elbow swivel: forearm-local x (upper-local 0.248)
 # Wrist
-WR_HW, WR_R, WR_Z1 = 0.045, 0.05, -0.050
-WR_CAP_R, WR_CAP_X1 = 0.032, 0.060
-Q_X = 0.085                                    # wrist swivel: wrist-local x (forearm-local 0.185)
-NECK_R, NECK_Z0, NECK_Z1 = 0.042, -0.045, -0.062
+WR_HW, WR_R, WR_Z1 = 0.045, 0.065, -0.060
+WR_CAP_R, WR_CAP_X1 = 0.046, 0.062
+Q_X = 0.090                                    # wrist swivel: wrist-local x (forearm-local 0.190)
+NECK_R, NECK_Z0, NECK_Z1 = 0.050, -0.055, -0.075
 # ToolHead (origin TOOL_Z below the wrist axis)
 COLLAR_R, COLLAR_Z1 = 0.044, -0.035
 BLOCK_HY = 0.05
 BLOCK = [(-0.07, -0.145), (-0.05, -0.165), (0.055, -0.165), (0.07, -0.15), (0.07, -0.135), (0.035, -0.12),
          (0.035, -0.075), (0.07, -0.06), (0.07, -0.03), (-0.07, -0.03)]          # (x, z): the concept's side notch
 PIN_R, PIN_Z0, PIN_Z1 = 0.018, -0.160, -0.200
-# cables
-CABLE_R, CABLE_N = 0.011, 8
+# cables: thick corrugated conduit + thin black cable beside it (the concept's pair)
+CABLE_R, CABLE_N = 0.012, 8
+THIN_R, THIN_N, THIN_OFF = 0.0055, 6, 0.020
 SEG = dict(big=32, mid=24, small=16, tiny=12)
 
 
@@ -241,9 +243,9 @@ def simplify(path, turn=7.0, max_len=0.25):
     return keep
 
 
-def cable(sm, ctrl, r=CABLE_R, n=CABLE_N):
-    """tube along a Catmull-Rom curve through ctrl (parallel-transport rings), flat end caps"""
-    path = catmull(ctrl)
+def tube(sm, path, r, n, mat):
+    """tube along a sampled path (parallel-transport rings), flat end caps"""
+    path = [np.asarray(p, float) for p in path]
     T = [path[1] - path[0]] + [path[i + 1] - path[i - 1] for i in range(1, len(path) - 1)] + [path[-1] - path[-2]]
     T = [t / np.linalg.norm(t) for t in T]
     a = np.cross(T[0], X if abs(T[0] @ X) < 0.9 else Y); a /= np.linalg.norm(a)
@@ -254,10 +256,16 @@ def cable(sm, ctrl, r=CABLE_R, n=CABLE_N):
         b = np.cross(T[i], a)
         rings.append([tuple(p + r * (math.cos(2 * math.pi * (k + 0.5) / n) * a + math.sin(2 * math.pi * (k + 0.5) / n) * b))
                       for k in range(n)])
-    keep = sm.mat; sm.mat = CABLE
+    keep = sm.mat; sm.mat = mat
     sm.kind = ROUND; sm.tube(rings)
     sm.kind = FLAT; sm.region([rings[0]]); sm.region([rings[-1]])
     sm.mat = keep
+
+
+def cable(sm, ctrl, r=CABLE_R, n=CABLE_N):
+    """the thick conduit along a Catmull-Rom curve through ctrl"""
+    path = catmull(ctrl)
+    tube(sm, path, r, n, CABLE)
     return path
 
 
@@ -323,10 +331,10 @@ def build_turret(detail=True):
     cylinder(sm, fr, (0, 0), HUB_R, SEG["mid"], -DISC_Y1 - 0.004, -HUB_Y1, 0.0, 0.004)
     # shoulder bracket (single cheek on -X, the forearm folds on +X): profile (z, y)
     cheek, ck = profile((arc((0, SHOULDER_Y), CHEEK_R, 180, 360, 8), ROUND),
-                        ([(CHEEK_R, -0.095), (0.09, -0.045), (-0.09, -0.045), (-CHEEK_R, -0.095)], FLAT))
+                        ([(CHEEK_R, -0.095), (0.125, -0.045), (-0.125, -0.045), (-CHEEK_R, -0.095)], FLAT))
     solid(sm, cheek, ck, fr_side(), CHEEK_X1, CHEEK_X0, 0.004, 0.004)
     # pin stub between cheek and lug (2 mm short of the lug)
-    cylinder(sm, fr_side(), (0, SHOULDER_Y), 0.022, SEG["mid"], CHEEK_X0 - 0.004, -UA_HW - 0.002, 0.0, 0.0015)
+    cylinder(sm, fr_side(), (0, SHOULDER_Y), 0.030, SEG["mid"], CHEEK_X0 - 0.004, -UA_HW - 0.002, 0.0, 0.0015)
     if detail:
         cylinder(sm, fr_side(), (0, SHOULDER_Y), CHEEK_CAP_R, SEG["mid"], CHEEK_CAP_X1, CHEEK_X1 + 0.004, 0.004, 0.0)
         cylinder(sm, fr_side(), (0, BOSS_Y), BOSS_R, SEG["small"], DISC_R - 0.008, BOSS_X1, 0.0, 0.003)   # side boss
@@ -336,49 +344,60 @@ def build_turret(detail=True):
         solid(sm, [(-p[0], p[1]) for p in box], [FLAT] * 4, (O, -X, Y, Z), -CONN["hz"], CONN["hz"], 0.003, 0.003)
         sm.mat = STEEL
         cylinder(sm, fr_down(), (SWIVEL_X, 0), 0.014, SEG["tiny"], -CONN["y1"] - 0.002, -CONN["y1"] + 0.010, 0.0, 0.002)  # gland
-        cylinder(sm, fr_side(), (0, SHOULDER_Y), SWIVEL_R, SEG["small"], -0.165, CHEEK_CAP_X1 + 0.002, 0.003, 0.0)
+        cylinder(sm, fr_side(), (0, SHOULDER_Y), SWIVEL_R, SEG["small"], SWIVEL_X - 0.020, CHEEK_CAP_X1 + 0.002, 0.003, 0.0)
         cable(sm, CABLES["Turret"]())
     return sm.finish(f"{HERO}_Turret_01")
 
 
-UA_CABLE = [(SWIVEL_X, 0.0, SWIVEL_R + 0.003), (SWIVEL_X, 0.0, 0.08), (-0.14, 0.012, 0.15), (-0.10, 0.045, 0.22),
-            (-0.04, 0.078, 0.28), (0.02, 0.078, 0.34), (0.025, 0.078, 0.42), (0.025, 0.078, 0.80),
-            (0.04, 0.086, 0.90), (0.10, 0.100, 0.975), (0.17, 0.103, 1.02), (0.235, 0.090, 1.065),
-            (0.235, 0.050, 1.075), (0.235, 0.028, 1.030)]
+UA_CABLE = [(SWIVEL_X, 0.0, SWIVEL_R + 0.003), (SWIVEL_X, 0.0, 0.09), (-0.155, 0.02, 0.17), (-0.11, 0.07, 0.25),
+            (-0.04, 0.099, 0.31), (0.02, 0.099, 0.37), (0.025, 0.099, 0.45), (0.025, 0.099, 0.80),
+            (0.04, 0.11, 0.90), (0.10, 0.128, 0.975), (0.17, 0.133, 1.02), (0.248, 0.12, 1.075),
+            (0.248, 0.07, 1.10), (0.248, 0.035, 1.045)]
 UA_CLIPS = (0.50, 0.74)
+CABLE_TOP_UA, CABLE_TOP_FA = 0.099, 0.089      # cable centre over the link tops (7 mm stand-off)
 
 
 def ua_cable_ctrl():
     c = list(UA_CABLE)
-    # last point: radial approach to the elbow swivel P (upper-local (0.235, 0, 1.00)) along 45 deg, 2 mm off it
-    d = (SWIVEL_R + 0.003) / math.sqrt(2)
-    c.append((0.235, d, 1.0 + d))
+    d = (SWIVEL_R + 0.003) / math.sqrt(2)       # radial approach to the elbow swivel along 45 deg, 2 mm off it
+    c.append((0.12 + P_X, d, 1.0 + d))
     return c
+
+
+def thin_cable(sm, ctrl, fade=0.10):
+    """the thin cable: the thick cable's curve shifted +X by THIN_OFF on the straight runs, fading into it over
+    `fade` at both ends (so both end at the same swivel point, hidden inside the thick one)"""
+    path = np.array(catmull(ctrl, 0.008), float)
+    L = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(path, axis=0), axis=1))])
+    w = np.clip(np.minimum(L, L[-1] - L) / fade, 0, 1); w = w * w * (3 - 2 * w)
+    pts = path + np.outer(w * THIN_OFF, X)
+    keep = sm.mat; sm.mat = POLYMER
+    tube(sm, simplify(list(pts)), THIN_R, THIN_N, POLYMER)
+    sm.mat = keep
 
 
 def build_upper(detail=True):
     sm = ArmMesh(); sm.mat = PAINT
-    r0, r1 = UA_TOP_RAMP
     prof, kinds = profile(
-        ([(0.0229, -UA_HH), (1.0, -UA_HH)], FLAT),
+        ([(0.0, -UA_HH), (1.0, -UA_HH)], FLAT),
         (arc((1.0, 0), UA_HH, -90, 90, 12), ROUND),
-        ([(1.0, UA_HH), (r1, UA_HH), (r0, LUG_R)], FLAT),
-        (arc((0, 0), LUG_R, 90, 270, 12), ROUND),
-        ([(0.0, -LUG_R), (0.0229, -UA_HH)], FLAT))   # 35 deg: a crisp corner
+        ([(1.0, UA_HH), (0.0, UA_HH)], FLAT),
+        (arc((0, 0), LUG_R, 90, 270, 12), ROUND))
     solid(sm, prof, kinds, fr_side(), -UA_HW, UA_HW)
     if detail:
-        cylinder(sm, fr_side(), (0, 0), SLOT_CAP_R, SEG["mid"], UA_HW - 0.004, UA_HW + SLOT_CAP_T, 0.0, 0.003)
-        cylinder(sm, fr_side(), (1.0, 0), ELBOW_CAP_R, SEG["mid"], -UA_HW - 0.015, -UA_HW + 0.004, 0.003, 0.0)
-        cylinder(sm, fr_side(), (1.0, 0), 0.035, SEG["mid"], UA_HW - 0.004, 0.068, 0.0, 0.0015)    # elbow hub washer
+        cylinder(sm, fr_side(), (0, 0), SLOT_CAP_R, SEG["big"], UA_HW, UA_HW + SLOT_CAP_T, 0.0, 0.004)
+        cylinder(sm, fr_side(), (1.0, 0), ELBOW_CAP_R, SEG["big"], -UA_HW - 0.016, -UA_HW, 0.004, 0.0)
+        cylinder(sm, fr_side(), (1.0, 0), 0.045, SEG["mid"], UA_HW, 0.068, 0.0, 0.0015)    # elbow hub washer
         cable(sm, CABLES["UpperArm"]())
+        thin_cable(sm, CABLES["UpperArm"]())
         for zc in UA_CLIPS:
-            clip(sm, (0.025, 0.078, zc), Z, Y, foot=0.023)
+            clip(sm, (0.035, CABLE_TOP_UA, zc), Z, Y, foot=0.026, half=0.025)   # 0.010 ... 0.060: inside the top
     return sm.finish(f"{HERO}_UpperArm_01")
 
 
-FA_CABLE = [(P_X, 0.0, -(SWIVEL_R + 0.003)), (P_X, 0.0, -0.06), (0.105, 0.022, -0.12), (0.07, 0.052, -0.17),
-            (0.03, 0.068, -0.22), (0.02, 0.068, -0.30), (0.02, 0.068, -0.72), (0.03, 0.074, -0.78),
-            (0.08, 0.088, -0.85), (0.14, 0.092, -0.895), (Q_X + 0.10, 0.080, -0.90), (Q_X + 0.10, 0.040, -0.90)]
+FA_CABLE = [(P_X, 0.0, -(SWIVEL_R + 0.003)), (P_X, 0.0, -0.07), (0.115, 0.03, -0.14), (0.08, 0.075, -0.20),
+            (0.024, 0.089, -0.26), (0.012, 0.089, -0.32), (0.012, 0.089, -0.70), (0.024, 0.095, -0.77),
+            (0.08, 0.110, -0.85), (0.15, 0.115, -0.895), (Q_X + 0.10, 0.100, -0.90), (Q_X + 0.10, 0.050, -0.90)]
 FA_CLIPS = (-0.40, -0.62)
 
 
@@ -400,10 +419,11 @@ def build_forearm(detail=True):
         sm.mat = STEEL
         cylinder(sm, fr_side(), (0, 0), SWIVEL_R, SEG["small"], ELBOW_HUB_X1 - 0.002, P_X + 0.012, 0.0, 0.003)
         sm.mat = PAINT
-        cylinder(sm, fr_side(), (-0.90, 0), 0.030, SEG["mid"], FA_HW - 0.004, 0.052, 0.0, 0.0015)   # wrist washer
+        cylinder(sm, fr_side(), (-0.90, 0), 0.040, SEG["mid"], FA_HW, 0.052, 0.0, 0.0015)   # wrist washer
         cable(sm, CABLES["Forearm"]())
+        thin_cable(sm, CABLES["Forearm"]())
         for zc in FA_CLIPS:
-            clip(sm, (0.02, 0.068, zc), -Z, Y, foot=0.023)
+            clip(sm, (0.022, CABLE_TOP_FA, zc), -Z, Y, foot=0.026, half=0.024)   # -0.002 ... 0.046: inside the top
     return sm.finish(f"{HERO}_Forearm_01")
 
 
@@ -417,10 +437,10 @@ def build_wrist(detail=True):
     cylinder(sm, fr_axis_z(), (0, 0), NECK_R, SEG["mid"], -NECK_Z0 - 0.004, -NECK_Z1, 0.0, 0.003)
     if detail:
         sm.mat = PAINT
-        cylinder(sm, fr_side(), (0, 0), WR_CAP_R, SEG["mid"], WR_HW - 0.004, WR_CAP_X1, 0.0, 0.003)
+        cylinder(sm, fr_side(), (0, 0), WR_CAP_R, SEG["mid"], WR_HW, WR_CAP_X1, 0.0, 0.003)
         sm.mat = STEEL
         cylinder(sm, fr_side(), (0, 0), 0.014, SEG["small"], WR_CAP_X1 - 0.002, Q_X + 0.010, 0.0, 0.003)
-        cylinder(sm, fr_side(), (-0.049, 0), 0.010, SEG["tiny"], WR_HW - 0.004, 0.062, 0.0, 0.002)   # cable gland (6 mm over the tool)
+        cylinder(sm, fr_side(), (-0.062, 0), 0.010, SEG["tiny"], WR_HW, 0.064, 0.0, 0.002)   # cable gland (6 mm over the tool)
         cable(sm, CABLES["Wrist"]())
     return sm.finish(f"{HERO}_Wrist_01")
 
@@ -439,7 +459,7 @@ CABLES = {   # cable control points per part (part-local); servicearm_tex.py use
     "Turret": lambda: [(SWIVEL_X, CONN["y1"] - 0.008, 0.0), (SWIVEL_X, SHOULDER_Y + SWIVEL_R + 0.003, 0.0)],
     "UpperArm": lambda: ua_cable_ctrl(),
     "Forearm": lambda: fa_cable_ctrl(),
-    "Wrist": lambda: [(Q_X, 0.0, -0.017), (Q_X, 0.0, -0.032), (0.076, 0.0, -0.046), (0.066, 0.0, -0.049)]}
+    "Wrist": lambda: [(Q_X, 0.0, -0.017), (Q_X, 0.0, -0.035), (0.080, 0.0, -0.058), (0.068, 0.0, -0.062)]}
 
 
 BUILDERS = {"Mount": build_mount, "Turret": build_turret, "UpperArm": build_upper, "Forearm": build_forearm,
@@ -541,10 +561,18 @@ def _is_hard(e):
 
 
 def uv_density(o, isl):
+    """cable tubes (thick conduit, thin cable: long, thin, seen from metres away) at half density, so the arm fits
+    one 1024 sheet; everything else full"""
+    mats = {f.material_index for f in isl}
+    if mats == {CABLE}: return 0.5
+    if mats == {POLYMER} and all(len(f.verts) == 4 for f in isl) and sum(f.calc_area() for f in isl) > 0.02: return 0.5
     return 1.0
 
 
 def unwrap_and_pack(parts):
+    UV.TEX = SHEET
+    UV.MAX_STRIP = 1.9                          # longest island (m): fits the 1024 sheet at 512 px/m (cradle_v2_uv: 4.1 at 2048)
+    UV.PAD_PX, UV.BORDER_PX = 4, 2              # ASSET_RULES 8 / 4 px at 2048 = 4 / 2 px at 1024 (same size on the model)
     UV.is_hard = _is_hard
     UV.HARD_DEG = 0.0
     rep = {}
@@ -553,11 +581,18 @@ def unwrap_and_pack(parts):
         _HARD.clear(); _HARD.update(hard_edge_keys(o.data))
         rep[o.name] = UV.unwrap_object(o)
         UV.scale_islands(o, lambda isl, o=o: uv_density(o, isl))
-    rep["px_per_m"] = round(pack_fixed(parts, TEXEL), 1)
+    d = TEXEL
+    while True:                                  # 512 px/m, or the highest density within -10 % that fits the sheet
+        try:
+            rep["px_per_m"] = round(pack_fixed(parts, d), 1); break
+        except AssertionError:
+            d -= 4.0
+            if d < TEXEL * 0.9: raise
     return rep
 
 
-TEXEL = 512.0                                   # ASSET_RULES hero density (px/m at 2048)
+TEXEL = 512.0                                   # ASSET_RULES hero density (px/m)
+SHEET = 1024                                    # H1b (owner): one 1024 sheet; the arm is far from the player
 
 
 def pack_fixed(objs, d):
@@ -575,7 +610,9 @@ def pack_fixed(objs, d):
     for key in UV.ORDERS:
         pos = UV._skyline(rects, UV.TEX, UV.TEX, key)
         if pos: break
-    assert pos, "islands do not fit the sheet at this density"
+    if not pos:
+        for o, bm, uvl in bms: bm.free()
+        raise AssertionError("islands do not fit the sheet at this density")
     T = UV.TEX
     for (uvl, isl, mn, sz), (x, y, turned) in zip(isls, pos):
         ox = (x + UV.PAD_PX // 2 + 0.5) / T; oy = (y + UV.PAD_PX // 2 + 0.5) / T

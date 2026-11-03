@@ -40,7 +40,7 @@ MEDIA = os.path.join(PROJ, "Documentation", "Media", "servicearm")
 REF = os.path.join(PROJ, "Documentation", "References", "ServiceArm")
 CONCEPT_SIDE = os.path.join(REF, "servicearm_ortho_side.jpg")
 CONCEPT_FRONT = os.path.join(REF, "servicearm_front.jpg")
-TEX = 2048
+TEX = 1024                                               # H1b: one 1024 sheet
 TWIST_MAX = 0.002
 FLAT_TOL = 0.5
 
@@ -151,7 +151,7 @@ def raster_labels(objs):
     return lab
 
 
-def padding(lab, gap_px=8):
+def padding(lab, gap_px=4):
     close = None
     for dy in range(-gap_px + 1, gap_px):
         for dx in range(-gap_px + 1, gap_px):
@@ -233,16 +233,16 @@ def topo(args):
               f"max {per[name]['min']} / {per[name]['median']} / {per[name]['max']}")
     gap, border = padding(lab)
     fill = (lab > 0).mean()
-    print(f"{'PASS' if gap is None else 'FAIL'} island padding >= 8 px" + ("" if gap is None else f" (closest {gap} px)"))
-    print(f"{'PASS' if border >= 4 else 'FAIL'} sheet border >= 4 px ({border} px)")
+    print(f"{'PASS' if gap is None else 'FAIL'} island padding >= 4 px (1024 sheet)" + ("" if gap is None else f" (closest {gap} px)"))
+    print(f"{'PASS' if border >= 2 else 'FAIL'} sheet border >= 2 px ({border} px)")
     med = float(np.median([v["median"] for v in per.values()]))
-    print(f"{'PASS' if abs(med - 512) <= 51 else 'FAIL'} texel density 512 px/m +-10 % (median of the part medians {med:.0f})")
-    print(f"INFO packing {fill * 100:.1f} % of the 2048 sheet")
+    print(f"{'PASS' if abs(med - 512) <= 51.2 else 'FAIL'} texel density 512 px/m +-10 % (median of the part medians {med:.0f})")
+    print(f"INFO packing {fill * 100:.1f} % of the {TEX} sheet")
     out["_uv"] = dict(padding_close=gap, border_px=border, fill=round(float(fill), 3))
     os.makedirs(SCR, exist_ok=True)
     np.save(os.path.join(SCR, "uv_labels.npy"), lab)
     json.dump(out, open(os.path.join(SCR, "topo.json"), "w"), indent=1)
-    print("RESULT:", "PASS" if ok_all and gap is None and border >= 4 else "FAIL")
+    print("RESULT:", "PASS" if ok_all and gap is None and border >= 2 else "FAIL")
 
 
 # --------------------------------------------------------------------------- clearance

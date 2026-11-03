@@ -28,11 +28,11 @@ DRONE_FBX = os.path.join(PROJ, "Assets", "Drone_Asset", "drone_low.fbx")
 
 MOUNT = np.array([0.0, 4.00, 5.30])
 CEILING_Y = 4.00
-T_TURRET = np.array([0.0, -0.05, 0.0])
-T_UPPER = np.array([0.0, -0.12, 0.0])
+T_TURRET = np.array([0.0, -0.07, 0.0])            # H1b: 0.05 -> 0.07 (taller mount, owner review)
+T_UPPER = np.array([0.0, -0.16, 0.0])             # H1b: 0.12 -> 0.16 (big shoulder housing)
 T_FORE = np.array([0.12, 0.0, 1.00])
 T_WRIST = np.array([0.10, 0.0, -0.90])
-TOOL_Z = 0.065                      # tool origin below the wrist hinge (wrist body 0.050 + neck 0.012 + 3 mm gap)
+TOOL_Z = 0.078                      # tool origin below the wrist hinge (wrist body 0.060 + neck 0.015 + 3 mm gap)
 TIP_Z = 0.200                       # ToolHead length (HERO_SPEC 0.20): collar + ochre block + pin
 L_UPPER, L_FORE = 1.00, 0.90
 PARTS = ["Mount", "Turret", "UpperArm", "Forearm", "Wrist", "ToolHead"]
@@ -51,7 +51,7 @@ DRONE_LOW_SCALE = 0.59
 
 # clearance rule (HERO_SPEC §4, option B, owner decision 2026-11-03)
 DISC_MIN, DRONE_MIN, DISC_FLOOR_Y = 0.100, 0.050, 2.00
-STOW_Y0, STOW_Y1 = 3.77, 3.95
+STOW_Y0, STOW_Y1 = 3.60, 3.95                 # owner decision 2026-11-03 (was 3.77)
 DRONE_VOLUME = ((-2.45, 2.39), (1.19, 3.48), (2.84, 6.32))   # released-state rule (HERO_SPEC §2)
 
 

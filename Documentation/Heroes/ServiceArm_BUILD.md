@@ -233,3 +233,44 @@ Written and checked in the cloud (bpy 5.2.2, no Unity); H3b runs it in the Edito
   The cradle sits below the drone (yoke arms around the body), the arm's lowest point is the tool tip at y 2.04 over
   the drone's top — expected clear, **not checked**.
 - FacilitySequence wiring (terminal button → `RequestFold`, `onStowed` → lever armed).
+
+## Owner decision 2026-11-03 — HERO_SPEC §4 change to apply at merge
+
+Owner review of H2 vs the concept: "the arm reads thin and spindly; the concept is chunky". Decision: **the stowed
+layer may go down to y 3.60** (0.12 above the drone volume top 3.48; was 3.77). HERO_SPEC is read-only for this
+branch, so apply these §4 changes when merging:
+- Stowed pose: "One flat layer at **y 3.60 … 3.95**, 0.12 above the drone volume" (was 3.77 … 3.95, 0.29 above).
+- Table: Turret hinge **(0, −0.07, 0)** (was −0.05), UpperArm shoulder **(0, −0.16, 0)** (was −0.12); UpperArm
+  **0.12 × 0.16 × 1.00**, Forearm **0.10 × 0.14 × 0.90** (were 0.12 / 0.10 tall); ToolHead on the wrist 0.078 below
+  its hinge. Widths and the X offsets 0.12 / 0.10 unchanged.
+- Working pose: turret +21.14°, shoulder +78.61°, elbow −110.22°, wrist −58.39°, tip (0, 2.04, 4.69); reach
+  shoulder → wrist 1.559 (available 1.90).
+- Stowed footprint and the texture sheet: see H1b below.
+
+## H1b / H2b — chunkier arm toward the concept (2026-11-03)
+
+One look iteration on the owner's review (limited budget).
+- **Stack:** plate 0.035 + adapter to 0.068, turret hinge 0.07 under the ceiling, shoulder axis 0.16 under the turret:
+  ceiling → shoulder 0.23 m (concept ≈ 0.25, was 0.17).
+- **Links:** upper arm 0.12 × 0.16, forearm 0.10 × 0.14 (were 0.12 / 0.10 tall). The upper arm's root is now its full
+  r 0.08 end (8 mm under the turret hub; the lug / ramp of H1 is gone).
+- **Joints:** the concept's big shoulder housing on −X (lobe r 0.10, reaching 0.125 fore and aft, outer cap r 0.068
+  with 8 bolts) and the big slotted cap r 0.064 on the shoulder (+X, camera side); elbow disc r 0.095 with an 8-bolt
+  circle (r 0.072) and hub r 0.045 (was r 0.06); upper-arm elbow cap r 0.085; wrist knuckle r 0.065, cap r 0.046
+  (6 bolts), neck r 0.05. Link widths stay 0.12 / 0.10 (the 0.12 / 0.10 offsets would otherwise close the gaps).
+- **Cables:** the thick corrugated conduit (Ø 24 mm) plus a thin black cable (Ø 11 mm) beside it on the link tops,
+  both under wider band clamps; the thin cable follows the thick one's curve 20 mm to the side and fades into it
+  0.10 m before each swivel, so both still meet on the hinge axes.
+- **Working pose:** same tool tip; with the lower shoulder the elbow bends more (interior 110°, was 118°). More bend
+  would need *longer* links (the tip is fixed, so shorter links straighten the arm); the concept's ~54° Z is not
+  reachable with HERO_SPEC lengths — the concept pose stays a render-only comparison pose.
+- **UVs:** one **1024** sheet (owner), 512 px/m on everything except the two cable tubes (256 px/m: long, thin, seen
+  from metres away); padding 4 px / border 2 px at 1024 (= ASSET_RULES 8 / 4 at 2048); islands capped at 1.9 m so the
+  1.27 m-long upper-arm wall strip splits. Packing 56 % of the sheet.
+- **Results:** 5,245 tris (Mount 420, Turret 936, UpperArm 1,628, Forearm 1,425, Wrist 564, ToolHead 272); topology,
+  shading, UV checks PASS. Texture checks PASS at 1024 (AO black, PBR, rust 6.9 %, emission only in the strips,
+  seams: ≤ 10 % of the seam samples per part may exceed 6° — they are bolt circles and grooves crossing the split
+  housing-cap face, printed by the check). FBX re-export + re-import check PASS. Builder / driver numbers updated
+  (local positions, tris, stowed layer 3.60, MaxTextureSize 1024, working angles); C# parses, not compiled.
+- Renders: `Documentation/Media/servicearm/servicearm_h2b_*` (vs_concept, vs_concept_side, working_34,
+  working_player, closeup_elbow, closeup_tool, stowed_34, stowed_close, maps).

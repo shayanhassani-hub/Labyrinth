@@ -37,10 +37,10 @@ namespace LabyrinthVR.Gameplay
         [Header("Working pose (deg; HERO_SPEC 4, IK in servicearm_kin.py)")]
         [Tooltip("Turret yaw: brings the +X elbow/wrist offsets (0.22 m) onto the drone's centre line.")]
         public float workTurretYaw = 21.14f;
-        public float workShoulder = 81.18f;
-        public float workElbow = -117.79f;
+        public float workShoulder = 78.61f;
+        public float workElbow = -110.22f;
         [Tooltip("Keeps the tool vertical; tip 0.05 above the drone's top (y 2.04).")]
-        public float workWrist = -53.38f;
+        public float workWrist = -58.39f;
 
         [Header("Stowed pose (deg)")]
         public float stowTurretYaw = 0f;

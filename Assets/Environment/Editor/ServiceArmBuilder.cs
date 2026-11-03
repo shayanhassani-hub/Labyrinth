@@ -11,11 +11,11 @@
 //
 //   HERO_ServiceArm (0, 0, 0), yaw 0                    ServiceArmDriver (joints wired below)
 //     Mount     (0, 4.00, 5.30)    ceiling face
-//       Turret    (0, -0.05, 0)      yaw   about Y
-//         UpperArm  (0, -0.12, 0)      pitch about X
+//       Turret    (0, -0.07, 0)      yaw   about Y
+//         UpperArm  (0, -0.16, 0)      pitch about X
 //           Forearm   (0.12, 0, 1.00)    pitch about X
 //             Wrist     (0.10, 0, -0.90)   pitch about X
-//               ToolHead  (0, 0, -0.065)     roll  about Z
+//               ToolHead  (0, 0, -0.078)     roll  about Z
 // The builder leaves the arm in the working pose (ServiceArmDriver's values); Play starts the idle from there.
 //
 // One material M_LAB_HERO_ServiceArm (URP Lit, metallic workflow) exactly as the Gate: BaseColor, Normal (OpenGL),
@@ -48,23 +48,23 @@ namespace LabyrinthVR.EnvironmentTools
 
         // Hand-tuned values (owner may change in the Editor or here)
         public static float EmissionIntensity = 1.0f;     // the cyan strips must not clip to white
-        public static int MaxTextureSize = 2048;          // the arm fills 12 % of the sheet at 512 px/m: 1024 is an option after the Quest test
+        public static int MaxTextureSize = 1024;          // H2b (owner): one 1024 sheet at 512 px/m
 
         // part -> (fbx, parent, local position, triangles) - HERO_SPEC section 4 chain, servicearm_kin.py
         static readonly (string fbx, string name, string parent, Vector3 local, int tris)[] Parts =
         {
             (Hero + "Mount_01", "Mount", null, new Vector3(0f, 4.00f, 5.30f), 420),
-            (Hero + "Turret_01", "Turret", "Mount", new Vector3(0f, -0.05f, 0f), 950),
-            (Hero + "UpperArm_01", "UpperArm", "Turret", new Vector3(0f, -0.12f, 0f), 1198),
-            (Hero + "Forearm_01", "Forearm", "UpperArm", new Vector3(0.12f, 0f, 1.00f), 1137),
-            (Hero + "Wrist_01", "Wrist", "Forearm", new Vector3(0.10f, 0f, -0.90f), 546),
-            (Hero + "ToolHead_01", "ToolHead", "Wrist", new Vector3(0f, 0f, -0.065f), 272),
+            (Hero + "Turret_01", "Turret", "Mount", new Vector3(0f, -0.07f, 0f), 936),
+            (Hero + "UpperArm_01", "UpperArm", "Turret", new Vector3(0f, -0.16f, 0f), 1628),
+            (Hero + "Forearm_01", "Forearm", "UpperArm", new Vector3(0.12f, 0f, 1.00f), 1425),
+            (Hero + "Wrist_01", "Wrist", "Forearm", new Vector3(0.10f, 0f, -0.90f), 564),
+            (Hero + "ToolHead_01", "ToolHead", "Wrist", new Vector3(0f, 0f, -0.078f), 272),
         };
 
         // Tool tip in ToolHead space and the HERO_SPEC 4 targets the Verify checks against
         static readonly Vector3 ToolTipLocal = new Vector3(0f, 0f, -0.20f);
         static readonly Vector3 WorkingTip = new Vector3(0f, 2.04f, 4.69f);
-        const float StowY0 = 3.77f, StowY1 = 3.95f;
+        const float StowY0 = 3.60f, StowY1 = 3.95f;   // owner decision 2026-11-03 (HERO_SPEC 4 change at merge)
 
         static readonly (string map, bool srgb, bool normal, TextureImporterFormat astc)[] Maps =
         {
