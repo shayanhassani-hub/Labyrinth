@@ -60,37 +60,37 @@ Rule (ASSET_RULES depth rule): ≥ 15 mm → geometry, smaller → normal map / 
 
 | # | Feature (concept) | How | H1 | H2 |
 |---|---|---|---|---|
-| 1 | Square ceiling plate, chamfered edge | geometry (0.40 × 0.025, 45° corner clips 12 mm, 6 mm chamfer) | ✓ | |
-| 2 | 4 hex nuts + stud ends on the plate underside | geometry (30 mm AF × 16 mm) | ✓ | |
-| 3 | Washers under the nuts | normal map (3 mm) | n/a (map) | |
-| 4 | Octagonal adapter under the plate | geometry (frustum 0.34 → 0.28, 23 mm) | ✓ | |
-| 5 | Adapter side ports (rectangular slot, oval slot) | normal map + dark texture | n/a (map) | |
-| 6 | Small bolts on the adapter | normal map | n/a (map) | |
-| 7 | Turret bearing disc Ø 0.26 × 0.07 | geometry (32 sides, 6 mm chamfers) | ✓ | |
-| 8 | Turret groove ring | normal map | n/a (map) | |
-| 9 | Round boss on the turret side | geometry (Ø 30 mm, 23 mm proud; H2: smaller and higher, clear of the disc chamfers) | ✓ | |
-| 10 | Shoulder housing / bracket | geometry (cheek on −X, rounded r 0.055) | ✓ | |
-| 11 | Shoulder slotted cap | geometry (Ø 72 mm × 15 mm); slot normal map | ✓ | |
-| 12 | Bracket outer cap | geometry (Ø 80 mm) | ✓ | |
-| 13 | Cable connector box with gland | geometry (box into the cheek, 42 × 44 mm face + gland) | ✓ | |
-| 14 | Link bodies with chamfered edges | geometry (6 / 5 mm chamfers), rounded ends on the hinges | ✓ | |
-| 15 | Link end collars (wider bands) | normal map + texture (the step is < 15 mm) | n/a (map) | |
-| 16 | Side panel: groove outline, raised plate with stepped edge | normal map | n/a (map) | |
-| 17 | Panel bolts, link-end bolts | normal map | n/a (map) | |
-| 18 | Cyan light strip on each link side | emission + normal map (slot < 15 mm) | n/a (map) | |
-| 19 | Elbow: big disc with 8-bolt ring and centre cap | geometry disc r 0.06 × 17 mm, cap r 0.03 × 15 mm; bolts normal map | ✓ | |
-| 20 | Wrist: rounded knuckle with small cap | geometry (cap Ø 64 mm) | ✓ | |
-| 21 | Wrist neck with ring grooves | geometry (Ø 84 mm); grooves normal map | ✓ | |
-| 22 | Tool collar (steel) | geometry (Ø 88 mm × 35 mm) | ✓ | |
-| 23 | Ochre tool block with the side notch | geometry (0.14 × 0.10 × 0.135, notch 35 mm) | ✓ | |
-| 24 | Tool bolts, soot / grime on the ochre | normal map, texture | n/a (map) | |
-| 25 | Steel pin | geometry (Ø 36 × 40 mm) | ✓ | |
-| 26 | Flexible conduit along the arm | geometry tube Ø 22 mm (8 sides) on clips; corrugation normal map | ✓ | |
-| 27 | Cable clips (band clamps) | geometry (34 × 16 mm arches) | ✓ | |
-| 28 | Slack loops at the joints | geometry: over the elbow and wrist ends, joined on the hinge axes at swivels | ✓ | |
-| 29 | Second, thinner cable beside the conduit | left out at H0 (see open points) | left out | |
-| 30 | Rust: edges, bottoms, around bolts, panel corners, streaks | texture (rust rule) | n/a (map) | |
-| 31 | Edge wear to steel, grime, scratches | texture | n/a (map) | |
+| 1 | Square ceiling plate, chamfered edge | geometry (0.40 × 0.025, 45° corner clips 12 mm, 6 mm chamfer) | ✓ | ✓ |
+| 2 | 4 hex nuts + stud ends on the plate underside | geometry (30 mm AF × 16 mm) | ✓ | ✓ |
+| 3 | Washers under the nuts | normal map (3 mm) | n/a (map) | ✓ |
+| 4 | Octagonal adapter under the plate | geometry (frustum 0.34 → 0.28, 23 mm) | ✓ | ✓ |
+| 5 | Adapter side ports (rectangular slot, oval slot) | normal map + dark texture | n/a (map) | ✓ |
+| 6 | Small bolts on the adapter | normal map | n/a (map) | ✓ |
+| 7 | Turret bearing disc Ø 0.26 × 0.07 | geometry (32 sides, 6 mm chamfers) | ✓ | ✓ |
+| 8 | Turret groove ring | normal map | n/a (map) | ✓ |
+| 9 | Round boss on the turret side | geometry (Ø 30 mm, 23 mm proud; H2: smaller and higher, clear of the disc chamfers) | ✓ | ✓ |
+| 10 | Shoulder housing / bracket | geometry (cheek on −X, rounded r 0.055) | ✓ | ✓ |
+| 11 | Shoulder slotted cap | geometry (Ø 72 mm × 15 mm); slot normal map | ✓ | ✓ |
+| 12 | Bracket outer cap | geometry (Ø 80 mm) | ✓ | ✓ |
+| 13 | Cable connector box with gland | geometry (box into the cheek, 42 × 44 mm face + gland) | ✓ | ✓ |
+| 14 | Link bodies with chamfered edges | geometry (6 / 5 mm chamfers), rounded ends on the hinges | ✓ | ✓ |
+| 15 | Link end collars (wider bands) | normal map + texture (the step is < 15 mm) | n/a (map) | ✓ |
+| 16 | Side panel: groove outline, raised plate with stepped edge | normal map | n/a (map) | ✓ |
+| 17 | Panel bolts, link-end bolts | normal map | n/a (map) | ✓ |
+| 18 | Cyan light strip on each link side | emission + normal map (slot < 15 mm) | n/a (map) | ✓ |
+| 19 | Elbow: big disc with 8-bolt ring and centre cap | geometry disc r 0.06 × 17 mm, cap r 0.03 × 15 mm; bolts normal map | ✓ | ✓ |
+| 20 | Wrist: rounded knuckle with small cap | geometry (cap Ø 64 mm) | ✓ | ✓ |
+| 21 | Wrist neck with ring grooves | geometry (Ø 84 mm); grooves normal map | ✓ | ✓ |
+| 22 | Tool collar (steel) | geometry (Ø 88 mm × 35 mm) | ✓ | ✓ |
+| 23 | Ochre tool block with the side notch | geometry (0.14 × 0.10 × 0.135, notch 35 mm) | ✓ | ✓ |
+| 24 | Tool bolts, soot / grime on the ochre | normal map, texture | n/a (map) | ✓ |
+| 25 | Steel pin | geometry (Ø 36 × 40 mm) | ✓ | ✓ |
+| 26 | Flexible conduit along the arm | geometry tube Ø 22 mm (8 sides) on clips; corrugation normal map | ✓ | ✓ |
+| 27 | Cable clips (band clamps) | geometry (34 × 16 mm arches) | ✓ | ✓ |
+| 28 | Slack loops at the joints | geometry: over the elbow and wrist ends, joined on the hinge axes at swivels | ✓ | ✓ |
+| 29 | Second, thinner cable beside the conduit | left out at H0 (see open points) | left out | left out |
+| 30 | Rust: edges, bottoms, around bolts, panel corners, streaks | texture (rust rule) | n/a (map) | ✓ |
+| 31 | Edge wear to steel, grime, scratches | texture | n/a (map) | ✓ |
 
 ## H0 — blockout (2026-11-03)
 
@@ -150,3 +150,86 @@ ring over its housing: disc Ø 0.26 × 0.048 over a hub Ø 0.15 × 0.022 (total 
   `servicearm_h1_stowed_{34,close,side}.jpg`, `servicearm_h1_wire.jpg`, `servicearm_h1_wire_wrist.jpg`,
   `servicearm_h1_checker.jpg` (32 px cells = 6.25 cm), `servicearm_h1_uv_layout.jpg`.
 - Renders are Cycles only: Workbench needs a GPU context (libEGL) that the container doesn't have.
+
+## H2 — textures (2026-11-03)
+
+`servicearm_tex.py -- bake / check / renders` (Gate pipeline and helpers from `gate_tex.py`). One 2048 set:
+`Assets/Environment/Heroes/ServiceArm/Textures/T_LAB_HERO_ServiceArm_{BaseColor,Normal,Mask,Emission}.png` (Git LFS),
+BaseColor / Emission sRGB, Normal OpenGL, Mask R metallic / G AO / A smoothness (linear). Full bake 7 min (pre-bakes
+3 min, reusable with `bake reuse`).
+
+- **Arm paint** sRGB **88 92 100**, sampled from the concept's lit link side panels (medians 88-95 / 89-92 / 94-98):
+  a cool neutral grey, lighter and less blue than the Gate's gunmetal (90 104 115). Proposed for STYLE_GUIDE as
+  "service-arm paint" (each hero's paint is decided in its design step). Ochre, polymer, machined steel, cyan
+  70 170 255 and rust from the STYLE_GUIDE palette; cable conduit non-metal grey 84 86 86 (corrugation in the normal map).
+- Detail (normal map / mask, from part-local positions): link side panels with a groove frame, a raised plate with the
+  concept's stepped edge, 4 plate bolts, the cyan strip in a dark slot below the step, end-block seams and bolts;
+  elbow disc 8-bolt ring; shoulder cap slot; bracket cap 6 bolts; wrist cap 4 bolts; turret groove; neck and collar
+  grooves; adapter side ports (rectangular / oval) and nut washers; tool bolts and soot (bottom, notch, edges);
+  cable corrugation (7.5 mm pitch along the curve). Rust streaks run down the faces in the working pose.
+- Look iterations (3, 2048 with reused pre-bakes), against `servicearm_front.jpg`: (1) review lights were overexposing
+  (steel clipped white), rust read as orange rings round the bolts, panel lines too faint, soot too weak → dimmer
+  lights, fewer and tighter bolt rings, browner rust, more edge rust, grooves darken the albedo; (2) more edge rust;
+  (3) the tool came out too dirty (median 87 65 39: soot + "more rust low" + grime stack up on the lowest part) → the
+  ochre keeps 30 % of the rust and half the grime, lighter soot: median 129 97 49, it stays one of the brightest
+  things (STYLE_GUIDE).
+- Checks (`check`), all PASS: AO black scan (contact lines only; documented crevices accepted and printed: texels
+  < 15 mm from a cable / the link face under it, and buried texels inside a part's own intersecting shells from which
+  no ray escapes; one 13-texel wedge between the shoulder cheek and the turret hub reported as a small crevice);
+  PBR non-metal 30-240: 0.00 % outside; metal ≥ 180: 0.22 % below; **rust 7.7 %** of the painted texels (rule
+  5-15 %; lower half 6.3 %, upper half 8.5 %); emission only in the strips (median sRGB 66 162 243); normal seams:
+  ≤ 2 bad samples per part (the worst ones sit where a slot or bolt crosses a split on the small cap faces: shoulder
+  slotted cap, bracket cap, tool block side). Medians: paint 84 87 94 / smoothness 0.42, polymer 38 39 39, steel
+  185 187 189 (metallic 1, smoothness 0.27), ochre 129 97 49, cable 80 82 82.
+- Renders (Cycles, Standard view, `Documentation/Media/servicearm/`): `servicearm_h2_vs_concept.jpg` (master camera),
+  `servicearm_h2_vs_concept_side.jpg`, `servicearm_h2_working_34.jpg` (over the docked drone in its room position),
+  `servicearm_h2_working_player.jpg` (from the terminal side), `servicearm_h2_closeup_{elbow,tool,mount}.jpg`,
+  `servicearm_h2_dim_facility.jpg` (lamps at 35 %), `servicearm_h2_stowed_{34,close}.jpg`,
+  `servicearm_h2_map_{basecolor,normal,emission,mask_metallic,mask_ao,mask_smoothness}.jpg`. White-clip check on
+  every render: PASS (no pixel with all channels > 0.85).
+
+## H3a — Unity preparation, cloud part (2026-11-03)
+
+Written and checked in the cloud (bpy 5.2.2, no Unity); H3b runs it in the Editor.
+
+- **FBX** (`servicearm_export.py`, EXPORT_CONTRACT hero mode): `Assets/Environment/Heroes/ServiceArm/`
+  `LAB_HERO_ServiceArm_{Mount,Turret,UpperArm,Forearm,Wrist,ToolHead}_01.fbx` (Git LFS), each at identity with one
+  material slot, mesh in the STOWED pose with the origin on its hinge. Re-import check all PASS: tris 420 / 950 /
+  1,198 / 1,137 / 546 / 272 (= export copy = build table), root identity, one slot, one UV map, custom normals (worst
+  0.029°), and the builder's local hinge offsets = `servicearm_kin` chain.
+- **Builder** `Assets/Environment/Editor/ServiceArmBuilder.cs` (GateBuilder pattern; Tools > Labyrinth >
+  ServiceArm: Apply Import Settings / Build ServiceArm / Verify ServiceArm): hero-mode import settings, textures
+  (BaseColor / Emission sRGB, Normal map, Mask linear with alpha, mipmaps, ASTC 6x6 / 4x4 normal, max 2048), URP Lit
+  material `M_LAB_HERO_ServiceArm` as the Gate's, hierarchy `HERO_ServiceArm` > Mount (0, 4.00, 5.30) > Turret >
+  UpperArm > Forearm > Wrist > ToolHead, `ServiceArmDriver` on the root with the joints wired, the arm left in the
+  working pose, prefab `HERO_ServiceArm.prefab`. **No colliders** (decision): the arm is ≥ 2.04 m up over the docked
+  drone, outside the teleport floor and out of reach, and nothing in the sequence needs to hit it; Verify fails on
+  any collider. Verify: hierarchy, tris, local positions, material, keywords, texture settings, driver timings, the
+  working-pose tool tip at (0, 2.04, 4.69) ± 5 mm, and the stowed layer from the renderer bounds.
+- **Runtime** `Assets/Scripts/Facility/ServiceArmDriver.cs` (namespace LabyrinthVR.Gameplay): working pose
+  (turret 21.14°, shoulder 81.18°, elbow −117.79°, wrist −53.38°), idle (turret ±10°, wrist ±15°, each 0.6/0.4 of
+  two sines at 0.21 + 0.34 Hz / 0.27 + 0.43 Hz with random phases, so the sum never exceeds the swept amplitude and
+  never visibly repeats; tool spin 90°/s varied ±35 % by a 0.23 Hz sine; 1.5 s fade-in), fold to the stowed pose
+  (`RequestFold()` = the terminal button: starts after 2.5 s; `BeginFold()` = now; 2.0 s, smoothstep per joint; roll
+  unwinds the short way), events `onFoldStarted` / `onStowed` (FacilitySequence arms the lever from `onStowed`), all
+  values public; context menus "Fold Now" / "Reset To Working". FacilitySequence is not written (§10).
+- C# parsed with a C# grammar (tree-sitter-c-sharp, GateBuilder as control): no syntax errors. Unity APIs written
+  against GateBuilder; **not compiled**.
+
+### To verify in Unity (H3b)
+1. Recompile; Tools > Labyrinth > ServiceArm: Apply Import Settings; commit the `.meta` files (check `git diff`).
+2. Build ServiceArm in BasicScene, read the Verify report (expect RESULT: PASS); the scene is not saved by the builder.
+3. EXPORT_CONTRACT hero-mode comparison on one part (vertex / normal / tangent), as noted there for the first v3 hero.
+4. Play Mode: idle looks calm and non-repeating; ServiceArmDriver "Fold Now" folds in 2.0 s to the flat layer;
+   `RequestFold()` waits 2.5 s; no part passes through another (the offline sweep says so; confirm by eye).
+5. Docked drone: re-read `DroneAI2` live (docking pose −28.3°, (−0.032, 2.000, 4.754)) and confirm the tool tip
+   clears the top (offline 54 mm; rule ≥ 50 mm). The clearance sweep used the drone rebuilt from `drone_low.fbx` +
+   DroneBaseline, not a live read.
+6. Ceiling lights: keep them out of the stowed footprint x −0.20 … 0.29, z 5.10 … 6.36.
+7. Quest: draw calls (6 renderers, 1 material), texture memory at 2048 vs 1024, emission brightness of the strips.
+
+### Open (not done here)
+- **Cradle v2 clearance:** the Cradle v2 meshes are not in the repo, so the arm was not swept against the cradle.
+  The cradle sits below the drone (yoke arms around the body), the arm's lowest point is the tool tip at y 2.04 over
+  the drone's top — expected clear, **not checked**.
+- FacilitySequence wiring (terminal button → `RequestFold`, `onStowed` → lever armed).
