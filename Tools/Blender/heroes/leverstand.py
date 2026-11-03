@@ -76,9 +76,9 @@ H_FILLET_R = 0.015
 SLOT = dict(x0=0.020, x1=0.062, z0=-0.054, z1=0.034, floor=0.965)   # slot (pocket) in the top face, polymer inside
 HINGE = (0.041, 0.995, -0.010)               # lever hinge (stand-local), axis X, 35 mm below the housing top
 LAMP_C = (-0.055, -0.035)                    # lamp centre (x, z) on the housing top: back half, opposite the slot
-LAMP_BASE = dict(r=0.020, h=0.010)
-GLASS = dict(r=0.013, h=0.028, dome=0.006, top_r=0.008)
-CAGE = dict(r=0.0175, t=0.003, top=0.076)    # bar ring radius, bar section, top ring height above the base top
+LAMP_BASE = dict(r=0.024, h=0.010)
+GLASS = dict(r=0.016, h=0.030, dome=0.007, top_r=0.010)
+CAGE = dict(r=0.0205, t=0.003, top=0.078)    # bar ring radius, bar section, top ring height above the base top
 
 # --------------------------------------------------------------------------- lever (HERO_SPEC §6)
 SHAFT_R, SHAFT_L, SHAFT_BOTTOM = 0.015, 0.220, -0.015
@@ -251,7 +251,7 @@ def build_pedestal(sm):
 def housing_profile():
     """(z, y) CCW seen from +X (z right, y up): front face, slope, top, back fillet, back"""
     r = H_FILLET_R; cz, cy = -HZ + r, HY1 - r
-    fil = [(cz + r * math.cos(math.radians(a)), cy + r * math.sin(math.radians(a))) for a in (90, 60, 30, 0)]
+    fil = [(cz + r * math.cos(math.radians(a)), cy + r * math.sin(math.radians(a))) for a in (90, 120, 150, 180)]
     return [(HZ, HY0), (HZ, H_FRONT_Y), (H_SLOPE_Z, HY1)] + fil + [(-HZ, HY0)]
 
 
@@ -471,7 +471,7 @@ LOW_DENSITY = 0.5                       # undersides, the slot pocket, the lamp 
 
 
 def uv_density(o, isl):
-    if "Lever" in o.name: return LEVER_DENSITY
+    if o.name.endswith("Lever_01"): return LEVER_DENSITY
     n = sum((f.normal * f.calc_area() for f in isl), Vector()).normalized()
     if n.z < -0.9: return LOW_DENSITY                                       # faces looking down
     if all(f.material_index == POLYMER for f in isl):
@@ -519,11 +519,32 @@ def build():
     lamp = obj(f"{HERO}_Lamp_01", build_lamp(), lamp_origin())
     parts = [body, lever, lamp]
     bpy.context.view_layer.update()
+    removed = delete_hidden(parts, lever)
+    print("HIDDEN faces deleted:", removed)
     uv = unwrap_and_pack(parts)
     for o in parts:
         G.apply_shading(o)
     set_lever(lever, REST_DEG)
     return parts, uv
+
+
+def delete_hidden(parts, lever):
+    """faces never seen in 96 directions over the lever's rest / upright / pulled poses (cradle_v2 ray test). Only the
+    lever's faces inside the slot pocket may go (the shaft's bottom end); the body and the lamp are built without
+    hidden faces (the check reports them)"""
+    dirs = CV.fib_dirs(96)
+    box = ((-0.6, -0.6, -0.1), (0.6, 0.6, 1.6))
+    keep = set()
+    for deg in (REST_DEG, 0.0, PULLED_DEG):
+        set_lever(lever, deg)
+        tree = CV.scene_bvh(parts)
+        keep |= CV.visible_faces(lever, tree, dirs, box)
+    set_lever(lever, 0.0)
+    bm = bmesh.new(); bm.from_mesh(lever.data); bm.faces.ensure_lookup_table()
+    kill = [f for f in bm.faces if f.index not in keep and f.calc_center_median().z < HY1 - HINGE[1]]
+    bmesh.ops.delete(bm, geom=kill, context='FACES')
+    bm.to_mesh(lever.data); bm.free()
+    return {"Lever_01": len(kill)}
 
 
 def set_lever(lever, deg):

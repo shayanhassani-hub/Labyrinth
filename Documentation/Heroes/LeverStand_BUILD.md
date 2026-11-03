@@ -39,30 +39,30 @@ modelled and checked, H2 = textured and checked.
 
 | # | Feature (concept) | How | H1 | H2 |
 |---|---|---|---|---|
-| 1 | Pedestal block, vertical corner chamfers | G: 0.30 × 0.95 × 0.30, 20 mm chamfers (spec) | | |
-| 2 | Plinth with a 45° bottom bevel | G: 18 mm chamfer; floor face not built | | |
+| 1 | Pedestal block, vertical corner chamfers | G: 0.30 × 0.95 × 0.30, 20 mm chamfers (spec) | ✓ | |
+| 2 | Plinth with a 45° bottom bevel | G: 18 mm chamfer; floor face not built | ✓ | |
 | 3 | Groove between plinth and body, between body and ledge | N (flush in geometry) | | |
-| 4 | Cap slab, chamfered top edge | G: 35 mm cap, 12 mm top chamfer | | |
-| 5 | Black/yellow hazard band under the cap | G: 0.06 band (spec), recessed 6 mm (kept as geometry for the silhouette step); T: ochre/black 45° stripes, worn | | |
+| 4 | Cap slab, chamfered top edge | G: 35 mm cap, 12 mm top chamfer | ✓ | |
+| 5 | Black/yellow hazard band under the cap | G: 0.06 band (spec), recessed 6 mm (kept as geometry for the silhouette step); T: ochre/black 45° stripes, worn | ✓ | |
 | 6 | Ledge under the band | N: groove lines (flush) | | |
-| 7 | Recessed field between corner posts, all four faces | G: 18 mm deep, sloped walls | | |
-| 8 | Front: I-shaped ("dogbone") raised plate | G: 10 mm proud, 45° transitions (Gate plate standard) | | |
-| 9 | Light channel in the plate's waist | G: 18 mm deep, polymer | | |
-| 10 | Cyan light strip | G: 8 mm proud of the channel floor; T: emission sRGB 70 170 255 | | |
-| 11 | Sides: three plates, stepped (diagonal) dividers | G: 10 mm proud, 10 mm gaps; divider heights from the ortho | | |
+| 7 | Recessed field between corner posts, all four faces | G: 18 mm deep, sloped walls | ✓ | |
+| 8 | Front: I-shaped ("dogbone") raised plate | G: 10 mm proud, 45° transitions (Gate plate standard) | ✓ | |
+| 9 | Light channel in the plate's waist | G: 18 mm deep, polymer | ✓ | |
+| 10 | Cyan light strip | G: 8 mm proud of the channel floor; T: emission sRGB 70 170 255 | ✓ | |
+| 11 | Sides: three plates, stepped (diagonal) dividers | G: 10 mm proud, 10 mm gaps; divider heights from the ortho | ✓ | |
 | 12 | Bolts: I-plate 4, side plates 4 per face, back plate 4, cap top 4, housing front 2 and sides 2 each | N (heads, washers) + T | | |
 | 13 | Small edge bevels on every panel edge | N (1.5 mm bevel bake) | | |
-| 14 | Housing: low front, sloped front, flat top, rounded back top edge, chamfered sides | G: 0.22 × 0.08 × 0.16 (spec), 8 mm perimeter chamfer, 15 mm back fillet (3 segments) | | |
-| 15 | Slot with a dark interior | G: 42 × 88 mm opening, pocket 65 mm deep (polymer) | | |
+| 14 | Housing: low front, sloped front, flat top, rounded back top edge, chamfered sides | G: 0.22 × 0.08 × 0.16 (spec), 8 mm perimeter chamfer, 15 mm back fillet (3 segments) | ✓ | |
+| 15 | Slot with a dark interior | G: 42 × 88 mm opening, pocket 65 mm deep (polymer) | ✓ | |
 | 16 | Slot lip / frame | N | | |
-| 17 | Lever shaft (steel) | G: Ø 0.03 12-gon (spec), chamfered bottom end in the pocket | | |
-| 18 | Ochre grip, rounded top, collar at the bottom | G: Ø 0.05 × 0.10 16-gon (spec), bottom chamfer, 2-ring dome; N: longitudinal ribs and collar line | | |
-| 19 | Lamp base collar | G: Ø 40 × 10 mm 12-gon, polymer | | |
-| 20 | Amber lamp glass | G: separate part `Lamp_01`, Ø 26 mm; T: emission sRGB 240 150 60; runtime: MaterialPropertyBlock | | |
-| 21 | Wire cage | G: 4 bars 3 × 3 mm, octagonal top ring, cross over the dome (see-through: cannot be a normal map) | | |
+| 17 | Lever shaft (steel) | G: Ø 0.03 12-gon (spec), chamfered bottom end in the pocket | ✓ | |
+| 18 | Ochre grip, rounded top, collar at the bottom | G: Ø 0.05 × 0.10 16-gon (spec), bottom chamfer, 2-ring dome; N: longitudinal ribs and collar line | ✓ | |
+| 19 | Lamp base collar | G: Ø 40 × 10 mm 12-gon, polymer | ✓ | |
+| 20 | Amber lamp glass | G: separate part `Lamp_01`, Ø 26 mm; T: emission sRGB 240 150 60; runtime: MaterialPropertyBlock | ✓ | |
+| 21 | Wire cage | G: 4 bars 3 × 3 mm, octagonal top ring, cross over the dome (see-through: cannot be a normal map) | ✓ | |
 | 22 | Rust: edges, corners, plinth, round some bolts, panel corners, run-off streaks, rusty band | T (STYLE_GUIDE rust rule, 5–15 % of the paint, more toward the bottom) | | |
 | 23 | Edge wear to bare steel, hairline scratches, grime | T (Gate G2c rules) | | |
-| 24 | Back face (not in the concept) | G: same field and one plain plate; N: 4 bolts | | |
+| 24 | Back face (not in the concept) | G: same field and one plain plate; N: 4 bolts | ✓ | |
 
 Left out or changed (with the reason):
 - The concept's chunkier pedestal (≈ 0.44 m) and bigger housing (≈ 0.21 deep × 0.12 tall at concept scale): HERO_SPEC
@@ -90,3 +90,57 @@ housing profile, slot plate, lamp, lever, strip. Comparison: `leverstand_h0_vs_c
 Findings: camera angle and framing match. Silhouette differences are the deviations above (narrower pedestal, smaller
 housing). The concept's stack heights (cap 35 mm, band 60–70 mm, ledge 30 mm, plinth 65 mm) and side-panel divider
 heights were measured on the ortho view and carry into H1.
+
+## H1 — model (done)
+Generator `leverstand.py -- build` (review file `D:/AI_Labyrinth/Blender/Source/Heroes/LeverStand/LAB_HERO_LeverStand_v1.blend`,
+in the cloud under `LAB_AI_ROOT`). Gate construction: `gate.GateMesh` (material + face kind per face), flat regions with
+holes filled quad-first, hard edges by face kind (flat | flat > 30°, chamfer | flat > 50°, chamfer | chamfer > 15°,
+round | round smooth) = UV seams, face-area weighted normals with face influence (flat strong, round medium, chamfer
+weak), `cradle_v2_uv` unwrap and packing.
+
+| Part | Origin (stand-local) | Motion | Tris |
+|---|---|---|---|
+| `LAB_HERO_LeverStand_Body_01` | (0, 0, 0) floor centre | static | 836 |
+| `LAB_HERO_LeverStand_Lever_01` | (0.041, 0.995, −0.010) hinge | local X −30 (rest) … +30 (pulled), trigger +18 | 206 |
+| `LAB_HERO_LeverStand_Lamp_01` | (−0.055, 1.040, −0.035) glass base | emission only | 58 |
+
+Total **1,100 tris** (no LOD needed).
+- Pedestal: 0.30 × 0.95 × 0.30, 20 mm corner chamfers, 18 mm bottom bevel, band 0.855–0.915 recessed 6 mm,
+  cap with a 12 mm top chamfer. Fields 18 mm deep (u ±0.105, v 0.08–0.805), plates 10 mm proud. Front I-plate (top/bottom
+  ±0.093, waist ±0.040, 45° transitions), light channel 40 × 425 mm, 18 mm deep, strip 22 × 375 mm. Side plates with
+  stepped dividers (front 0.679 / 0.228, back 0.589 / 0.325, diagonal between 25 % and 62 % of the width from the front),
+  10 mm gaps. Back: one plain plate.
+- Housing: 0.22 × 0.08 × 0.16. Front face 45 mm, slope up to the top at z 0.05, flat top, 15 mm back fillet, 8 mm
+  perimeter chamfer. Slot 42 × 88 mm, pocket floor at y 0.965.
+- Lamp: base Ø 48 × 10 mm, glass Ø 32 × 30 mm with a dome (`Lamp_01`), cage of 4 bars 3 mm, octagonal ring, cross.
+  The lamp was enlarged after the H1 comparison: the first one (glass Ø 26) read thinner than the concept.
+- Lever: shaft Ø 30 12-gon, grip Ø 50 × 100 16-gon with a 2.5 mm bottom chamfer and a 2-ring dome. The shaft's
+  bottom end in the pocket (11 faces) is never visible in any pose and was deleted (ray test, 96 directions, rest /
+  upright / pulled).
+
+**Checks** (`leverstand_check.py -- topo`, `-- clearance`), all PASS:
+- Topology: 0 n-gons, non-manifold, loose, duplicate or zero-area elements; 0 bow-tie or concave quads; 0 winding
+  faults; planarity 0 quads over 2 mm. Shading: 0 flat faces with a corner normal > 0.5° off (worst 0.03°).
+  Deliberate open borders: pedestal floor contact, housing on the cap, lamp glass on the base, shaft end in the pocket.
+- Hidden faces: 0 on every part over the three lever poses.
+- UVs: **one 1024 set** (ASSET_RULES: the asset fills a 1024 sheet at hero density; at 2048 it would be 1,160 px/m
+  with half the sheet empty). **580 px/m** (+13 % over the 512 target; the packer uses the whole sheet). The lever is
+  at 2× (1,161 px/m, hand-held like the labyrinth handle), and downward faces and the slot pocket at ½. 228 islands,
+  padding ≥ 8 px, border 5 px, no overlaps, packing 49.6 %. Checker render: even, square checks.
+- Lever sweep −30 … +30° (1° steps) against the body and the lamp: min gap **6.1 mm** (slot ends at both extremes).
+  Slot: shaft edge 37.5 mm from the hinge at the top face, slot ends at 44 mm → 6.5 mm clear.
+- Labyrinth panel (HERO_SPEC §8 v2 geometry: plate 1.05 × 0.025, rim 0.05 × 0.08, handle bar), pivot (0.025, 1.00,
+  1.225): level, the pedestal face is **150.0 mm** from the panel's +X edge (spec), min surface gap 162 mm. Tilt cone
+  0–12°, every 15° of azimuth, lever at rest and pulled: no contact, **min 145.5 mm** (azimuth 330°, 12°). Below
+  150 mm because the 80 mm rim swings ~5 mm outward when the edge dips; §8 assumes the tilt moves the edge only up
+  and down. Gate kept at "spec 0.15 level + no contact ≥ 100 mm"; **open question** for the owner (move the stand
+  +X by 5 mm, or accept).
+- Drone volume (released): stand world box x 0.70–1.00, y 0–1.28, z 0.45–0.78, outside. Labyrinth protected
+  cylinder: inside by design (§6 exception). Origin 1.04 m from the operating position (spec 1.04).
+- Reach (player at the operating position, right shoulder estimated at (0.18, 1.40, 0)): grip centre 0.99 m away at
+  rest, 0.81 m pulled; one step (0.26–0.44 m) brings it to a comfortable 0.55 m, as the spec intends.
+
+Renders (`Documentation/Media/leverstand/`): `leverstand_h1_vs_concept.jpg`, `_top.jpg`, `leverstand_h1_{room, 34,
+front, side, side_pulled, top, lever, lamp, base}.jpg`, `leverstand_h1_shading_{34, top, lever, base}.jpg`,
+`leverstand_h1_wire_{34, top}.jpg`, `leverstand_h1_checker_{34, top}.jpg`, `leverstand_h1_uv_layout.jpg`. Workbench
+needs OpenGL, which the cloud container lacks, so the wire and checker renders use Cycles.
