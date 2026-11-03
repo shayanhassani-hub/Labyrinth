@@ -170,14 +170,20 @@ def clearance(args):
         print(f"{'PASS' if v > 0 or 'pressed (negative' in nme else 'FAIL'} {nme}: {v * 1e3:.1f} mm")
     # terminal vs room
     parts = [o for k, o in objs.items() if k != "Display_01"]
-    d, at, hit = GC.min_gap(parts, [room])
-    print(f"{'PASS' if not hit else 'FAIL'} terminal vs room (back wall, floor trim, side wall): min gap {d * 1e3:.1f} mm "
-          f"near {tuple(round(c, 3) for c in at) if at is not None else '-'} (0 = touching the wall face, by design)")
+    room.data.polygons.foreach_set("select", [False] * len(room.data.polygons))
+    side = TM.room_object(); bpy.context.scene.collection.objects.link(side)
+    bm = bmesh.new(); bm.from_mesh(side.data)                                 # trim + side wall only (the back
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if (side.matrix_world @ f.calc_center_median()).y > 2.0 - 1e-4
+                               and (side.matrix_world @ f.calc_center_median()).z > 0.15 + 1e-4], context='FACES')
+    bm.to_mesh(side.data); bm.free()                                          # wall face is touched by design)
+    d, at, hit = GC.min_gap(parts, [side])
+    print(f"{'PASS' if not hit and d > 0.004 else 'FAIL'} terminal vs floor trim and side wall: min gap {d * 1e3:.1f} mm")
     allv = np.array([tuple(spec(o.matrix_world @ v.co)) for o in parts for v in o.data.vertices])
     lo, hi = allv.min(0), allv.max(0)
     print(f"INFO terminal bounds (Unity) x {lo[0]:.3f} ... {hi[0]:.3f}, y {lo[1]:.3f} ... {hi[1]:.3f}, z {lo[2]:.3f} ... {hi[2]:.3f}")
-    ok = lo[0] >= -3.4 - 1e-4 and hi[0] <= -1.0 + 1e-4 and lo[2] >= -2.0 - 1e-4 and hi[2] <= -1.2 + 1e-4 and lo[1] >= -1e-6
-    print(f"{'PASS' if ok else 'FAIL'} footprint inside x -3.4 ... -1.0, z -2.0 ... -1.2 (HERO_SPEC §5), nothing below the floor")
+    ok = lo[0] >= -3.4 - 1e-4 and hi[0] <= -1.0 + 1e-4 and lo[2] >= -2.0 - 1e-5 and hi[2] <= -1.2 + 1e-4 and lo[1] >= -1e-6
+    print(f"{'PASS' if ok else 'FAIL'} footprint inside x -3.4 ... -1.0, z -2.0 ... -1.2 (HERO_SPEC §5); nothing behind the "
+          f"wall face or below the floor (backs touch the wall face)")
     # trim clearance: nothing in x -3.4..-1.0, y 0..0.15, z -2.0..-1.95 (+ 5 mm)
     trim = [v for v in allv if v[1] < 0.15 + 1e-4 and v[2] < -1.95 + 0.005 - 1e-6]
     print(f"{'PASS' if not trim else 'FAIL'} floor trim (y 0 ... 0.15, z -2.0 ... -1.95): {len(trim)} vertices within 5 mm")
@@ -188,15 +194,14 @@ def clearance(args):
         print(f"INFO display corners (Unity): y {dv[:, 1].min():.3f} ... {dv[:, 1].max():.3f}, z {dv[:, 2].min():.3f} ... "
               f"{dv[:, 2].max():.3f}; width {np.ptp(dv[:, 0]):.3f}; spec bottom 1.10 at z 0.15 local, 8 deg lean")
         print(f"{'PASS' if dv[:, 2].min() > TM.OZ + 0.01 else 'FAIL'} display top edge {1e3 * (dv[:, 2].min() - TM.OZ):.0f} mm from the wall")
-    # spec sizes measured on the mesh
-    def body_y(xl, zl):
-        o = body; W = o.matrix_world
-        bvh = BVHTree.FromPolygons([W @ v.co for v in o.data.vertices], [p.vertices for p in o.data.polygons])
-        hit = bvh.ray_cast(TM.to_blender(L((xl, 3.0, zl))), Vector((0, 0, -1)), 5.0)
-        return spec(hit[0]).y if hit[0] else None
-    yf = body_y(-0.5, TM.DESK_FRONT_Z - 0.012); yb = body_y(-0.5, TM.SLOPE_BACK_Z + 0.003)
-    print(f"INFO desk top: {yf:.3f} near the front edge (spec 0.92 at the edge), {yb:.3f} at the back of the slope "
-          f"(spec 1.05); slope {TM.SLOPE:.0f} deg; pillars {body_y(1.05, 0.30):.3f} high (spec 1.25)")
+    # spec sizes measured on the mesh (vertices, terminal-local)
+    bv = np.array([tuple(spec(body.matrix_world @ v.co)) for v in body.data.vertices]) - np.array((TM.OX, 0.0, TM.OZ))
+    mid = np.abs(bv[:, 0]) < 0.9001
+    front = bv[mid & (np.abs(bv[:, 2] - TM.DESK_FRONT_Z) < 1e-4)][:, 1].max()
+    back = bv[mid & (np.abs(bv[:, 2] - TM.SLOPE_BACK_Z) < 1e-4)][:, 1].max()
+    pil = bv[np.abs(bv[:, 0]) > 0.95][:, 1]
+    print(f"INFO desk front edge {front:.3f} (spec 0.92; the 8 mm chamfer starts at {front:.3f}), back of the slope "
+          f"{back:.3f} (spec 1.05), slope {TM.SLOPE:.0f} deg; pillar top {pil[pil < 1.2501].max():.3f} (spec 1.25)")
     # reach: standing player 0.30 in front of the pillars, shoulder 1.40 high (eye ~1.60)
     bt = Vector(TM.button_top()); sh = Vector(L((0.0, 1.40, TM.DEPTH + 0.30)))
     sh2 = Vector(L((0.0, 1.40, TM.DEPTH + 0.15)))
@@ -297,6 +302,7 @@ def concept_room(bg=67):
     GC.add_light("CFill", L((1.6, 1.6, 3.4)), L((0.0, 0.9, 0.4)), 70, 3.0)
     GC.add_light("CTop", L((0.0, 4.0, 0.6)), L((0.0, 1.0, 0.4)), 60, 3.0)
     GC.add_light("CSide", L((-3.5, 1.4, 0.6)), L((0.0, 0.9, 0.4)), 40, 2.0)
+    hide_lights()
 
 
 # concept framing: terminal bbox in each concept image (pixels of the 2576 x 1438 originals, measured by eye on the
@@ -399,50 +405,79 @@ VIEWS = {
 }
 
 
+def hide_lights():
+    """area lights are visible to camera rays in Cycles (a black slab seen from behind): hide them from the camera"""
+    for o in bpy.data.objects:
+        if o.type == 'LIGHT': o.visible_camera = False
+
+
 def standard_lights():
     return [GC.add_light("Key", L((0.8, 3.2, 2.2)), L((0.0, 1.0, 0.4)), 180, 1.6, (0.85, 0.92, 1.0)),
             GC.add_light("Fill", L((-1.8, 1.6, 2.4)), L((0.0, 0.9, 0.4)), 45, 2.0, (0.7, 0.85, 1.0)),
             GC.add_light("Rim", L((2.4, 2.6, 0.6)), L((1.0, 1.0, 0.4)), 30, 1.0, (1.0, 0.85, 0.7))]
 
 
+def _hide_after(f):
+    def g(*a, **k):
+        r = f(*a, **k); hide_lights(); return r
+    return g
+
+
+standard_lights = _hide_after(standard_lights)
+
+
 def renders(args):
     tag = args[0] if args else "h1"
     objs = open_file()
-    scene(samples=48)
+    scene(samples=32, size=(1280, 800))
     sc = bpy.context.scene
     sc.world.node_tree.nodes["Background"].inputs[0].default_value = (0.006, 0.008, 0.011, 1)
     room, fl = facility_room(); standard_lights()
     for k, v in VIEWS.items():
+        if "nocolour" in args: break
         for o in list(bpy.data.objects):
             if o.type == 'CAMERA': bpy.data.objects.remove(o)
         c = cam_obj(v["lens"]); look(c, v["loc"], v["look"]); shot(f"{tag}_{k}.png")
-    # wireframe on flat grey
-    sc.render.engine = 'BLENDER_WORKBENCH'; sc.display.render_aa = '16'
-    sh = sc.display.shading; sh.light = 'STUDIO'; sh.color_type = 'OBJECT'; sh.show_cavity = False
-    sh.background_type = 'VIEWPORT'; sh.background_color = (0.18, 0.19, 0.21)
-    for o in objs.values(): o.color = (0.55, 0.57, 0.60, 1)
+    # wireframe on flat grey (Cycles: the Workbench engine needs EGL, missing in the headless container)
+    if "colour" in args: return
+    flat = lambda name, rgb, rough=0.6: _flat(name, rgb, rough)
+    grey = flat("M_WireBase", (0.30, 0.31, 0.33)); dark = flat("M_Wire", (0.01, 0.01, 0.012), 0.9)
+    for k, o in objs.items():
+        if k == "Display_01": o.hide_render = True; continue
+        for i in range(len(o.data.materials)): o.data.materials[i] = grey
     room.hide_render = True; fl.hide_render = True
-    CC.add_wire({k: o for k, o in objs.items() if k != "Display_01"}, 0.0010)
+    sc.world.node_tree.nodes["Background"].inputs[0].default_value = (0.10, 0.105, 0.115, 1)
+    wires = CC.add_wire({k: o for k, o in objs.items() if k != "Display_01"}, 0.0010)
+    for o, w in wires:
+        w.data = o.data.copy(); w.data.materials.clear(); w.data.materials.append(dark)
+        w.modifiers["Wire"].material_offset = 0
+        w.modifiers["Wire"].use_even_offset = False       # even offset spikes at the acute corners of flat fills
     for k in ("34", "button", "beacon"):
         for o in list(bpy.data.objects):
             if o.type == 'CAMERA': bpy.data.objects.remove(o)
         v = VIEWS[k]; c = cam_obj(v["lens"]); look(c, v["loc"], v["look"]); shot(f"{tag}_wire_{k}.png")
     for o in list(bpy.data.objects):
         if o.name.endswith("_wire"): bpy.data.objects.remove(o)
-    # texel checker
-    sh.color_type = 'TEXTURE'
+    # texel checker (emission: unlit, so the cells read evenly)
     img = CC.checker_image(TEX)
-    m = bpy.data.materials.new("M_Checker"); m.use_nodes = True
-    tn = m.node_tree.nodes.new("ShaderNodeTexImage"); tn.image = img
-    m.node_tree.links.new(tn.outputs[0], m.node_tree.nodes["Principled BSDF"].inputs["Base Color"])
+    m = bpy.data.materials.new("M_Checker"); m.use_nodes = True; nt = m.node_tree
+    tn = nt.nodes.new("ShaderNodeTexImage"); tn.image = img
+    em = nt.nodes.new("ShaderNodeEmission"); nt.links.new(tn.outputs[0], em.inputs[0])
+    nt.links.new(em.outputs[0], nt.nodes["Material Output"].inputs["Surface"])
     for k, o in objs.items():
-        if k == "Display_01": o.hide_render = True; continue
+        if k == "Display_01": continue
         for i in range(len(o.data.materials)): o.data.materials[i] = m
     for k in ("34", "pillar"):
         for o in list(bpy.data.objects):
             if o.type == 'CAMERA': bpy.data.objects.remove(o)
         v = VIEWS[k]; c = cam_obj(v["lens"]); look(c, v["loc"], v["look"]); shot(f"{tag}_checker_{k}.png")
     uv_layout(tag)
+
+
+def _flat(name, rgb, rough):
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    b = m.node_tree.nodes["Principled BSDF"]; b.inputs["Base Color"].default_value = (*rgb, 1); b.inputs["Roughness"].default_value = rough
+    return m
 
 
 def uv_layout(tag):
@@ -462,8 +497,10 @@ def uv_layout(tag):
 
 def shading(args):
     tag = args[0] if args else "h1"
+    fast = "fast" in args
     objs = open_file()
-    scene(samples=64)
+    scene(samples=16 if fast else 32, size=(1280, 800))
+    if fast: bpy.context.scene.render.resolution_percentage = 50
     sc = bpy.context.scene
     sc.world.node_tree.nodes["Background"].inputs[0].default_value = (0.02, 0.022, 0.025, 1)
     facility_room(); standard_lights()

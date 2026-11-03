@@ -62,10 +62,10 @@ OX, OZ = -2.2, -2.0                          # origin on the back wall's inner f
 HALF_W, DEPTH = 1.20, 0.80                   # footprint 2.40 x 0.80 (x -3.4 ... -1.0, z -2.0 ... -1.2)
 PIL_IN, PIL_H = 0.90, 1.25                   # pillar 0.30 wide (|x| 0.90 ... 1.20), 1.25 high
 PIL_OF, PIL_OB, PIL_IF = 0.040, 0.040, 0.008  # vertical chamfers: outer-front / outer-back (hazard bands), inner-front
-PIL_TF, PIL_TO, PIL_TI = 0.090, 0.030, 0.030  # top chamfers: front (concept: large), outer, inner
+PIL_TF, PIL_TO, PIL_TI = 0.150, 0.030, 0.030  # top chamfers: front (concept side view: ~0.17), outer, inner
 PLINTH_H, PLINTH_IN = 0.16, 0.015            # base plinth, inset 15 mm (toe recess)
 TRIM_CLEAR = 0.055                           # plinths stop 5 mm in front of the floor trim (z 0 ... 0.05, y 0 ... 0.15)
-HAZ_Y = (0.22, 1.10)                         # hazard bands on the outer vertical chamfers
+HAZ_Y = (0.22, 1.04)                         # hazard bands on the outer vertical chamfers
 
 DESK_FRONT_Y, DESK_BACK_Y, SLOPE = 0.92, 1.05, 15.0
 DESK_FRONT_Z = 0.75                          # desk 50 mm behind the pillar fronts (concept top view)
@@ -97,7 +97,7 @@ SEG = 24                                     # button, guard (interactive close-
 SLOT_L, SLOT_W, SLOT_D, STRIP_IN, STRIP_H = 0.245, 0.034, 0.015, 0.008, -0.007
 SLOT_U, SLOT_S = 0.44, (0.15, 0.25, 0.35)    # three slots each side; the -X group (player's right) switches to red
 
-BEACON = dict(x=1.05, z=0.38, base_r=0.050, base_h=0.022, lens_r=0.040, cage_r=0.047, cage_t=0.006, cage_h=0.094)
+BEACON = dict(x=1.05, z=0.33, base_r=0.050, base_h=0.022, lens_r=0.040, cage_r=0.047, cage_t=0.006, cage_h=0.094)
 
 # materials (review shading; the bake replaces them). SWITCH: indicator strips that turn red (emission set at runtime)
 MATS = [("M_Term_Paint", (0.060, 0.078, 0.095)), ("M_Term_Polymer", (0.017, 0.018, 0.020)),
@@ -107,6 +107,8 @@ MATS = [("M_Term_Paint", (0.060, 0.078, 0.095)), ("M_Term_Polymer", (0.017, 0.01
 PAINT, POLYMER, STEEL, HAZARD, CYAN, SWITCH, REDCAP, LENS = range(8)
 FLAT, CHAMFER, ROUND = G.FLAT, G.CHAMFER, G.ROUND
 KEEP, CULL, RAY = 0, 1, 2                    # face attribute "cull": keep / delete (hidden by construction) / ray test
+Z_NONE, Z_RECESS, Z_CUP, Z_CAGE = 0, 1, 2, 3  # face attribute "zone" for the texture: recess floor / walls (darker
+                                             # paint), the guard's cup floor (steel ring), the beacon cage (dark paint)
 
 
 def T(p, sx=1.0):
@@ -132,20 +134,22 @@ class TMesh(G.GateMesh):
 
     def __init__(self):
         super().__init__()
-        self.cull = KEEP
+        self.cull = KEEP; self.zone = Z_NONE
         self.cull_layer = self.bm.faces.layers.int.new("cull")
-        self.ctag = set()
+        self.zone_layer = self.bm.faces.layers.int.new("zone")
 
     def tag(self):
         for f in self.bm.faces:
             if f not in self.known:
                 f.material_index = self.mat; f[self.kind_layer] = self.kind; f[self.cull_layer] = self.cull
+                f[self.zone_layer] = self.zone
                 self.known.add(f)
 
-    def set(self, mat=None, kind=None, cull=None):
+    def set(self, mat=None, kind=None, cull=None, zone=None):
         if mat is not None: self.mat = mat
         if kind is not None: self.kind = kind
         if cull is not None: self.cull = cull
+        if zone is not None: self.zone = zone
 
 
 class Frame:
@@ -203,7 +207,7 @@ class Faces:
 
     def emit(self, sm):
         for loops, mat, kind, cull in self.items:
-            sm.set(mat, kind, cull)
+            sm.set(mat, kind, cull, Z_NONE)
             loops = [self.insert(loops[0])] + loops[1:]
             if len(loops) == 1 and len(loops[0]) <= 4: sm.f(*loops[0])
             else: sm.region(loops)
@@ -307,12 +311,17 @@ def pillar(FC, sm, sx):
 
 
 def plinth_outline(out):
-    """plinth = pillar outline inset PLINTH_IN, the back edge (z = 0) moved to TRIM_CLEAR"""
-    ds = []
-    for i in range(len(out)):
-        a, b = out[i], out[(i + 1) % len(out)]
-        ds.append(TRIM_CLEAR if abs(a[1]) < 1e-9 and abs(b[1]) < 1e-9 else PLINTH_IN)
-    return [tuple(p) for p in CV.poly_offset_var(out, ds)]
+    """plinth = pillar outline inset PLINTH_IN (mitred), cut at z = TRIM_CLEAR at the back; CCW (x, z). A plain
+    per-edge offset would turn the 40 mm outer-back chamfer inside out (its offset is larger than the edge)"""
+    g = SG.Polygon(out).buffer(-PLINTH_IN, join_style=2, mitre_limit=10.0)
+    g = g.intersection(SG.box(-10.0, TRIM_CLEAR, 10.0, 10.0))
+    pts = [tuple(round(c, 9) for c in q) for q in list(g.exterior.coords)[:-1]]
+    clean = []
+    for i, q in enumerate(pts):                                              # drop collinear points
+        a_, b_ = pts[i - 1], pts[(i + 1) % len(pts)]
+        if abs((q[0] - a_[0]) * (b_[1] - a_[1]) - (q[1] - a_[1]) * (b_[0] - a_[0])) < 1e-12: continue
+        clean.append(q)
+    return ccw(clean)
 
 
 def inner_face(FC, loop, sx):
@@ -331,10 +340,11 @@ def inner_face(FC, loop, sx):
 def recess(sm, fr, fld, depth, wall, panels=(), prise=0.0, pslope=0.003, mat=PAINT):
     """recessed field fld (u, v, CCW) in frame fr: sloped walls, floor with raised panels; returns the panel tops
     (loops in (u, v) at their depth) for the caller to fill (holes for light slots)"""
-    sm.set(mat, FLAT, KEEP)
+    sm.set(mat, FLAT, KEEP, Z_RECESS)
     floor = offset(fld, wall)
     sm.tube([fr.loop(fld, 0.0), fr.loop(floor, depth)])
     sm.region([fr.loop(floor, depth)] + [fr.loop(p, depth) for p in panels])
+    sm.set(zone=Z_NONE)
     tops = []
     for p in panels:
         top = offset(p, pslope)
@@ -357,46 +367,74 @@ def slot(sm, fr, rect, d0, depth, strip_in, strip_top, strip_mat, strip_sm=None)
     tm.set(POLYMER)
 
 
-def pillar_front(FC, sm, loop, sx):
-    """front face (z = DEPTH): recessed field with the dog-bone plate and the vertical cyan light strip"""
-    fr = Frame(T((PIL_IN, 0.0, DEPTH), sx), (sx, 0, 0), (0, 1, 0), (0, 0, 1))
-    f2 = [((p[0] - PIL_IN), p[1]) for p in loop]
+FRONT_FIELD_IN = (0.025, 0.025, 0.025, 0.055)  # field inset from the front face: left, bottom, right, top (cap band)
+
+
+def front_frame(sx):
+    return Frame(T((PIL_IN, 0.0, DEPTH), sx), (sx, 0, 0), (0, 1, 0), (0, 0, 1))
+
+
+def front_layout(loop):
+    """pillar front (u from the inner face, v = y): face outline, field, dog-bone plate, light slot"""
+    f2 = ccw([((p[0] - PIL_IN), p[1]) for p in loop])
     u0, u1 = min(q[0] for q in f2), max(q[0] for q in f2)
     v0, v1 = min(q[1] for q in f2), max(q[1] for q in f2)
-    fld = [(u0 + 0.025, v0 + 0.025), (u1 - 0.025, v0 + 0.025), (u1 - 0.025, v1 - 0.025), (u0 + 0.025, v1 - 0.025)]
-    FC.add([fr.loop(ccw(f2), 0.0), fr.loop(fld)])
+    il, ib, ir, it = FRONT_FIELD_IN
+    fld = [(u0 + il, v0 + ib), (u1 - ir, v0 + ib), (u1 - ir, v1 - it), (u0 + il, v1 - it)]
     uc = (fld[0][0] + fld[1][0]) / 2; hw = (fld[1][0] - fld[0][0]) / 2 - 0.014; wa = 0.035
     vb, vt = fld[0][1] + 0.014, fld[2][1] - 0.014
     t = hw - wa                                                               # 45 deg taper
-    a0, a1, b0, b1 = vb + 0.17, vb + 0.17 + t, vt - 0.20 - t, vt - 0.20
+    a0, a1, b0, b1 = vb + 0.15, vb + 0.15 + t, vt - 0.15 - t, vt - 0.15
     plate = [(uc - hw, vb), (uc + hw, vb), (uc + hw, a0), (uc + wa, a1), (uc + wa, b0), (uc + hw, b1), (uc + hw, vt),
              (uc - hw, vt), (uc - hw, b1), (uc - wa, b0), (uc - wa, a1), (uc - hw, a0)]
-    tops = recess(sm, fr, fld, 0.018, 0.006, [plate], prise=0.012)
-    top, d = tops[0]
     vm = (a1 + b0) / 2
     sl = [(uc - 0.011, vm - 0.20), (uc + 0.011, vm - 0.20), (uc + 0.011, vm + 0.20), (uc - 0.011, vm + 0.20)]
+    return dict(face=f2, field=fld, plate=plate, slot=sl, top_y=v1)
+
+
+def pillar_front(FC, sm, loop, sx):
+    """front face (z = DEPTH): recessed field with the dog-bone plate and the vertical cyan light strip"""
+    fr = front_frame(sx); lay = front_layout(loop)
+    FC.add([fr.loop(lay["face"], 0.0), fr.loop(lay["field"])])
+    tops = recess(sm, fr, lay["field"], 0.018, 0.006, [lay["plate"]], prise=0.012)
+    top, d = tops[0]
     sm.set(PAINT, FLAT, KEEP)
-    sm.region([fr.loop(top, d), fr.loop(sl, d)])
-    slot(sm, fr, sl, d, 0.015, 0.004, d + 0.010, CYAN)
+    sm.region([fr.loop(top, d), fr.loop(lay["slot"], d)])
+    slot(sm, fr, lay["slot"], d, 0.015, 0.004, d + 0.010, CYAN)
 
 
-def pillar_outer(FC, sm, loop, sx):
-    """outer side face (x = HALF_W): recessed field with three raised panels, stepped dividers (concept side view)"""
-    fr = Frame(T((HALF_W, 0.0, 0.0), sx), (0, 0, 1), (0, 1, 0), (sx, 0, 0))
-    f2 = [(p[2], p[1]) for p in loop]
+def outer_frame(sx):
+    return Frame(T((HALF_W, 0.0, 0.0), sx), (0, 0, 1), (0, 1, 0), (sx, 0, 0))
+
+
+def outer_layout(loop):
+    """pillar outer side (u = z, v = y): face outline, field, three raised panels (concept side view, front on the
+    left there): a narrow strip of field along the front edge; the top panel reaches lower at the back, the bottom
+    panel higher at the back; ~35 deg ramps between 30 % and 62 % of the width"""
+    f2 = ccw([(p[2], p[1]) for p in loop])
     z0, z1 = min(q[0] for q in f2), max(q[0] for q in f2)
     v0, v1 = min(q[1] for q in f2), max(q[1] for q in f2)
     fld = [(z0 + 0.03, v0 + 0.03), (z1 - 0.03, v0 + 0.03), (z1 - 0.03, v1 - 0.03), (z0 + 0.03, v1 - 0.03)]
-    FC.add([fr.loop(ccw(f2), 0.0), fr.loop(fld)])
     inner = offset(offset(fld, 0.006), 0.016)
     gap = 0.010
-    div1 = [(-1.0, 0.985), (0.34, 0.985), (0.42, 0.905), (3.0, 0.905)]       # top panel deeper at the front (+z)
-    div2 = [(-1.0, 0.385), (0.34, 0.385), (0.42, 0.465), (3.0, 0.465)]
+    uf, ub = fld[1][0], fld[0][0]                                             # field front / back edge (u = z)
+    wz = lambda w: uf - w * (uf - ub)                                         # w: 0 front ... 1 back -> u
+    vv = lambda t: fld[0][1] + t * (fld[2][1] - fld[0][1])
+    inner = [(min(u, wz(0.09)), v) for u, v in inner]                         # front strip (field floor) 9 % wide
+    div1 = [(-1.0, vv(0.66)), (wz(0.62), vv(0.66)), (wz(0.30), vv(0.79)), (3.0, vv(0.79))]
+    div2 = [(-1.0, vv(0.34)), (wz(0.62), vv(0.34)), (wz(0.30), vv(0.20)), (3.0, vv(0.20))]
     sh = lambda g, dv: [(u, v + dv) for u, v in g]
     top = G.clip_graph(inner, sh(div1, gap), True)
     mid = G.clip_graph(G.clip_graph(inner, sh(div1, -gap), False), sh(div2, gap), True)
     bot = G.clip_graph(inner, sh(div2, -gap), False)
-    tops = recess(sm, fr, fld, 0.018, 0.006, [top, mid, bot], prise=0.010)
+    return dict(face=f2, field=fld, panels=[top, mid, bot])
+
+
+def pillar_outer(FC, sm, loop, sx):
+    """outer side face (x = HALF_W): recessed field with three raised panels, stepped dividers"""
+    fr = outer_frame(sx); lay = outer_layout(loop)
+    FC.add([fr.loop(lay["face"], 0.0), fr.loop(lay["field"])])
+    tops = recess(sm, fr, lay["field"], 0.018, 0.006, lay["panels"], prise=0.010)
     sm.set(PAINT, FLAT, KEEP)
     for t_, d in tops: sm.region([fr.loop(t_, d)])
 
@@ -414,7 +452,7 @@ def beacon_seat(FC, sm, loop):
     sm.bridge([P(q, BEACON["base_h"]) for q in ring(BEACON["base_r"])], [P(q, BEACON["base_h"]) for q in ring(BEACON["lens_r"])])
     sm.tag()
     if not DETAIL: return
-    sm.set(PAINT, FLAT, RAY)                                                  # cage: 4 posts, top ring, top cross
+    sm.set(PAINT, FLAT, RAY, Z_CAGE)                                          # cage: 4 posts, top ring, top cross
     t, r, h0, h1 = BEACON["cage_t"], BEACON["cage_r"], BEACON["base_h"], BEACON["cage_h"]
     for k in range(4):
         a = math.radians(45 + 90 * k); cx, cz = c2[0] + r * math.cos(a), c2[1] + r * math.sin(a)
@@ -433,6 +471,7 @@ def beacon_seat(FC, sm, loop):
         hh = h1 - t / 2 + (0.0015 if a else 0.0)
         sm.tube([[P(p, hh - t / 2) for p in sec], [P(p, hh + t / 2) for p in sec]])
         sm.f(*[P(p, hh + t / 2) for p in reversed(sec)]); sm.f(*[P(p, hh - t / 2) for p in sec])
+    sm.set(zone=Z_NONE)
 
 
 # --------------------------------------------------------------------------- body (desk + lower body), display bar, guard
@@ -461,24 +500,33 @@ def body(FC, sm, ind):
         FC.add([[T((x, y, z)) for z, y in plinth]], cull=RAY)
 
 
-def lower_front(FC, sm, rect):
-    """lower body front (z = BODY_FRONT_Z): three recessed fields, each with two raised panels, stepped divider"""
-    fr = Frame(T((0.0, 0.0, BODY_FRONT_Z)), (1, 0, 0), (0, 1, 0), (0, 0, 1))
+def lower_frame():
+    return Frame(T((0.0, 0.0, BODY_FRONT_Z)), (1, 0, 0), (0, 1, 0), (0, 0, 1))
+
+
+def lower_layout():
+    """lower body front (u = x, v = y): three fields, each with two raised panels and a stepped divider (the lower
+    panel rises in the middle, concept)"""
     y0, y1 = PLINTH_H + 0.03, DESK_FRONT_Y - SLAB_T - 0.03
-    edges = [(-0.87, -0.31), (-0.28, 0.28), (0.31, 0.87)]
-    flds = [[(a, y0), (b, y0), (b, y1), (a, y1)] for a, b in edges]
-    FC.add([[fr.p(*q) for q in [(-PIL_IN, PLINTH_H), (PIL_IN, PLINTH_H), (PIL_IN, DESK_FRONT_Y - SLAB_T),
-                                (-PIL_IN, DESK_FRONT_Y - SLAB_T)]]] + [fr.loop(f) for f in flds])
+    out = []
     gap = 0.010
-    for a, b in edges:
+    for a, b in [(-0.87, -0.31), (-0.28, 0.28), (0.31, 0.87)]:
         fld = [(a, y0), (b, y0), (b, y1), (a, y1)]
         inner = offset(offset(fld, 0.006), 0.016)
         w = b - a; yl, yh = y0 + 0.38, y0 + 0.44
         div = [(a - 1, yl), (a + 0.30 * w, yl), (a + 0.30 * w + 0.06, yh), (b - 0.30 * w - 0.06, yh), (b - 0.30 * w, yl), (b + 1, yl)]
         sh = lambda g, dv: [(u, v + dv) for u, v in g]
-        top = G.clip_graph(inner, sh(div, gap), True)
-        bot = G.clip_graph(inner, sh(div, -gap), False)
-        tops = recess(sm, fr, fld, 0.018, 0.006, [top, bot], prise=0.010)
+        out.append(dict(field=fld, panels=[G.clip_graph(inner, sh(div, gap), True), G.clip_graph(inner, sh(div, -gap), False)]))
+    return out
+
+
+def lower_front(FC, sm, rect):
+    """lower body front (z = BODY_FRONT_Z): three recessed fields with two raised panels each"""
+    fr = lower_frame(); lay = lower_layout()
+    FC.add([[fr.p(*q) for q in [(-PIL_IN, PLINTH_H), (PIL_IN, PLINTH_H), (PIL_IN, DESK_FRONT_Y - SLAB_T),
+                                (-PIL_IN, DESK_FRONT_Y - SLAB_T)]]] + [fr.loop(f["field"]) for f in lay])
+    for f in lay:
+        tops = recess(sm, fr, f["field"], 0.018, 0.006, f["panels"], prise=0.010)
         sm.set(PAINT, FLAT, KEEP)
         for t_, d in tops: sm.region([fr.loop(t_, d)])
 
@@ -741,8 +789,39 @@ def unwrap_and_pack(parts):
         G._HARD.clear(); G._HARD.update(hard_edge_keys(o.data))
         rep[o.name] = UV.unwrap_object(o)
         UV.scale_islands(o, lambda isl, o=o: uv_density(o, isl))
-    rep["px_per_m"] = round(UV.pack(parts), 1)
+    rep["px_per_m"] = round(pack_fixed(parts, TEXEL), 1)
     return rep
+
+
+TEXEL = 512.0                                # ASSET_RULES hero target (px/m at 2048); the sheet has room to spare
+
+
+def pack_fixed(objs, d):
+    """cradle_v2_uv.pack at a fixed density d (px per UV unit) instead of the densest that fits: same skyline
+    packing, padding and border; fails loudly if the islands do not fit"""
+    bms = []; isls = []
+    for o in objs:
+        bm = bmesh.new(); bm.from_mesh(o.data); uvl = bm.loops.layers.uv.active
+        bms.append((o, bm, uvl))
+        for isl in UV.islands(bm):
+            U = np.array([l[uvl].uv[:] for f in isl for l in f.loops])
+            isls.append((uvl, isl, U.min(0), np.ptp(U, 0)))
+    rects = [(int(math.ceil(sz[0] * d)) + UV.PAD_PX + 1, int(math.ceil(sz[1] * d)) + UV.PAD_PX + 1) for _, _, _, sz in isls]
+    pos = None
+    for key in UV.ORDERS:
+        pos = UV._skyline(rects, UV.TEX, UV.TEX, key)
+        if pos: break
+    assert pos, f"islands do not fit the {UV.TEX} sheet at {d} px/m"
+    for (uvl, isl, mn, sz), (x, y, turned) in zip(isls, pos):
+        ox = (x + UV.PAD_PX // 2 + 0.5) / UV.TEX; oy = (y + UV.PAD_PX // 2 + 0.5) / UV.TEX
+        for f in isl:
+            for l in f.loops:
+                u, v = l[uvl].uv[0] - mn[0], l[uvl].uv[1] - mn[1]
+                if turned: u, v = sz[1] - v, u
+                l[uvl].uv = (ox + u * d / UV.TEX, oy + v * d / UV.TEX)
+    for o, bm, uvl in bms:
+        bm.to_mesh(o.data); bm.free()
+    return d
 
 
 def apply_shading(obj):

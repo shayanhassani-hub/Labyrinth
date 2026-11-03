@@ -57,34 +57,34 @@ Method: **G** = geometry (≥ 15 mm, depth rule), **N** = normal map (H2 bake), 
 
 | # | Feature (concept) | Where | Method | H0 | H1 | H2 |
 |---|---|---|---|---|---|---|
-| P1 | Chunky pillar blocks, chamfered vertical edges (plan octagon: big outer chamfers, small inner) | both pillars | G (half-space block: outer 40 mm, inner-front 8 mm) | ✓ | | |
-| P2 | Large top-front chamfer, smaller top-side chamfers | pillar tops | G (90 / 30 mm) | ✓ | | |
-| P3 | Top cap seam ~0.1 below the top | pillar front / sides | N (groove) | | | |
-| P4 | Base band | pillars, lower body | G (plinth 0.16 high, 15 mm inset; also the trim notch) | ✓ | | |
-| P5 | Front: recessed field with a raised "dog-bone" plate (wide top / bottom, narrow waist, 45° tapers) | pillar fronts | G (field 18 mm, plate 12 mm proud) | | | |
-| P6 | Vertical cyan light strip in the plate's waist | pillar fronts | G (slot 15 mm) + emission | | | |
-| P7 | Hazard stripes on the outer vertical chamfers (front and back) | pillars | T (ochre / black 45°), faces split at y 0.22 / 1.10 | ✓ | | |
-| P8 | Outer side: framed field, three panels with stepped (Z) dividers | pillar outer sides | G (field 18 mm, panels 10 mm proud) | | | |
+| P1 | Chunky pillar blocks, chamfered vertical edges (plan octagon: big outer chamfers, small inner) | both pillars | G (half-space block: outer 40 mm, inner-front 8 mm) | ✓ | ✓ | |
+| P2 | Large top-front chamfer, smaller top-side chamfers | pillar tops | G (150 / 30 mm) | ✓ | ✓ | |
+| P3 | Top cap seam under the top-front chamfer | pillar fronts | G (55 mm cap band above the field) + N (groove) | | ✓ (band) | |
+| P4 | Base band | pillars, lower body | G (plinth 0.16 high, 15 mm inset; also the trim notch) | ✓ | ✓ | |
+| P5 | Front: recessed field with a raised "dog-bone" plate (wide top / bottom, narrow waist, 45° tapers) | pillar fronts | G (field 18 mm, plate 12 mm proud) | | ✓ | |
+| P6 | Vertical cyan light strip in the plate's waist | pillar fronts | G (slot 15 mm) + emission | | ✓ | |
+| P7 | Hazard stripes on the outer vertical chamfers (front and back) | pillars | T (ochre / black 45°), faces split at y 0.22 / 1.04 | ✓ | ✓ (faces) | |
+| P8 | Outer side: framed field, three panels with stepped (Z) dividers | pillar outer sides | G (field 18 mm, panels 10 mm proud) | | ✓ | |
 | P9 | Inner side: big plate with a cut corner | pillar inner sides | N (panel groove); only ~0.2 m shows above the desk at spec heights | | | |
 | P10 | Bolts at plate / panel / frame corners | everywhere | N (hex heads, washers) | | | |
 | P11 | Pillar top: corner bolts, seams | pillar tops | N | | | |
 | P12 | Rust on edges, corners, bottom, streaks; worn hazard paint | everywhere | T (STYLE_GUIDE rust rule) | | | |
-| B1 | Beacon base (black) | Pillar_L top | G (Ø 0.10 × 0.022, 16 seg) | ✓ | | |
-| B2 | Red beacon lens (dome) | Pillar_L top | G, own mesh (Ø 0.08, dome) | ✓ | | |
-| B3 | Wire cage round the lens | Pillar_L top | G (4 posts 6 mm, ring, top cross) | | | |
+| B1 | Beacon base (black) | Pillar_L top | G (Ø 0.10 × 0.022, 16 seg) | ✓ | ✓ | |
+| B2 | Red beacon lens (dome) | Pillar_L top | G, own mesh (Ø 0.08, dome) | ✓ | ✓ | |
+| B3 | Wire cage round the lens | Pillar_L top | G (4 posts 6 mm, ring, top cross) | | ✓ | |
 | B4 | Red glow halo around the beacon | – | – (Unity bloom / a light in the lighting pass, not geometry) | – | – | – |
-| D1 | Desk slab: thick front edge, top-front chamfer | desk | G (50 mm edge, 8 mm chamfers) | ✓ | | |
-| D2 | Deep shadow under the desk slab (overhang over the lower body) | desk | G (100 mm overhang) | ✓ | | |
+| D1 | Desk slab: thick front edge, top-front chamfer | desk | G (50 mm edge, 8 mm chamfers) | ✓ | ✓ | |
+| D2 | Deep shadow under the desk slab (overhang over the lower body) | desk | G (100 mm overhang) | ✓ | ✓ | |
 | D3 | Framed desk panel: border with 45° cut ends, five panels | desk top | N (grooves) | | | |
 | D4 | Bolts at the desk panel corners | desk top | N | | | |
-| D5 | 6 indicator slots with cyan strips (2 × 3) | desk top | G (slots 15 mm) + emission; 3 = Indicators_01 | | | |
-| D6 | Button guard: flange, thick collar with a notch | desk centre | G (flange 8 mm, collar 35 mm, 24 seg) | ✓ (plain collar) | | |
-| D7 | Red cap with chamfer, steel cup ring under it | desk centre | G (cap Ø 0.12, 24 seg) + T (steel cup floor) | ✓ | | |
-| D8 | Display base bar / slot along the back | desk shelf | G (1.60 × 0.05 × 0.07) | ✓ | | |
-| S1 | Transparent holo panel, glowing frame with corner tabs | display | own holo texture (≤ 1024) + transparent material | ✓ (quad) | | |
+| D5 | 6 indicator slots with cyan strips (2 × 3) | desk top | G (slots 15 mm) + emission; 3 = Indicators_01 | | ✓ | |
+| D6 | Button guard: flange, thick collar with a notch | desk centre | G (flange 8 mm, collar 35 mm, 24 seg) | ✓ (plain collar) | ✓ | |
+| D7 | Red cap with chamfer, steel cup ring under it | desk centre | G (cap Ø 0.12, 24 seg) + T (steel cup floor) | ✓ | ✓ (cap) | |
+| D8 | Display base bar / slot along the back | desk shelf | G (1.60 × 0.05 × 0.07) | ✓ | ✓ | |
+| S1 | Transparent holo panel, glowing frame with corner tabs | display | own holo texture (≤ 1024) + transparent material | ✓ (quad) | ✓ (quad) | |
 | S2 | Holo UI: room / drone wireframe, graphs, grid, data blocks | display | holo texture; no readable text | | | |
-| L1 | Three recessed front panels | lower body | G (18 mm) | | | |
-| L2 | Stepped divider: lower panel raised in the middle | lower body | G (panels 10 mm proud) | | | |
+| L1 | Three recessed front panels | lower body | G (18 mm) | | ✓ | |
+| L2 | Stepped divider: lower panel raised in the middle | lower body | G (panels 10 mm proud) | | ✓ | |
 | L3 | Bolts at the lower panel corners | lower body | N | | | |
 | C1 | Overall colour: blue-grey gunmetal, darker frames | all | T | | | |
 
@@ -111,6 +111,64 @@ Method: **G** = geometry (≥ 15 mm, depth rule), **N** = normal map (H2 bake), 
 - Read from H0: the layout matches (beacon left, button centre, desk set back, deep under-desk shadow, hazard bands on
   the outer chamfers); the differences are the spec proportions listed above (taller pillars and desk, slimmer pillars,
   taller screen).
+
+### H1 — model (2026-11-03)
+`terminal.py` (default `TERMINAL_DETAIL=1`) → review file `D:/AI_Labyrinth/Blender/Source/Heroes/Terminal/LAB_HERO_Terminal_v1.blend`.
+
+| Part | Tris | Faces | UV islands | Notes |
+|---|---|---|---|---|
+| Body_01 | 1,654 | 714 quads, 226 tris (flat regions only), 0 n-gons | 443 | open borders = deliberate: backs on the wall, floor contacts, the body ↔ pillar cut |
+| Button_01 | 140 | 70 quads | 3 | 24 segments, 3 mm top chamfer |
+| Indicators_01 | 30 | 15 quads | 15 | 3 strips (top + walls; they sit on the slot floors) |
+| Beacon_01 | 112 | 48 quads, 16 tris (dome apex fan) | 2 | 16 segments, open bottom on the base |
+| Display_01 | 2 | 1 quad | 1 (own 0–1 UV) | holo material |
+| **Total** | **1,938** | | | no LOD needed (< 10k, ASSET_RULES) |
+
+- **Construction:** pillars = half-space blocks (outer vertical chamfers 40 mm = hazard bands, inner-front 8 mm chamfer
+  strip, top-front 150 mm (concept side view ≈ 170 mm), top sides 30 mm). Front: field 18 mm deep (frame 25 mm, cap band
+  55 mm), dog-bone plate 12 mm proud with 45° tapers, light slot 22 × 400 mm, 15 mm deep, strip 10 mm below the plate.
+  Outer sides: field 18 mm, three panels 10 mm proud, ~35° stepped dividers as in the concept's side view (top panel
+  reaches lower at the back, bottom panel higher at the back, a 9 % strip of field along the front). Lower body: three
+  fields 18 mm, two panels each, the lower one rising in the middle (concept). Desk: 6 slots 245 × 34 × 15 mm (strips
+  7 mm below the surface), guard flange Ø 0.23 × 8 mm, collar Ø 0.20 / 0.15 × 35 mm with a 45° notch toward the
+  player's front-right, cup floor and a hole Ø 0.123 for the cap's stroke. Display bar 1.60 × 0.05 × 0.07 on the shelf.
+  Beacon: base Ø 0.10 × 22 mm, lens Ø 0.08 with a dome, cage of four 6 mm posts, a ring and a top cross.
+- **Shading:** every face has a kind (FLAT / CHAMFER / ROUND, as on the Gate). Hard edge + UV seam: flat | flat at any
+  crease (> 1°, so the desk's 15° crease to the shelf is hard), round | flat > 30°, chamfer | flat > 50°, chamfer |
+  chamfer > 15°. Face-weighted normals (Gate `apply_shading`).
+- **UVs:** `cradle_v2_uv` unwrap with the hard-edge rule, packed at a fixed **512 px/m** (the densest fit would be
+  583; ASSET_RULES target 512 ± 10 %), padding 8 px, border 4 px, **43.7 %** of the 2048 sheet. Undersides 0.5,
+  plinths 0.6, Pillar_R's outer side (0.6 m from the room's side wall) 0.5. The display has its own 0–1 UV.
+- **Hidden faces:** 25 deleted by construction (backs on the wall, floor contacts, the body's end caps inside the
+  pillars), 8 of 109 ray candidates (plinth slots, cage bar ends) deleted by the ray test (96 directions, button at
+  rest and pressed, room proxy: back wall, floor trim, side wall).
+
+**Checks** (`terminal_check.py -- topo / clearance`), all PASS:
+- Topology: 0 n-gons, non-manifold, loose, duplicate or zero-area elements, 0 winding faults, 0 bow-tie / concave
+  quads, 0 corner normals against the custom normals; planarity: 0 quads with diagonals > 2 mm apart; shading: 0 flat
+  faces with a corner normal > 0.5° off (worst 0.19°); nothing behind the wall or below the floor.
+- UVs: padding ≥ 8 px, border 4 px, island density 512 px/m (256 / 307 on the reduced faces).
+- Clearance sweep, button 0 … 15 mm along the desk normal in 11 steps: min gap cap ↔ body 1.5 mm (the hole wall),
+  no contact; cap ↔ collar 15 mm radial; cap 13 mm above the collar at rest, 2 mm below it pressed; 40 mm above the
+  cup floor (spec 0.04); 15 mm above the hole floor pressed.
+- Room: footprint x −3.4 … −1.0, z −2.0 … −1.2 (spec), y 0 … 1.345 (beacon); backs on the wall face, 5.0 mm to the
+  floor trim and the side wall; display top edge 32 mm from the wall (y 1.10 … 1.94, z −1.85 … −1.97).
+- Spec sizes on the mesh: desk 0.92 at the front edge (chamfer 0.912 … 0.922), 1.05 at the back of the slope, 15°;
+  pillars 1.25.
+- Reach: shoulder (1.40 high) → button top 0.69 m standing 0.30 in front of the pillars, 0.57 m at 0.15 (comfortable
+  arm reach 0.60–0.70 m); the button is also selectable with the ray.
+- Motion: only the button moves (press); the indicators and the beacon switch colour (no motion). No part comes near
+  the drone volume (terminal z ≤ −1.2, drone volume z ≥ 2.84).
+
+**Renders** (`Documentation/Media/terminal/`): `terminal_h1_vs_concept.jpg` (four concept cameras, flat review
+colours), `terminal_h1_room / 34 / button / beacon / pillar / lower`, `terminal_h1_shading_*` (flat grey: no gradients
+on flat faces), `terminal_h1_wire_*`, `terminal_h1_checker_*`, `terminal_h1_uv_layout`. Workbench needs EGL, which
+the headless container lacks: wire and checker renders are Cycles (wire = the Wireframe modifier copy, checker =
+emission).
+
+**Iteration against the concept:** the H1 side view showed the outer-side dividers stepping the wrong way and a top
+chamfer about half the concept's; both fixed (dividers reversed, front strip added, top-front chamfer 90 → 150 mm),
+front field cap band added for the concept's seam under the chamfer.
 
 ## Open questions for the owner
 1. Pillar width: keep 0.30 (spec) or widen towards the concept (e.g. 0.36 → desk 1.68 wide, footprint unchanged)?
