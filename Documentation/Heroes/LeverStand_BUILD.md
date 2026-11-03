@@ -39,30 +39,30 @@ modelled and checked, H2 = textured and checked.
 
 | # | Feature (concept) | How | H1 | H2 |
 |---|---|---|---|---|
-| 1 | Pedestal block, vertical corner chamfers | G: 0.30 × 0.95 × 0.30, 20 mm chamfers (spec) | ✓ | |
-| 2 | Plinth with a 45° bottom bevel | G: 18 mm chamfer; floor face not built | ✓ | |
-| 3 | Groove between plinth and body, between body and ledge | N (flush in geometry) | | |
-| 4 | Cap slab, chamfered top edge | G: 35 mm cap, 12 mm top chamfer | ✓ | |
-| 5 | Black/yellow hazard band under the cap | G: 0.06 band (spec), recessed 6 mm (kept as geometry for the silhouette step); T: ochre/black 45° stripes, worn | ✓ | |
-| 6 | Ledge under the band | N: groove lines (flush) | | |
-| 7 | Recessed field between corner posts, all four faces | G: 18 mm deep, sloped walls | ✓ | |
-| 8 | Front: I-shaped ("dogbone") raised plate | G: 10 mm proud, 45° transitions (Gate plate standard) | ✓ | |
-| 9 | Light channel in the plate's waist | G: 18 mm deep, polymer | ✓ | |
-| 10 | Cyan light strip | G: 8 mm proud of the channel floor; T: emission sRGB 70 170 255 | ✓ | |
-| 11 | Sides: three plates, stepped (diagonal) dividers | G: 10 mm proud, 10 mm gaps; divider heights from the ortho | ✓ | |
-| 12 | Bolts: I-plate 4, side plates 4 per face, back plate 4, cap top 4, housing front 2 and sides 2 each | N (heads, washers) + T | | |
-| 13 | Small edge bevels on every panel edge | N (1.5 mm bevel bake) | | |
-| 14 | Housing: low front, sloped front, flat top, rounded back top edge, chamfered sides | G: 0.22 × 0.08 × 0.16 (spec), 8 mm perimeter chamfer, 15 mm back fillet (3 segments) | ✓ | |
-| 15 | Slot with a dark interior | G: 42 × 88 mm opening, pocket 65 mm deep (polymer) | ✓ | |
-| 16 | Slot lip / frame | N | | |
-| 17 | Lever shaft (steel) | G: Ø 0.03 12-gon (spec), chamfered bottom end in the pocket | ✓ | |
-| 18 | Ochre grip, rounded top, collar at the bottom | G: Ø 0.05 × 0.10 16-gon (spec), bottom chamfer, 2-ring dome; N: longitudinal ribs and collar line | ✓ | |
-| 19 | Lamp base collar | G: Ø 40 × 10 mm 12-gon, polymer | ✓ | |
-| 20 | Amber lamp glass | G: separate part `Lamp_01`, Ø 26 mm; T: emission sRGB 240 150 60; runtime: MaterialPropertyBlock | ✓ | |
-| 21 | Wire cage | G: 4 bars 3 × 3 mm, octagonal top ring, cross over the dome (see-through: cannot be a normal map) | ✓ | |
-| 22 | Rust: edges, corners, plinth, round some bolts, panel corners, run-off streaks, rusty band | T (STYLE_GUIDE rust rule, 5–15 % of the paint, more toward the bottom) | | |
-| 23 | Edge wear to bare steel, hairline scratches, grime | T (Gate G2c rules) | | |
-| 24 | Back face (not in the concept) | G: same field and one plain plate; N: 4 bolts | ✓ | |
+| 1 | Pedestal block, vertical corner chamfers | G: 0.30 × 0.95 × 0.30, 20 mm chamfers (spec) | ✓ | ✓ |
+| 2 | Plinth with a 45° bottom bevel | G: 18 mm chamfer; floor face not built | ✓ | ✓ |
+| 3 | Groove between plinth and body, between body and ledge | N (flush in geometry) | — | ✓ |
+| 4 | Cap slab, chamfered top edge | G: 35 mm cap, 12 mm top chamfer | ✓ | ✓ |
+| 5 | Black/yellow hazard band under the cap | G: 0.06 band (spec), recessed 6 mm (kept as geometry for the silhouette step); T: ochre/black 45° stripes, worn | ✓ | ✓ |
+| 6 | Ledge under the band | N: groove lines (flush) | — | ✓ |
+| 7 | Recessed field between corner posts, all four faces | G: 18 mm deep, sloped walls | ✓ | ✓ |
+| 8 | Front: I-shaped ("dogbone") raised plate | G: 10 mm proud, 45° transitions (Gate plate standard) | ✓ | ✓ |
+| 9 | Light channel in the plate's waist | G: 18 mm deep, polymer | ✓ | ✓ |
+| 10 | Cyan light strip | G: 8 mm proud of the channel floor; T: emission sRGB 70 170 255 | ✓ | ✓ |
+| 11 | Sides: three plates, stepped (diagonal) dividers | G: 10 mm proud, 10 mm gaps; divider heights from the ortho | ✓ | ✓ |
+| 12 | Bolts: I-plate 4, side plates 4 per face, back plate 4, cap top 4, housing front 2 and sides 2 each | N (heads, washers) + T | — | ✓ |
+| 13 | Small edge bevels on every panel edge | N (1.5 mm bevel bake) | — | ✓ |
+| 14 | Housing: low front, sloped front, flat top, rounded back top edge, chamfered sides | G: 0.22 × 0.08 × 0.16 (spec), 8 mm perimeter chamfer, 15 mm back fillet (3 segments) | ✓ | ✓ |
+| 15 | Slot with a dark interior | G: 42 × 88 mm opening, pocket 65 mm deep (polymer) | ✓ | ✓ |
+| 16 | Slot lip / frame | N | — | ✓ |
+| 17 | Lever shaft (steel) | G: Ø 0.03 12-gon (spec), chamfered bottom end in the pocket | ✓ | ✓ |
+| 18 | Ochre grip, rounded top, collar at the bottom | G: Ø 0.05 × 0.10 16-gon (spec), bottom chamfer, 2-ring dome; N: longitudinal ribs and collar line | ✓ | ✓ |
+| 19 | Lamp base collar | G: Ø 40 × 10 mm 12-gon, polymer | ✓ | ✓ |
+| 20 | Amber lamp glass | G: separate part `Lamp_01`, Ø 26 mm; T: emission sRGB 240 150 60; runtime: MaterialPropertyBlock | ✓ | ✓ |
+| 21 | Wire cage | G: 4 bars 3 × 3 mm, octagonal top ring, cross over the dome (see-through: cannot be a normal map) | ✓ | ✓ |
+| 22 | Rust: edges, corners, plinth, round some bolts, panel corners, run-off streaks, rusty band | T (STYLE_GUIDE rust rule, 5–15 % of the paint, more toward the bottom) | — | ✓ |
+| 23 | Edge wear to bare steel, hairline scratches, grime | T (Gate G2c rules) | — | ✓ |
+| 24 | Back face (not in the concept) | G: same field and one plain plate; N: 4 bolts | ✓ | ✓ |
 
 Left out or changed (with the reason):
 - The concept's chunkier pedestal (≈ 0.44 m) and bigger housing (≈ 0.21 deep × 0.12 tall at concept scale): HERO_SPEC
@@ -144,3 +144,50 @@ Renders (`Documentation/Media/leverstand/`): `leverstand_h1_vs_concept.jpg`, `_t
 front, side, side_pulled, top, lever, lamp, base}.jpg`, `leverstand_h1_shading_{34, top, lever, base}.jpg`,
 `leverstand_h1_wire_{34, top}.jpg`, `leverstand_h1_checker_{34, top}.jpg`, `leverstand_h1_uv_layout.jpg`. Workbench
 needs OpenGL, which the cloud container lacks, so the wire and checker renders use Cycles.
+
+## H2 — textures (done)
+`leverstand_tex.py -- bake` builds on the Gate's pipeline (`gate_tex.py` helpers): procedural materials baked in Cycles
+onto the export-identical triangulated lows (lever upright), each part on its own, margin 0, one 8 px dilation.
+**One 1024 set**: `Assets/Environment/Heroes/LeverStand/Textures/T_LAB_HERO_LeverStand_{BaseColor, Normal, Mask,
+Emission}.png` (Git LFS). BaseColor sRGB, Normal OpenGL, Mask linear (R metallic, G AO, B 0, A smoothness), Emission
+sRGB. Full bake 165 s; with reused pre-bakes ~60–100 s (`-- bake reuse`). `LEVERSTAND_TEX=512` for test bakes.
+- **Paint (design decision):** cool steel grey **sRGB 86 88 94**. The concept's paint is a neutral grey (lit panels
+  87 84 90), not the Gate's blue gunmetal (90 104 115) or the darker charcoal (60 64 70). The concept's brightness is
+  kept, with the style guide's slight cool cast (B > R). Baked median 81 81 86 (with mottling, grime, wipes). Open
+  question for the owner (STYLE_GUIDE: "each later hero's paint is decided in its own design step").
+- Wear (STYLE_GUIDE, Gate G2c rules): mottling, vertical wipes and drips (concept), hairline scratches, grime in
+  cavities and toward the floor, broken edge wear to bare steel (albedo ≥ 180, metallic 1), bolts painted with worn
+  tips.
+- Rust (rust rule): round ~65 % of the bolts (irregular, off-centre), small blotches in 25 % of the plate corners,
+  plinth corners, a patchy plinth, exposed edge sections, scattered spots and vertical run-off (concept), 16 streaks;
+  a rusty, worn band. Coverage **9.3 % of the paint** (15.7 % below y 0.3, 7.1 % at 0.3–0.8, 4.7 % above 0.8).
+  Non-metallic, smoothness ~0.15.
+- Hazard band: ochre / black 45° stripes ("\" on every face, 75 mm pitch), chipped to the paint at its edges.
+- Grip: ochre polymer (159 120 58), 16 longitudinal rib grooves and a collar line (normal map), polished where held,
+  dirt in the ribs, no rust. Shaft and cage: machined steel (smoothness ~0.52), slight rust at the slot entry.
+  Slot pocket, lamp collar: polymer. Strip: emission 70 170 255. Lamp: emission 240 150 60 (off albedo 60 46 32).
+- Normal map: 26 bolts (hex heads with washers), grooves at the plinth and ledge joints, the slot frame (raised lip),
+  grip ribs, 1.2 mm bevel on every edge, fine noise.
+
+**Checks** (`leverstand_tex.py -- check`, 1024), all PASS:
+- AO black scan: contact lines only; 3 accepted patches (115 texels) on the slot pocket's floor and lower walls (a
+  42 mm wide, 65 mm deep pocket is truly dark).
+- PBR: non-metal albedo 30–240: 0 % outside; metal albedo ≥ 180: 0.21 % of 33,302 metal texels below (limit 1 %);
+  metallic transitions 0.6 %.
+- Rust coverage 9.3 % (rule 5–15 %).
+- Normal seams on the body's coplanar faces: 50 samples, 0 over 6°, worst 2.9°. Skipped, like the Gate's
+  short-seam rule: 54 samples within 3 px of a groove, bolt or geometry edge, and 31 seam edges under 30 mm. Before
+  the skip, the samples flagged diagonal fill seams crossing the horizontal grooves (one side in the groove, the other
+  not) and the 6 mm floor strips at the plate feet (bevel zone). The detail maps are now dilated before the bake, so
+  island borders don't read empty texels.
+- No white clipping (`leverstand_check.py -- clip h2`): 0 white pixels next to emissive pixels in the room, 3/4,
+  front, dim and lamp renders. The other white pixels are specular highlights on the steel shaft.
+
+Renders (`Documentation/Media/leverstand/`): `leverstand_h2_vs_concept.jpg`, `_top.jpg` (lit like the concept: mid
+grey 67, soft top key), `leverstand_h2_{room, 34, front, side, side_pulled, top, lever, lamp, base, dim_facility}.jpg`
+(room = the player's view from the labyrinth operating position; dim = lights at 35 %), and maps
+`leverstand_h2_map_{basecolor, normal, emission, mask_metallic, mask_ao, mask_smoothness}.jpg`.
+
+Remaining differences to the concept (texture): the concept's paint reads lighter and more metallic under its
+lighting. Its cyan is greener; we use the STYLE_GUIDE blue-cyan (70 170 255). Its rust is heavier (it would exceed the
+15 % rule).

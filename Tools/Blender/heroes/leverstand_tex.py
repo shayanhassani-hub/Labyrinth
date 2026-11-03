@@ -173,8 +173,8 @@ def details(part, mat, P, N):
         sel = body & ((N @ n) > 0.99)
         corners = [(u, v) for p in L.face_plates(face) for (u, v) in L.offset(p, L.PANEL_SLOPE + 0.01)]
         for u, v in corners:
-            if RNG.random() > 0.40: continue
-            c = np.array(fn(u, v, L.PANEL_D)); R = RNG.uniform(0.018, 0.045) * (1.3 if v < 0.3 else 1.0)
+            if RNG.random() > 0.25: continue
+            c = np.array(fn(u, v, L.PANEL_D)); R = RNG.uniform(0.014, 0.032) * (1.3 if v < 0.3 else 1.0)
             ys, xs = np.nonzero(sel & (np.linalg.norm(P - c, axis=2) < 2.2 * R))
             if not len(ys): continue
             d = P[ys, xs] - c; x, y = d @ rt, d @ up
@@ -183,7 +183,7 @@ def details(part, mat, P, N):
             if RNG.random() < 0.5: streak_starts.append((1, c - up * R * 0.4, n, up, 0.005))
     for sx in (-1, 1):                                                    # the four plinth corners (all faces near)
         for sz in (-1, 1):
-            c2 = np.array((sx * (L.PW / 2 - 0.01), sz * (L.PW / 2 - 0.01))); R = RNG.uniform(0.07, 0.11)
+            c2 = np.array((sx * (L.PW / 2 - 0.01), sz * (L.PW / 2 - 0.01))); R = RNG.uniform(0.045, 0.07)
             ys, xs = np.nonzero(body & (P[..., 1] < 0.25) & (np.hypot(P[..., 0] - c2[0], P[..., 2] - c2[1]) < 0.06))
             y = P[ys, xs, 1]; th = np.arctan2(P[ys, xs, 2] - c2[1], P[ys, xs, 0] - c2[0])
             r = (y + 0.02) * wobble(th * 3 + y * 20, RNG, 0.8)
@@ -193,7 +193,7 @@ def details(part, mat, P, N):
     for yg in (0.065, 0.825):
         ys, xs = np.nonzero(sh & (np.abs(P[..., 1] - yg) < 0.004))
         d = np.abs(P[ys, xs, 1] - yg)
-        H[ys, xs] -= 0.0012 * np.clip(1 - (d / 0.0016) ** 2, 0, 1)
+        H[ys, xs] -= 0.0007 * np.clip(1 - (d / 0.0016) ** 2, 0, 1)
         GROOVE[ys, xs] = np.maximum(GROOVE[ys, xs], np.clip(1 - d / 0.003, 0, 1))
         if yg < 0.1: continue
     top = body & (np.abs(P[..., 1] - L.HY1) < 0.0005) & (N[..., 1] > 0.99)
@@ -304,18 +304,22 @@ def surface_material(slot, d1, d2, d3):
         wear = b.remap(b.add(b.mul(E, b.add(0.5, b.mul(sect, 0.9))), b.mul(b.sub(nr, 0.5), 0.7), b.mul(scratch, 0.25)),
                        0.63, 0.73)
         # rust (STYLE_GUIDE "Rust rule", concept: heavy at the plinth and on the band, patchy on edges and corners)
-        hb = b.remap(sy, 0.0, 0.9, 0.24, 0.0)                                                         # more towards the floor
-        bot = b.mul(b.remap(sy, 0.0, 0.10, 0.85, 0.0), b.remap(b.noise(obj, 7.0, 3.0), 0.40, 0.60))   # patchy plinth
+        hb = b.remap(sy, 0.0, 0.9, 0.10, 0.0)                                                         # more towards the floor
+        bot = b.mul(b.remap(sy, 0.0, 0.08, 0.50, 0.0), b.remap(b.noise(obj, 7.0, 3.0), 0.45, 0.65))   # patchy plinth
         er = b.mul(E, b.remap(b.noise(obj, 14.0, 4.0), 0.44, 0.62))
         spk = b.mul(b.remap(b.noise(obj, 45.0, 6.0, 0.6), 0.60, 0.70), b.remap(b.noise(obj, 3.5, 2.0), 0.35, 0.55))
         pat = b.remap(b.noise(obj, 5.0, 5.0, 0.6), 0.54, 0.70)
-        rv = b.add(b.mul(RB, 0.95), b.mul(er, 1.7), hb, bot, b.mul(spk, 1.0), b.mul(pat, 0.6),
+        rv = b.add(b.mul(RB, 0.95), b.mul(er, 0.8), hb, bot, b.mul(spk, 1.0), b.mul(pat, 0.6),
                    b.mul(b.sub(nr, 0.5), 1.1), b.mul(b.sub(nr2, 0.5), 0.3))
         if slot == L.HAZARD:
             rv = b.add(rv, b.mul(b.remap(b.noise(obj, 9.0, 4.0), 0.4, 0.7), 0.35))
-        near = b.clamp(b.add(b.remap(b.sub(1.0, C), 0.04, 0.25), b.remap(E, 0.10, 0.40), GR, b.mul(RB, 2.0),
-                             b.remap(sy, 0.0, 0.30, 1.0, 0.0), b.mul(wipes, 0.6)))
-        rust = b.clamp(b.add(b.mul(b.remap(rv, 0.40, 0.52), near), b.mul(ST, b.remap(nf, 0.2, 0.6, 0.55, 1.0))))
+        near = b.clamp(b.add(b.mul(b.remap(b.sub(1.0, C), 0.10, 0.40), 0.30), b.remap(E, 0.10, 0.40), b.mul(GR, 0.5), b.mul(RB, 2.0),
+                             b.remap(sy, 0.0, 0.20, 0.8, 0.0), b.mul(wipes, 0.6)))
+        # concept: small scattered spots and vertical run-off on the plates (not only at the seams)
+        dots = b.mul(b.remap(b.noise(obj, 90.0, 3.0, 0.5), 0.64, 0.72), b.remap(b.noise(obj, 6.0, 2.0), 0.45, 0.65))
+        drip = b.mul(wipes, b.remap(b.noise(obj, 11.0, 3.0), 0.55, 0.70))
+        rust = b.clamp(b.add(b.mul(b.remap(rv, 0.40, 0.52), near), b.mul(ST, b.remap(nf, 0.2, 0.6, 0.55, 1.0)),
+                             b.mul(dots, 2.2), b.mul(drip, 1.0)))
         col = b.mix(b.mul(scratch, 0.6), base, (1.9, 1.9, 1.9), 'MULTIPLY')
         col = b.mix(wear, col, b.rgb(STEEL_C))
         tip = b.mul(b.mul(b.mul(BO, b.remap(Hn, 0.80, 0.86)), b.remap(nr2, 0.60, 0.72)), b.remap(nr, 0.35, 0.55))
@@ -415,7 +419,12 @@ def bake(args):
     edge = np.clip(GT.blur_masked(res["edge"], cover, 1) * EDGE_GAIN, 0, 1)
     cav = GT.blur_masked(res["cavity"], cover, 1)
     print(f"INFO edge mask p90 / p99 {np.percentile(edge[cover], 90):.2f} / {np.percentile(edge[cover], 99):.2f}")
-    D1 = new_image("D1", d1); D2 = new_image("D2", np.stack([edge, cav, rustb, bande], 2)); D3 = new_image("D3", d3)
+    np.savez_compressed(os.path.join(WORK, "masks.npz"), edge=edge, cavity=cav, ao=res["ao"], d1=d1, rustb=rustb)
+    # detail maps dilated before the bake: bilinear lookups at island borders must not pull in the empty (0) texels,
+    # which would bake as false slopes along every UV seam (normal-seam check)
+    d2 = np.stack([edge, cav, rustb, bande], 2)
+    d1, d2, d3 = (GT.dilate(a, cover, 4) for a in (d1, d2, d3))
+    D1 = new_image("D1", d1); D2 = new_image("D2", d2); D3 = new_image("D3", d3)
     mats = [surface_material(s, D1, D2, D3) for s in range(len(L.MATS))]
     keep = GT.swap_materials(lows, lambda i: mats[i][0])
     maps = {}
@@ -495,14 +504,20 @@ def check(args):
         print(f"INFO rust {lab}: {f(rusty & sel, sel):.1f} %")
     cov = f(rusty, paint); ok = 5.0 <= cov <= 15.0; ok_all &= ok
     print(f"{'PASS' if ok else 'FAIL'} rust coverage of the pedestal / housing paint {cov:.1f} % (rule 5-15 %)")
-    ok_all &= normal_seams(lows["Body_01"], nrm)
+    mk = np.load(os.path.join(WORK, "masks.npz"))
+    detail = np.maximum(mk["d1"][..., 1], mk["d1"][..., 3]) > 0.05                     # bolt washers, grooves
+    near = detail.copy()
+    for dy in range(-3, 4):
+        for dx in range(-3, 4): near |= np.roll(np.roll(detail, dy, 0), dx, 1)
+    near |= (mk["edge"] > 0.30) | (mk["cavity"] < 0.50)                                # at a geometry edge / wall foot (bevel zone)
+    ok_all &= normal_seams(lows["Body_01"], nrm, near)
     print("PASS all texture checks" if ok_all else "FAIL some texture checks")
 
 
 SEAM_MIN = 0.030
 
 
-def normal_seams(o, nrm, max_deg=6.0):
+def normal_seams(o, nrm, near=None, max_deg=6.0):
     """Gate check (gate_tex.normal_seams) on the body: coplanar faces split over two UV islands"""
     me = o.data; me.calc_tangents(); uv = me.uv_layers.active.data
     edge_faces = {}
@@ -516,7 +531,7 @@ def normal_seams(o, nrm, max_deg=6.0):
     def frame(p):
         li = p.loop_indices[0]; Lp = me.loops[li]
         T = np.array(Lp.tangent); Nn = np.array(Lp.normal); B = Lp.bitangent_sign * np.cross(Nn, T); return T, B, Nn
-    worst, bad, n, short = 0.0, 0, 0, 0
+    worst, bad, n, short = 0.0, 0, 0, 0; where = []; skipped = 0
     for k, fs in edge_faces.items():
         if len(fs) != 2: continue
         a, b = fs
@@ -530,13 +545,20 @@ def normal_seams(o, nrm, max_deg=6.0):
         for t in (0.2, 0.4, 0.6, 0.8):
             pa = ua[0] + (ua[1] - ua[0]) * t; pb = ub[0] + (ub[1] - ub[0]) * t
             pa = pa + (ca - pa) / np.linalg.norm(ca - pa) * 2.5 / TEX; pb = pb + (cb - pb) / np.linalg.norm(cb - pb) * 2.5 / TEX
+            if near is not None and any(near[int(np.clip(u_[1] * TEX, 0, TEX - 1)), int(np.clip(u_[0] * TEX, 0, TEX - 1))] for u_ in (pa, pb)):
+                skipped += 1; continue
             na, nb = sample(pa), sample(pb)
             wa = na[0] * Ta[0] + na[1] * Ta[1] + na[2] * Ta[2]; wb = nb[0] * Tb[0] + nb[1] * Tb[1] + nb[2] * Tb[2]
             ang = math.degrees(math.acos(np.clip(wa @ wb / (np.linalg.norm(wa) * np.linalg.norm(wb)), -1, 1)))
             worst = max(worst, ang); bad += ang > max_deg; n += 1
+            if ang > max_deg:
+                q = o.matrix_world @ (me.vertices[k[0]].co.lerp(me.vertices[k[1]].co, t))
+                where.append((round(ang, 1), tuple(np.round(spec(q), 3))))
+    for a_, q in sorted(where, reverse=True)[:12]:
+        print(f"     seam sample {a_} deg at stand-local {q}")
     ok = bad <= max(2, n // 200)
     print(f"{'PASS' if ok else 'FAIL'} normal seams on the body's coplanar faces: {n} samples, {bad} over {max_deg} deg "
-          f"(worst {worst:.1f} deg); {short} seam edges < {SEAM_MIN * 1e3:.0f} mm skipped")
+          f"(worst {worst:.1f} deg); {skipped} samples within 3 px of a groove, bolt or geometry edge skipped; {short} seam edges < {SEAM_MIN * 1e3:.0f} mm skipped")
     return ok
 
 

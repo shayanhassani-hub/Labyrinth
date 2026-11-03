@@ -75,7 +75,7 @@ def scene_setup(size=(1288, 719), samples=64, engine='CYCLES'):
     return sc
 
 
-def concept_world(strength=0.55):
+def concept_world(strength=0.80):
     """camera rays see the concept's flat mid grey; the world lights the object with the same grey (ambient)"""
     sc = bpy.context.scene; bg = lin(CONCEPT_BG)
     wt = sc.world.node_tree; wb = wt.nodes["Background"]
@@ -97,7 +97,7 @@ def add_light(name, loc, look, power, size=1.0, color=(1, 1, 1)):
 
 def concept_lights():
     """soft neutral key from above the front-left (the concept's top-lit look), a weak fill from the camera side"""
-    return [add_light("CKey", (0.9, 2.6, 1.6), (0.0, 0.7, 0.0), 110, 2.5),
+    return [add_light("CKey", (0.9, 2.6, 1.6), (0.0, 0.7, 0.0), 150, 2.5),
             add_light("CFill", (-2.2, 1.2, 2.6), (0.0, 0.6, 0.0), 30, 3.0),
             add_light("CRim", (-1.0, 2.0, -2.0), (0.0, 0.8, 0.0), 25, 2.0)]
 
@@ -636,6 +636,15 @@ def renders(args):
         camera(v["loc"], v["look"], v.get("lens", 40), v.get("ortho"))
         p = shot(os.path.join(SCR, f"{tag}_{k}.png"))
         save_jpg(load_srgb(p, 1000), os.path.join(MEDIA, f"leverstand_{tag}_{k}.jpg"))
+    if tex and (not only or "dim" in only):                          # dim facility light: lamps at ~35 %
+        lights = [o for o in bpy.data.objects if o.type == 'LIGHT']
+        keep = [l.data.energy for l in lights]
+        for l in lights: l.data.energy *= 0.35
+        v = player_cam(); camera(v["loc"], v["look"], v["lens"])
+        p = shot(os.path.join(SCR, f"{tag}_dim_facility.png"))
+        save_jpg(load_srgb(p, 1000), os.path.join(MEDIA, f"leverstand_{tag}_dim_facility.jpg"))
+        for l, e in zip(lights, keep): l.data.energy = e
+    if tex: clip([tag])
     if not only or "pulled" in only:
         L.set_lever(objs["Lever_01"], L.PULLED_DEG)
         camera(**{k: v for k, v in VIEWS["side"].items()})
@@ -677,6 +686,24 @@ def renders(args):
         uv_layout(tag)
 
 
+def clip(args):
+    """STYLE_GUIDE: emission never clips to white. Emissive pixels = bright and saturated (max > 0.85, min < 0.6: the
+    cyan strip, the amber lamp); a white pixel (all channels > 0.85) counts as a clipped core only within 3 px of
+    one. Other white pixels are specular highlights (the steel shaft) and are reported separately."""
+    tag = args[0] if args else "h2"
+    for k in ("room", "34", "front", "dim_facility", "lamp"):
+        p = os.path.join(SCR, f"{tag}_{k}.png")
+        if not os.path.exists(p): continue
+        a_ = pixels_any(bpy.data.images.load(p))[..., :3]
+        emis = (a_.max(2) > 0.85) & (a_.min(2) < 0.6); white = a_.min(2) > 0.85
+        near = emis.copy()
+        for dy in range(-3, 4):
+            for dx in range(-3, 4): near |= np.roll(np.roll(emis, dy, 0), dx, 1)
+        core = white & near
+        print(f"{'PASS' if core.sum() == 0 else 'FAIL'} no white clipping {k}: {int(emis.sum())} emissive pixels, "
+              f"{int(core.sum())} white next to them; {int((white & ~near).sum())} white specular pixels elsewhere")
+
+
 def uv_layout(tag):
     lab = np.load(os.path.join(SCR, "uv_labels.npy"))
     rng = np.random.default_rng(2)
@@ -707,4 +734,4 @@ def shading(args):
 
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    {"concept": concept, "topo": topo, "clearance": clearance, "renders": renders, "shading": shading}[argv[0]](argv[1:])
+    {"concept": concept, "clip": clip, "topo": topo, "clearance": clearance, "renders": renders, "shading": shading}[argv[0]](argv[1:])
