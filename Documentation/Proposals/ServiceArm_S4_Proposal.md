@@ -1,6 +1,7 @@
 # Proposal — ServiceArm working envelope vs the docked drone (HERO_SPEC §4)
 
-Status: **proposal only** (2026-11-03). Nothing in HERO_SPEC.md or any script has been changed.
+Status: **Accepted: option B (2026-11-03).** The §5 text is in HERO_SPEC §4 (with "owner decision
+2026-11-03"); the §6 DroneHoverAIV2 fix was applied on 2026-11-03 (untested in Unity).
 Units: metres, Unity axes (+Y up, +Z toward the far wall), as in HERO_SPEC.
 
 ## 1. The conflict

@@ -276,3 +276,21 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
 - Next: Gate G2b look revision (gunmetal paint, concept-level rust) in progress; then Gate Unity import
   and Quest check; then ServiceArm.
   Hours: not logged
+
+## 2026-11-03 (Gate G2b, ServiceArm decision)
+- Done: owner review of the G2 renders against the concept. STYLE_GUIDE: rust rule for all assets (concept-level
+  rust, 2026-11-01, replaces "light rust room-wide"; the Cradle follows it in Painter), gunmetal paint for the Gate and
+  other doors (each later hero's paint decided in its own design step, the Cradle's by the owner in Painter; starting value 88 98 108 from the owner's estimate, to be replaced by the value sampled from the
+  concept), orange Armed/Released accent light row. gate_tex.py: PBR metal check >= 180 (was 175), docstring 8 mm.
+  HERO_SPEC: §4 clearance rule (option B), status line v7, Cradle labelled hero workflow v2, "ochre" for
+  drone-handling parts ("amber" only for lamps). Consistency report: all 29 findings fixed.
+- Decisions: ServiceArm option B accepted (3D envelope: >= 100 mm from the spinning prop discs, >= 50 mm from the
+  drone, nothing below y 2.00 over a disc). Gate G2b look: gunmetal paint, broken-up edge wear (1-6 mm, no outline,
+  bare steel less bright through roughness/grime, albedo stays >= 180), concept-level rust, long hairline scratches,
+  hazard band worn more at its edges; geometry and UVs unchanged.
+- Problems: this session ran in the cloud (no Blender, no D: drive, no concept image): the G2b materials, re-bake,
+  checks and renders were NOT done; the gunmetal value is not sampled yet.
+- Next: G2b in a local session: sample the concept panels, update the gate_tex.py materials, re-bake, run
+  `gate_tex.py -- check` (now >= 180), renders incl. gate_g2b_room_vs_concept.png (neutral even light, mid-grey
+  background) and a dim facility-light render, then update HERO_SPEC §7 textures.
+  Hours: not logged

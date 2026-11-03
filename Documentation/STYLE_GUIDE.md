@@ -6,8 +6,10 @@ materials", hero workflow v3). Source: the owner's style references
 (`Assets/Materials/Drone_Mat_V4/drone_low_M_Drone_AlbedoTransparency.png` + `..._MetallicSmoothness.png`,
 the maps M_Drone uses per `ProtectedAssets/DroneBaseline.md`).
 
-**Replaces the 2026-10-04 Cradle starting palette** (warm light-grey paint): the Cradle structure is dark
-charcoal paint, the pads ochre (values below).
+**Replaces the 2026-10-04 Cradle starting palette** (warm light-grey paint). **Update 2026-11-01 (owner):** the
+Gate and other doors use **gunmetal**; charcoal stays for walls and structure. Each later hero's paint is decided in
+its own design step; the Cradle's paint is the owner's choice in Substance Painter (its pads stay ochre, palette
+rule). Rust follows the rust rule below for every asset.
 
 ## Sampled values (median sRGB)
 The style images are lit renders: their values are darker than albedo and include shadow. They set hue and
@@ -27,15 +29,17 @@ smoothness 0.54 (p10 0.28, p90 0.75); grey metal parts 111 111 111, metallic 0.8
 ## Palette (PBR albedo, sRGB; metallic; smoothness = 1 - roughness)
 | Material | Use | Albedo sRGB | Metallic | Smoothness |
 |---|---|---|---|---|
-| **Charcoal paint** (main) | structure, frames, panels, housings | **60 64 70** (range 52-70, B >= R + 6) | 0 | 0.35-0.50 |
+| **Gunmetal paint** (doors) | the Gate and other doors (owner decision 2026-11-01, from the Gate concept) | **88 98 108** starting value (range 80-95 / 90-105 / 100-115, blue-grey); replace with the median sampled from the concept's panels at the G2b bake | 0 | 0.35-0.50 |
+| **Charcoal paint** (structure) | walls, structure, frames, housings | **60 64 70** (range 52-70, B >= R + 6) | 0 | 0.35-0.50 |
 | **Polymer** (secondary) | recesses, channels, bezels, buttons, cable parts | **35 37 39** | 0 | 0.25-0.40 |
 | **Machined steel** | rails, rollers, pins, axles, exposed metal at worn edges | **188 190 192** (>= 180) | 1 | 0.55-0.70 |
 | **Ochre** | drone-handling parts (cradle pads, service-arm tool head, lever grip), hazard stripes | **159 120 58** (drone median) | 0 | 0.45-0.55 |
 | Hazard black | the dark stripes between ochre | 35 37 39 (polymer value) | 0 | 0.35 |
 | **Cyan emissive** (main accent) | light strips, ring lights, screens | emission **70 170 255** (bluer cyan, owner 2026-10-29; was 64 214 230); off-state albedo 30 45 55 | 0 | 0.6 |
-| Rust (wear only) | spots and streaks, see Wear | 120 62 34 (range 95-140 R) | 0 | 0.10-0.25 |
+| Rust (wear only) | patches, blotches and streaks, see "Rust rule" | 120 62 34 (range 95-140 R); centres darker brown-black, patch edges orange-brown | 0 | 0.10-0.25 |
 | Amber lamp | small status lamps | emission 240 150 60 | 0 | 0.6 |
 | Red | Armed state only (terminal indicators, beacon) | emission 230 35 25 | 0 | 0.6 |
+| Orange accent light | room accent lights and emissive strips in Armed / Released (HERO_SPEC §1, §9; cyan → orange, slow alarm pulse) | value set in the lighting pass | - | - |
 
 Values follow ASSET_RULES (non-metal albedo 30-240, metal >= 180, metallic 0 or 1 except transitions).
 Emission intensity is set in Unity per light role (lighting pass); textures carry the colour. **The emission
@@ -49,13 +53,22 @@ light strips in every review render (no white core).
 - **Edge wear**: on convex edges only (curvature from the bevel bake), 2-6 mm wide, paint chipped to
   machined steel; denser on edges people or machines touch (leaf closing edge, handles, pads).
 - **Scratches**: sparse, fine, on large painted faces; no big damage.
-- **Light rust** (owner decision 2026-10-29, room-wide, all heroes incl. the Cradle; replaces "no rust"; it makes
-  the facility more mysterious): rust spots on exposed edges, around bolts and along the bottom edge; a few rust
-  streaks running down from bolts and seams. Laid on top of the edge scratches and grime. Moderate, not a wreck:
-  a few percent of a painted face at most, none on the emissive parts and polymer. Worn hazard stripes show the
-  charcoal under-paint.
-- Overall the facility stays darker and cleaner-looking than the drone; the drone's yellow and the cyan
+- **Rust**: see "Rust rule" below (replaces the 2026-10-29 "light rust room-wide"). Worn hazard stripes show the
+  under-paint.
+- Overall the facility stays darker than the drone; the drone's yellow and the cyan
   lights are the brightest things in the room.
+
+## Rust rule (all assets)
+Owner decision 2026-11-01: the rust level of the Gate concept (`D:\AI_Labyrinth\Gemini\References\Gate\gate_front.jpg`)
+is the style for **all** assets, heroes and environment. It replaces "light rust room-wide" (2026-10-29). The Cradle
+(textured by the owner in Substance Painter) follows the same rule.
+- **Where:** patchy, irregular rust on exposed edges, outer corners and bottom edges; blotches in some panel corners;
+  rust around some fasteners (not all, irregular shapes, no perfect rings); a few run-off streaks below rusty spots.
+- **How much:** clearly visible at 1-2 m, not a wreck. Rough guide **5-15 % of a painted surface**, more towards the
+  bottom of the object.
+- **Colour:** around the palette rust (sRGB 120 62 34): darker brown-black centres, orange-brown patch edges.
+- **Material:** rust is **non-metallic** (metallic 0) and **rough** (smoothness 0.10-0.25).
+- Layer order: on top of grime and edge wear. No rust on emissive parts or polymer.
 
 ## Shapes
 Hard-surface language as in the references and the drone: chamfered panels, angled corner cuts, recessed

@@ -1,7 +1,9 @@
 # Hero Spec — Launch Sequence Assets
 
-Status: **v6, 2026-09-25 — all design decisions resolved**. Design direction set by the owner; cradle sized from the live
-drone measurement (2026-09-25). All values in meters, Unity axes (+Y up, +Z toward the far wall
+Status: **v7, 2026-11-03.** Design direction set by the owner; cradle sized from the live drone measurement
+(2026-09-25). §3 Cradle v2 (2026-09-28 onward, hero workflow v2); §4 ServiceArm clearance rule decided
+2026-11-03 (3D envelope, option B); §7 Gate G1/G2 (2026-10-29), G2b look revision in progress. Open: none in the design;
+ServiceArm, Terminal and LeverStand are not built yet. All values in meters, Unity axes (+Y up, +Z toward the far wall
 and corridor), 1 unit = 1 m.
 
 Inputs: `ENVIRONMENT_SPEC.md` (room, protected volumes), `ProtectedAssets/DroneBaseline.md`
@@ -32,15 +34,17 @@ until the service arm is fully stowed, so the drone can never launch into it.
 - **Naming:** `LAB_HERO_<Hero>_<Part>_01`, files in `Assets/Environment/Heroes/<Hero>/`.
 - **Released-state rule:** once the drone flies, nothing may intersect the drone volume
   (X −2.45 … 2.39, Y 1.19 … 3.48, Z 2.84 … 6.32). Standby poses may, because the drone is docked.
-- **Palette rule:** amber-yellow marks equipment that *handles the drone* (yoke pads, service-arm
+- **Palette rule:** ochre (drone yellow, STYLE_GUIDE) marks equipment that *handles the drone* (yoke pads, service-arm
   tool head, lever grip). Everything else: dark painted metal, black polymer, cyan emissive.
-  Red is reserved for the Armed state.
+  Red is reserved for the Armed state. "Amber" is used only for lamps and indicators.
 - **Quality:** Hero tier in `ASSET_RULES.md`. Heroes whose dimensions are fully specified (the
   Cradle) are built directly at production quality, no separate greybox.
 
-## 3. Hero 01 — Docking cradle (`Cradle`), v2 (AI transfer workflow)
+## 3. Hero 01 — Docking cradle (`Cradle`), v2 (hero workflow v2)
 
-Status: **v2 spec, 2026-09-28** (Step 2 of the AI transfer workflow, ASSET_RULES "Hero workflow v1").
+Status: **v2 spec, 2026-09-28**, built on ASSET_RULES **hero workflow v2** (AI model as shape/measurement
+reference, clean high-poly; textured by the owner in Substance Painter). Started as Step 2 of the AI transfer
+workflow (hero workflow v1), which was superseded on 2026-10-03.
 Supersedes the Part 1 design (§3a). Design source: Hunyuan 3D model `cradle_hy_*`
 (D:\AI_Labyrinth\Hunyuan\Downloads\Cradle, originals untouched), fitted and measured in
 `D:\AI_Labyrinth\Blender\Source\Heroes\Cradle\LAB_HERO_Cradle_AI.blend` (collection `AI_FIT_A`).
@@ -64,7 +68,7 @@ mirrored with it); after: max 0.1 mm. Above the cut the mesh is untouched (mean 
 | `LAB_HERO_Cradle_Base_01` | plinth tiers, turntable rings, column, hinge beam, both hinge drums, pin caps, hub — one continuous static body | floor centre (0, 0, 4.69) | no |
 | `LAB_HERO_Cradle_Arm_L_01` | left arm + rest plate (one mesh) | on the left pin axis: (−0.385, 0.637, 4.69), axis Z | 0 → **+75°** about local Z |
 | `LAB_HERO_Cradle_Arm_R_01` | mirror image of Arm_L | (+0.385, 0.637, 4.69), axis Z | 0 → **−75°** |
-| `LAB_HERO_Cradle_Pad_R_01` / `_Pad_L_01` (amber) | two instances of one mesh `LAB_HERO_Cradle_Pad_01`: 0.22 × 0.010 × 0.14, 3 mm chamfers | own bottom centre, child of Arm_R / Arm_L | with the arm |
+| `LAB_HERO_Cradle_Pad_R_01` / `_Pad_L_01` (ochre) | two instances of one mesh `LAB_HERO_Cradle_Pad_01`: 0.22 × 0.010 × 0.14, 3 mm chamfers | own bottom centre, child of Arm_R / Arm_L | with the arm |
 | `LAB_HERO_Cradle_Riser_L_01` (grey metal) | riser under the left pad, 0.23 × **0.0544** × 0.15, 4 mm chamfers | own bottom centre, child of Arm_L | with Arm_L |
 
 Unity sign: a +Z rotation turns +Y towards −X, so +75° opens Arm_L outward and −75° opens Arm_R.
@@ -191,7 +195,7 @@ borders. The fitted AI model stays the design, shape and colour reference only.
 |---|---|---|
 | painted structure | plinth, column, beam, hub, arms, plates, grooves on them | 255, 0, 0 (#FF0000) |
 | machined / bare metal | pin caps + retaining rings, drum bands, turntable top annulus | 0, 255, 0 (#00FF00) |
-| amber pads | Pad | 255, 255, 0 (#FFFF00) |
+| ochre pads | Pad | 255, 255, 0 (#FFFF00) |
 | riser | Riser body | 0, 0, 255 (#0000FF) |
 | fasteners | all bolts and screws | 255, 0, 255 (#FF00FF) |
 | column access panel | panel inside its groove (flat 0.25 mm ID floater) + outline groove | 0, 255, 255 (#00FFFF) |
@@ -391,7 +395,7 @@ span x −1.139 … 1.138, fixed body top y 0.884.
   r 0.28 … 0.62 from the body centre, 0.118 wide). The yaw lines up the **front-right** limb along +X
   (onto the right plate) and the **back-left** limb along −X (onto the left plate); limb axes within
   0.9 mm of the plate centre lines.
-- **Pads** (Step 3, owner decision 2026-09-28): two **identical** amber pads (one mesh, 10 mm, 0.22 × 0.14,
+- **Pads** (Step 3, owner decision 2026-09-28): two **identical** ochre pads (one mesh, 10 mm, 0.22 × 0.14,
   along the limb from r 0.39 to 0.61, outboard of the pin). The left limb's extra 54.4 mm is a grey metal
   **riser** under the left pad (0.23 × 0.15, 5 mm larger per side), parented to Arm_L; the arms stay exact
   mirror images. Pad tops y 1.7091 (right) / 1.7635 (left); contact gap **3.0 mm** on both limbs
@@ -401,7 +405,7 @@ span x −1.139 … 1.138, fixed body top y 0.884.
 - Docked clearances: limbs to arms/plates ≥ 12.2 mm; engines ≥ 13.8 mm (to the right plate);
   body ≥ 49.8 mm (arms), 0.68 m (hub); spinning propeller discs ≥ 106.5 mm (pads), ≥ 116.5 mm (arms).
 
-**Pad design study (2026-09-28, owner request).** Two identical amber saddles with a limb groove
+**Pad design study (2026-09-28, owner request).** Two identical ochre saddles with a limb groove
 (floor 54 mm deeper on the front-limb side) were evaluated (`cradle_ai_saddle.py`) and **rejected**:
 - The groove walls must rise above the left groove floor (y ≥ 1.764) on both sides. On the right
   that leaves **37 mm** to the front propeller discs (needed ≥ 100 mm; the front props are only
@@ -435,7 +439,7 @@ docked: pads to limbs ≥ 3.1 mm (they only fall away), engines ≥ 11.7 mm, bod
 Procedural cradle (`Tools/Blender/heroes/cradle.py`, `LAB_HERO_Cradle.blend`, `HERO_Cradle` in
 BasicScene, `CradleBuilder`), kept in the project until the v2 cradle is accepted. Drone docked at
 yaw 0 on its body: two narrow arms (0.06 × 0.50 × 0.18) hinged at (∓0.13, 1.04) in a clevis hub,
-amber pads (0.10 × 0.025 × 0.22) 2.8 mm under the body (y 1.565), released 100° outward.
+ochre pads (0.10 × 0.025 × 0.22) 2.8 mm under the body (y 1.565), released 100° outward.
 Base: octagon tiers 2.4 / 1.6, turntable Ø 0.8, column 0.30 × 0.70 × 0.30, hub 0.40 × 0.08 × 0.30.
 Verified 2026-09-26 (540 / 68 / 36 tris for Base / Arm / Pad).
 
@@ -451,13 +455,19 @@ ceiling. Mount **(0, 4.0, 5.30)**, 0.61 behind the body centre, so it never bloc
 | UpperArm | 0.12 × 0.12 × 1.00 | shoulder (0, −0.12, 0) | X (pitch) |
 | Forearm | 0.10 × 0.10 × 0.90 | elbow, **offset 0.12 in X** | X |
 | Wrist | 0.10 × 0.10 × 0.10 | wrist, offset 0.10 in X | X |
-| ToolHead (amber) | 0.14 × 0.10 × 0.20 | on wrist | Z (roll) |
+| ToolHead (ochre) | 0.14 × 0.10 × 0.20 | on wrist | Z (roll) |
 
 - **Working pose (Standby):** tool tip ~0.05 above the drone's top (y ≈ 2.04, drone top 1.986),
-  pointing down, near x = 0: the propellers start at |x| ≥ 0.44, so the arm stays inside
-  |x| < 0.3. **Re-check (2026-09-28):** with the v2 docking yaw (−28.3°, §3) the back-right and
-  front-left prop discs reach in to |x| ≈ 0.14; re-derive the working pose and this rule. Roughly shoulder −60°, elbow +70°, wrist keeping the tool vertical. Tune by eye;
-  the hard rule is only that nothing touches the drone. Reach check: 1.60 needed, 1.90 available.
+  pointing down, near x = 0. Roughly shoulder −60°, elbow +70°, wrist keeping the tool vertical;
+  tune by eye. Reach check: 1.60 needed, 1.90 available.
+- **Clearance rule (3D; replaces the |x| < 0.3 strip, owner decision 2026-11-03):** docked at yaw
+  −28.3° (§3), the spinning propeller discs (radius 0.327 about each propeller pivot) reach in to
+  |x| 0.055 (front-left, y 1.817 … 1.845) and 0.060 (back-right, y 1.870 … 1.898); even at yaw 0
+  they reach |x| 0.287, so no plan-view strip can stay clear. Instead, every ServiceArm part keeps
+  **≥ 100 mm** from the four disc volumes and **≥ 50 mm** from the drone mesh, in the working pose
+  and over the whole idle motion (turret ±10°, wrist ±15°, tool roll); inside a disc footprint no
+  part goes below **y 2.00**. Checked by a clearance sweep against the drone at the docking pose
+  (re-read the drone live first). The hard rule is still that nothing touches the drone.
 - **Idle motion (Standby):** procedural, no clips: turret ±10° yaw, wrist ±15°, tool roll
   spinning, each on its own slow sine (0.2–0.5 Hz) so it never visibly loops.
 - **Stowed pose:** all links horizontal, pointing +Z; the X offsets at elbow and wrist lay the
@@ -496,7 +506,7 @@ Reference: a throttle-style lever on a plain pedestal, in room style.
 |---|---|
 | Pedestal | 0.30 × 0.95 × 0.30, 0.02 chamfers, cyan strip, black/yellow warning band 0.06 under the top |
 | Housing | 0.22 × 0.08 × 0.16 on top, with a slot |
-| Lever | shaft Ø 0.03 × 0.22 + grip Ø 0.05 × 0.10 (amber); hinge in the slot, axis X; rest +30° (away from the player), pulled −30°; triggers at 80 % of travel |
+| Lever | shaft Ø 0.03 × 0.22 + grip Ø 0.05 × 0.10 (ochre); hinge in the slot, axis X; rest +30° (away from the player), pulled −30°; triggers at 80 % of travel |
 | Indicator | small lamp on the housing: off → amber pulse when Armed |
 
 - 1.04 from the labyrinth operating position, reachable with one step. It sits inside the
@@ -620,7 +630,7 @@ headset test (1.05 × 1.05) and the same place in the room.
 - Maze layout: open decision (owner sketch, or generated from a grid in Blender like the kit).
 - **Handle** `LAB_PROP_LabyrinthPanel_Handle_01`: bar Ø 0.035 × 0.25 on the front edge (player
   side, −Z), standing 0.08 off the rim. It is the only grab point. Dark metal with a cyan cap;
-  not amber, because the palette keeps amber for drone-handling equipment.
+  not ochre, because the palette keeps ochre for drone-handling equipment.
 - **Maze v1** (from the owner's reference, 2026-09-25). Panel-local metres, +Z = far edge,
   −Z = player/handle edge. Interior x, z −0.475 … 0.475. Inner walls 0.03 thick × 0.07 high.
   Data: `Tools/Blender/labyrinth_maze_v1.json`; picture: `Documentation/Images/labyrinth_v1_layout.png`.

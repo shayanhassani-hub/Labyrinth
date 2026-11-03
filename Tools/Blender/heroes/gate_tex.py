@@ -14,7 +14,7 @@ Pipeline (bake):
     frame, panel corners, 4 per hanger plate, rail brackets, button panel), fine seams (frame groove, panel grooves),
     rust streaks below some bolts and seam corners, rust base (round the bolts, the leaf's bottom edge), the hazard
     band's paint edge.
- 3. mask pre-bakes per part (others hidden, margin 0): convex edges (AO node, inside, 6 mm), cavity (AO node, 50 mm,
+ 3. mask pre-bakes per part (others hidden, margin 0): convex edges (AO node, inside, 8 mm), cavity (AO node, 50 mm,
     self), AO (bake type AO, 0.3 m, self only).
  4. final bakes per part from the procedural materials (noise breakup, edge wear to bare steel, scratches, grime, rust,
     stripes, bevel + bump normal): BaseColor, Normal (OpenGL), Smoothness, Metallic, Emission; margin 0, then one
@@ -638,7 +638,7 @@ def check(args):
     light = (matix == G.CYAN) | (matix == G.AMBER)
     nonmetal = cover & (met < 0.1) & ~light; metal = cover & (met > 0.9)
     lo = (srgb.min(2) < 29.5) & nonmetal; hi = (srgb.max(2) > 240.5) & nonmetal
-    mlow = metal & (srgb.mean(2) < 175)
+    mlow = metal & (srgb.mean(2) < 180)                  # ASSET_RULES: metal albedo sRGB >= 180
     trans = cover & (met >= 0.1) & (met <= 0.9)
     f = lambda m, d: 100.0 * m.sum() / max(d.sum(), 1)
     ok = f(lo, nonmetal) < 0.5 and f(hi, nonmetal) < 0.5
@@ -646,7 +646,7 @@ def check(args):
     print(f"{'PASS' if ok else 'FAIL'} PBR non-metal albedo sRGB 30-240: {f(lo, nonmetal):.2f} % below, {f(hi, nonmetal):.2f} % above "
           f"(of {nonmetal.sum()} texels)")
     ok = f(mlow, metal) < 1.0; ok_all &= ok
-    print(f"{'PASS' if ok else 'FAIL'} PBR metal albedo >= 175 sRGB: {f(mlow, metal):.2f} % below (of {metal.sum()} metal texels)")
+    print(f"{'PASS' if ok else 'FAIL'} PBR metal albedo >= 180 sRGB: {f(mlow, metal):.2f} % below (of {metal.sum()} metal texels)")
     print(f"INFO metallic: {f(metal, cover):.1f} % metal, {f(nonmetal | (cover & light & (met < 0.1)), cover):.1f} % non-metal, "
           f"{f(trans, cover):.2f} % transitions 0.1-0.9 (worn edges, rust, grime)")
     for s, nm in enumerate(n for n, _ in G.MATS):
