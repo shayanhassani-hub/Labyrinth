@@ -60,8 +60,8 @@ SAVE = "D:/AI_Labyrinth/Blender/Source/Heroes/Terminal/" + ("LAB_HERO_Terminal_v
 # --------------------------------------------------------------------------- parameters (HERO_SPEC §5), terminal-local
 OX, OZ = -2.2, -2.0                          # origin on the back wall's inner face, yaw 0
 HALF_W, DEPTH = 1.20, 0.80                   # footprint 2.40 x 0.80 (x -3.4 ... -1.0, z -2.0 ... -1.2)
-PIL_IN, PIL_H = 0.90, 1.25                   # pillar 0.30 wide (|x| 0.90 ... 1.20), 1.25 high
-PIL_OF, PIL_OB, PIL_IF = 0.040, 0.040, 0.008  # vertical chamfers: outer-front / outer-back (hazard bands), inner-front
+PIL_IN, PIL_H = 0.84, 1.25                   # pillar 0.36 wide (|x| 0.84 ... 1.20; owner H2 review), 1.25 high
+PIL_OF, PIL_OB, PIL_IF = 0.060, 0.060, 0.008  # vertical chamfers: outer-front / outer-back (hazard bands), inner-front
 PIL_TF, PIL_TO, PIL_TI = 0.150, 0.030, 0.030  # top chamfers: front (concept side view: ~0.17), outer, inner
 PLINTH_H, PLINTH_IN = 0.16, 0.015            # base plinth, inset 15 mm (toe recess)
 TRIM_CLEAR = 0.055                           # plinths stop 5 mm in front of the floor trim (z 0 ... 0.05, y 0 ... 0.15)
@@ -69,14 +69,14 @@ HAZ_Y = (0.22, 1.04)                         # hazard bands on the outer vertica
 
 DESK_FRONT_Y, DESK_BACK_Y, SLOPE = 0.92, 1.05, 15.0
 DESK_FRONT_Z = 0.75                          # desk 50 mm behind the pillar fronts (concept top view)
-SLAB_T = 0.05                                # desk slab front edge (0.87 ... 0.92)
-BODY_FRONT_Z = 0.65                          # lower body front: 100 mm toe / knee recess under the slab
+SLAB_T = 0.07                                # desk slab front edge (0.85 ... 0.92; owner H2 review: thicker)
+BODY_FRONT_Z = 0.62                          # lower body front: 100 mm toe / knee recess under the slab
 CH = 0.008                                   # large-edge chamfer
 SLOPE_L = (DESK_BACK_Y - DESK_FRONT_Y) / math.sin(math.radians(SLOPE))       # 0.502 along the slope
 SLOPE_BACK_Z = DESK_FRONT_Z - SLOPE_L * math.cos(math.radians(SLOPE))         # 0.265
 
 _c, _s = math.cos(math.radians(SLOPE)), math.sin(math.radians(SLOPE))
-PROFILE = [  # body section (z, y) extruded along x between the pillars (|x| <= 0.90)
+PROFILE = [  # body section (z, y) extruded along x between the pillars (|x| <= PIL_IN)
     (TRIM_CLEAR, 0.0), (BODY_FRONT_Z - PLINTH_IN, 0.0), (BODY_FRONT_Z - PLINTH_IN, PLINTH_H), (BODY_FRONT_Z, PLINTH_H),
     (BODY_FRONT_Z, DESK_FRONT_Y - SLAB_T), (DESK_FRONT_Z - CH, DESK_FRONT_Y - SLAB_T),
     (DESK_FRONT_Z, DESK_FRONT_Y - SLAB_T + CH), (DESK_FRONT_Z, DESK_FRONT_Y - CH),
@@ -94,10 +94,10 @@ BUTTON_TRAVEL = 0.015
 GUARD = dict(flange=0.115, outer=0.100, inner=0.075, hole=0.0615, floor_h=0.008, flange_h=0.008, top_h=0.035,
              ch=0.003, hole_floor=-0.060, notch_deg=240.0, notch_w=45.0)
 SEG = 24                                     # button, guard (interactive close-up: up to 24, ASSET_RULES)
-SLOT_L, SLOT_W, SLOT_D, STRIP_IN, STRIP_H = 0.245, 0.034, 0.015, 0.008, -0.007
-SLOT_U, SLOT_S = 0.44, (0.15, 0.25, 0.35)    # three slots each side; the -X group (player's right) switches to red
+SLOT_L, SLOT_W, SLOT_D, STRIP_IN, STRIP_H = 0.230, 0.034, 0.015, 0.008, -0.007
+SLOT_U, SLOT_S = 0.41, (0.15, 0.25, 0.35)    # three slots each side; the -X group (player's right) switches to red
 
-BEACON = dict(x=1.05, z=0.33, base_r=0.050, base_h=0.022, lens_r=0.040, cage_r=0.047, cage_t=0.006, cage_h=0.094)
+BEACON = dict(x=(PIL_IN + HALF_W) / 2, z=0.33, base_r=0.050, base_h=0.022, lens_r=0.040, cage_r=0.047, cage_t=0.006, cage_h=0.094)
 
 # materials (review shading; the bake replaces them). SWITCH: indicator strips that turn red (emission set at runtime)
 MATS = [("M_Term_Paint", (0.060, 0.078, 0.095)), ("M_Term_Polymer", (0.017, 0.018, 0.020)),
@@ -277,7 +277,7 @@ def split_y(loop, ys):
 def pillar(FC, sm, sx):
     """one pillar (sx = +1: Pillar_L at +X, -1: Pillar_R) into the face list / mesh"""
     H = pillar_halfspaces()
-    fs = hull_faces(H, (1.05, 0.7, 0.4))
+    fs = hull_faces(H, ((PIL_IN + HALF_W) / 2, 0.7, 0.4))
     W = lambda p: T(p, sx)
     for name, loop in fs.items():
         L = [W(p) for p in loop]
@@ -510,7 +510,10 @@ def lower_layout():
     y0, y1 = PLINTH_H + 0.03, DESK_FRONT_Y - SLAB_T - 0.03
     out = []
     gap = 0.010
-    for a, b in [(-0.87, -0.31), (-0.28, 0.28), (0.31, 0.87)]:
+    m, g = 0.03, 0.03                                                       # end margins, frames between the fields
+    w = (2 * PIL_IN - 2 * m - 2 * g) / 3
+    edges = [(-PIL_IN + m + k * (w + g), -PIL_IN + m + k * (w + g) + w) for k in range(3)]
+    for a, b in edges:
         fld = [(a, y0), (b, y0), (b, y1), (a, y1)]
         inner = offset(offset(fld, 0.006), 0.016)
         w = b - a; yl, yh = y0 + 0.38, y0 + 0.44

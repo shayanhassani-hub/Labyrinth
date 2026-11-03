@@ -92,7 +92,7 @@ Method: **G** = geometry (≥ 15 mm, depth rule), **N** = normal map (H2 bake), 
 | Concept | Model | Reason |
 |---|---|---|
 | Squat: desk ≈ half the pillar height above the floor, pillars ≈ 0.84 high relative to a 2.4 m width | Desk 0.92 … 1.05, pillars 1.25 (spec) | HERO_SPEC §5 heights for a standing VR player (owner's brief) |
-| Pillars ≈ 0.43 wide (18 % of the width) | 0.30 (spec) | HERO_SPEC §5 size; the pillars read slimmer than in the concept (open question) |
+| Pillars ≈ 0.43 wide (18 % of the width) | 0.36 (owner, H2b; spec 0.30) | closer to the concept within the 2.40 footprint |
 | Screen ≈ 2.2 : 1, ≈ 1.0 m wide relative | 1.50 × 0.85 (1.76 : 1), bottom 1.10, 8° lean (spec) | HERO_SPEC §5 |
 | Pillars ≈ 0.72 deep, body set back from the wall | Pillars and body 0.80 deep, backs on the wall | spec footprint 2.40 × 0.80 |
 | Thin base band | 0.16 plinth, 15 mm inset | the floor-trim notch needs 0.155; also a toe recess |
@@ -215,6 +215,34 @@ Holo screen: `terminal_holo.py` → `T_LAB_HERO_Terminal_Holo.png`, 1024 × 512 
 - **Differences to the concept that remain** (texture level): the concept's rust reaches further into the panel
   fields; its holo glass is paler / more teal than STYLE_GUIDE cyan; its frames read darker relative to the plates.
 
+### H2b — owner review of H2 vs the concept (2026-11-03, one iteration)
+Owner decisions (recorded here; HERO_SPEC / STYLE_GUIDE not edited):
+1. **Pillars 0.36 wide** (|x| 0.84 … 1.20; the desk / lower body shorten to 1.68 inside the unchanged 2.40 footprint).
+   Hazard-band chamfers 40 → 60 mm (wider bands, as in the concept); top chamfers kept (150 / 30 mm). Lower-body
+   fields 0.52 wide, desk dividers and slots scaled (slots 230 mm at |x| 0.41), beacon centred at |x| 1.02.
+2. **Desk overhang as in the concept:** slab front edge 70 mm (0.85 … 0.92, was 50), lower body front at z 0.62
+   (overhang 130 mm, was 100) — a deep, visible shadow gap under the slab. Desk heights and slope unchanged.
+3. **Look closer to the concept's values:** paint 72 86 98 (darker, more saturated gunmetal; baked median 68 80 90)
+   with stronger mottling and large teal-grey patches; brighter worn edges (bare steel 206 208 210, more edge sections,
+   smoother); 20 run-off streaks (was 12), longer; **rust 9.0 % of the Body paint** (13.3 % below y 0.6, 5.4 % above
+   y 1.0; threshold `TERMINAL_RUST_LO` 0.20, chosen from 512 tests).
+4. **Holo screen only: the concept's paler teal.** Sampled from terminal_front / ortho_front: glass ~88 115 119 and
+   lines ~135 178 182 over the grey background (hue ~186°). Texture now lines 120 200 205, highlights 165 225 228,
+   tint 120 200 205 at alpha ~0.10. Screen stays 1.50 × 0.85. The light strips keep STYLE_GUIDE cyan 70 170 255.
+   **Proposed STYLE_GUIDE row:** "Holo teal (holo screens only) | screen UI lines and tint | emission 120 200 205,
+   highlights 165 225 228 (sampled from the Terminal concept, hue ~186°) | – | –".
+5. Kept: the player's-right indicators switch red; the beacon is steady when Armed.
+
+Results (all checks PASS): model 1,958 tris (Body 1,676; others unchanged), topology / shading / UV (512 px/m,
+44.5 % packing) / clearance (button sweep 1.5 mm, trim 5 mm, footprint) PASS. Bake 12.8 min; AO black PASS (8
+accepted: the 6 strip / slot crevices and the two display-bar end faces, which now look into the 40 mm slot between
+the bar end and the wider pillars — visible deep corners, not hidden faces); PBR PASS (non-metal 0.15 % below 30,
+metal albedo ≥ 180: 0.02 % below, 0.35 % of texels metal); normal seams 2 of 69 over 6° (allowance 2) PASS; no white
+clipping. FBX re-exported, re-import PASS; TerminalBuilder numbers updated (Body 1,676 tris, Beacon at (1.02, 1.272,
+0.33), pillar colliders 0.36 wide at ±1.02, desk collider 1.68 wide).
+Renders: `terminal_h2b_vs_concept_34.jpg`, `terminal_h2b_room.jpg`, `terminal_h2b_dim_facility.jpg`. The other H2
+renders show the H2 state (0.30 pillars, lighter paint).
+
 ### H3a — Unity preparation (cloud, no Unity)
 - **FBX** (`terminal_export.py`, EXPORT_CONTRACT hero mode, same procedure as `gate_export.py`):
   `Assets/Environment/Heroes/Terminal/LAB_HERO_Terminal_{Body,Button,Indicators,Beacon,Display}_01.fbx` (Git LFS),
@@ -267,13 +295,13 @@ Holo screen: `terminal_holo.py` → `T_LAB_HERO_Terminal_Holo.png`, 1024 × 512 
    emission (their emission changes at runtime).
 
 ## Open questions for the owner
-1. Pillar width: keep 0.30 (spec) or widen towards the concept (e.g. 0.36 → desk 1.68 wide, footprint unchanged)?
-2. Screen aspect: spec 1.50 × 0.85 vs the concept's ≈ 2.2 : 1 (e.g. 1.50 × 0.68 would read closer to the concept).
-3. Which indicator group turns red: player's right (chosen) or left (with the beacon)?
-4. Holo colour: STYLE_GUIDE cyan 70 170 255 (used) or the concept's paler teal glass?
-5. Rust: 5.3 % of the paint (the rule's lower end, edges / corners / bolts / floor zone); the concept carries more rust
-   inside the panel fields — raise it?
-6. Beacon when Armed / Released: steady (default) or a slow pulse (TerminalController.pulseWhenArmed /
-   pulseWhenReleased, off)?
+1. ~~Pillar width~~ — decided H2b: 0.36. HERO_SPEC §5 still says 0.30 (proposal: update).
+2. ~~Screen aspect~~ — decided H2b: stays 1.50 × 0.85.
+3. ~~Indicator group~~ — decided H2b: player's right.
+4. ~~Holo colour~~ — decided H2b: holo teal (proposed STYLE_GUIDE row above).
+5. ~~Rust~~ — decided H2b: 9.0 %. (Was: 5.3 % of the paint (the rule's lower end, edges / corners / bolts / floor zone); the concept carries more rust
+   inside the panel fields.)
+6. ~~Beacon~~ — decided H2b: steady when Armed. (Option kept: (TerminalController.pulseWhenArmed /
+   pulseWhenReleased, off.)
 7. Poke: like the Gate, the button is selected with the rig's ray / near-far interactors; HERO_SPEC §10 asks for poke
    (needs a poke interactor on the rig and an XRPokeFilter on the button).

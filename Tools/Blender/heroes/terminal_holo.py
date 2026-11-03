@@ -5,8 +5,8 @@ Terminal (Hero 02) holo screen texture: an original UI in the concept's style (t
 
 Writes Assets/Environment/Heroes/Terminal/Textures/T_LAB_HERO_Terminal_Holo.png: 1024 x 512 RGBA (sRGB colour,
 straight alpha). The display quad is 1.50 x 0.85 m, so 1024 x 512 gives 683 x 602 px/m (nearly square texels).
-Material (TerminalBuilder): URP Unlit, transparent, alpha blend, both faces; the colour is the light (STYLE_GUIDE cyan
-70 170 255 and a paler highlight), the alpha is the panel's opacity (faint tint, opaque lines).
+Material (TerminalBuilder): URP Unlit, transparent, alpha blend, both faces; the colour is the light (holo teal
+120 200 205 and a paler highlight 165 225 228, H2b), the alpha is the panel's opacity (faint tint, opaque lines).
 
 Layout (seen from the player): glowing frame with tab steps top and bottom (concept), a fine grid; left column: a
 scatter field with a fitted curve, level bars and "data rows" (dashes, not glyphs); centre: a perspective wireframe of
@@ -23,8 +23,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 OUT = os.path.join(PROJ, "Assets", "Environment", "Heroes", "Terminal", "Textures", "T_LAB_HERO_Terminal_Holo.png")
 W, H, S = 1024, 512, 4                       # final size, supersampling
-CYAN = (70, 170, 255)                        # STYLE_GUIDE cyan emissive
-PALE = (150, 215, 255)                       # highlights (still blue: no white)
+# H2b (owner review): the concept's paler "holo teal" for the screen only (sampled from terminal_front / ortho_front:
+# lines ~135 178 182 over the grey background, hue ~186 deg); proposed STYLE_GUIDE row. The strips keep 70 170 255.
+CYAN = (120, 200, 205)                       # holo teal lines and panel tint
+PALE = (165, 225, 228)                       # highlights (min channel 165: no white)
 RNG = np.random.default_rng(7)
 
 

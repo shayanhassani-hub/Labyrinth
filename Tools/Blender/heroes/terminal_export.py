@@ -32,7 +32,7 @@ OUT = os.path.join(PROJ, "Assets", "Environment", "Heroes", "Terminal")
 PARTS = ["Body_01", "Button_01", "Indicators_01", "Beacon_01", "Display_01"]
 ORIGIN = {"Body_01": TM.T((0, 0, 0)), "Button_01": TM.button_top(), "Indicators_01": TM.T((0, 0, 0)),
           "Beacon_01": TM.beacon_origin(), "Display_01": TM.display_origin()}
-EXPECTED_TRIS = {"Body_01": 1670, "Button_01": 140, "Indicators_01": 30, "Beacon_01": 112, "Display_01": 2}
+EXPECTED_TRIS = {"Body_01": 1676, "Button_01": 140, "Indicators_01": 30, "Beacon_01": 112, "Display_01": 2}
 REPORT = os.path.abspath("D:/AI_Labyrinth/Blender/Work/Terminal/export.json")
 
 

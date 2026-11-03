@@ -14,7 +14,7 @@
 //     Button      (0, 1.031, 0.521)       SphereCollider, XRSimpleInteractable, GateButton (press 0.015 along the
 //                                         desk normal), GateButton.onPressed -> TerminalController.Arm (persistent)
 //     Indicators  (0, 0, 0)               switching (MaterialPropertyBlock from TerminalController)
-//     Beacon      (1.05, 1.272, 0.33)     switching (MaterialPropertyBlock from TerminalController)
+//     Beacon      (1.02, 1.272, 0.33)     switching (MaterialPropertyBlock from TerminalController)
 //     Display     (0, 1.10, 0.15)         holo screen, M_LAB_HERO_Terminal_Holo, no collider
 //   TerminalController on the root: indicators / beacon renderers, onArmed for FacilitySequence.
 //
@@ -61,10 +61,10 @@ namespace LabyrinthVR.EnvironmentTools
         // part -> (child name, local position under the root, triangles, hero material?)
         static readonly (string fbx, string name, Vector3 origin, int tris, bool holo)[] Parts =
         {
-            (Hero + "Body_01", "Body", Vector3.zero, 1670, false),
+            (Hero + "Body_01", "Body", Vector3.zero, 1676, false),
             (Hero + "Button_01", "Button", new Vector3(0f, 1.03107f, 0.52094f), 140, false),
             (Hero + "Indicators_01", "Indicators", Vector3.zero, 30, false),
-            (Hero + "Beacon_01", "Beacon", new Vector3(1.05f, 1.272f, 0.33f), 112, false),
+            (Hero + "Beacon_01", "Beacon", new Vector3(1.02f, 1.272f, 0.33f), 112, false),
             (Hero + "Display_01", "Display", new Vector3(0f, 1.10f, 0.15f), 2, true),
         };
 
@@ -72,12 +72,12 @@ namespace LabyrinthVR.EnvironmentTools
         static readonly Vector3 DeskNormal = new Vector3(0f, 0.965926f, 0.258819f);
         const float ButtonTravel = 0.015f;
 
-        // Primitive colliders in Body-local space (= root space): pillars 0.30 x 1.25 x 0.80, desk / lower body
+        // Primitive colliders in Body-local space (= root space): pillars 0.36 x 1.25 x 0.80 (H2b), desk / lower body
         static readonly (Vector3 center, Vector3 size)[] BodyBoxes =
         {
-            (new Vector3(1.05f, 0.625f, 0.40f), new Vector3(0.30f, 1.25f, 0.80f)),    // Pillar_L (+X, player's left)
-            (new Vector3(-1.05f, 0.625f, 0.40f), new Vector3(0.30f, 1.25f, 0.80f)),   // Pillar_R
-            (new Vector3(0f, 0.525f, 0.375f), new Vector3(1.80f, 1.05f, 0.75f)),      // desk + lower body (box over the slope)
+            (new Vector3(1.02f, 0.625f, 0.40f), new Vector3(0.36f, 1.25f, 0.80f)),    // Pillar_L (+X, player's left)
+            (new Vector3(-1.02f, 0.625f, 0.40f), new Vector3(0.36f, 1.25f, 0.80f)),   // Pillar_R
+            (new Vector3(0f, 0.525f, 0.375f), new Vector3(1.68f, 1.05f, 0.75f)),      // desk + lower body (box over the slope)
         };
         const float ButtonSphereRadius = 0.06f;
 

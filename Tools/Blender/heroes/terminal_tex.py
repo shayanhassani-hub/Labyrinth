@@ -50,20 +50,24 @@ RENDERS = os.path.abspath(os.environ.get("TERMINAL_RENDERS", "D:/AI_Labyrinth/Re
 ASSET_TEX = os.path.join(PROJ, "Assets", "Environment", "Heroes", "Terminal", "Textures")
 HOLO = os.path.join(ASSET_TEX, "T_LAB_HERO_Terminal_Holo.png")
 PARTS = ["Body_01", "Button_01", "Indicators_01", "Beacon_01"]
-TAG = "h2"
+TAG = os.environ.get("TERMINAL_TAG", "h2")
 H_LO, H_HI = -0.002, 0.005
 BAKE_SAMPLES = dict(prebake=64, emit=4, normal=32)
 RNG = np.random.default_rng(31)
 GT.TEX = TEX                                             # GT helpers read their module TEX (normal seams, new_image)
 
 lin = GT.lin
-PAINT_C, POLY_C, STEEL_C = lin((90, 104, 115)), lin((35, 37, 39)), lin((188, 190, 192))
+# H2b (owner review): darker, richer gunmetal than the Gate's 90 104 115, closer to the concept's values
+PAINT_C, POLY_C, STEEL_C = lin((72, 86, 98)), lin((35, 37, 39)), lin((188, 190, 192))
+WEAR_C = lin((206, 208, 210))                            # worn edges: brighter bare steel (metal albedo >= 180)
 OCHRE_C, BLACK_C, RUST_C, GRIME_C = lin((159, 120, 58)), lin((35, 37, 39)), lin((120, 62, 34)), lin((44, 41, 37))
 RUST_DARK, RUST_EDGE = lin((66, 44, 34)), lin((112, 64, 38))
 CYAN_E, CYAN_OFF = lin((70, 170, 255)), lin((30, 45, 55))
 RED_E = lin((230, 35, 25))
 REDCAP_C = lin((168, 40, 30))                            # arming button cap: red polymer (HERO_SPEC exception)
 LENS_C = lin((96, 20, 16))                               # beacon lens, off: dark red glass
+PC = (TM.PIL_IN + TM.HALF_W) / 2                        # pillar centre (|x|)
+RUST_LO = float(os.environ.get("TERMINAL_RUST_LO", "0.20"))   # rust threshold (H2b target 8-10 % of the paint)
 RECESS_SHADE = 0.72                                      # recess floors / walls: gunmetal x 0.72 (linear), concept depth
 CAGE_SHADE = 0.55
 SLOTS = TM.MATS
@@ -141,7 +145,7 @@ def corners(poly, inset, lo=75.0, hi=105.0):
 
 DESK_FRAME_IN, DESK_CUT = 0.045, 0.06
 GROOVE_W, GROOVE_D = 0.0024, 0.0012               # groove profile half-width (~2.5 px at 512 px/m), depth
-DESK_DIV = (-0.663, -0.203, 0.203, 0.663)
+DESK_DIV = tuple(f * TM.PIL_IN for f in (-0.737, -0.226, 0.226, 0.737))   # five panels as in the concept
 
 
 def desk_frame_poly():
@@ -156,7 +160,7 @@ def bolts():
     out = []
     W = lambda p: np.array(p, float)
     for sx in (1, -1):
-        fs = TM.hull_faces(TM.pillar_halfspaces(), (1.05, 0.7, 0.4))
+        fs = TM.hull_faces(TM.pillar_halfspaces(), (PC, 0.7, 0.4))
         fr = TM.front_frame(sx); lay = TM.front_layout(fs["front"])
         d_plate = 0.018 - 0.012
         for u, v in corners(TM.offset(lay["plate"], 0.003), 0.020):
@@ -173,11 +177,11 @@ def bolts():
             for u, v in sel: out.append((W(fo.p(u, v, 0.008)), fo.n, 0.0075, 0.0105, 1))
         for u, v in corners(lo["field"], -0.015):                             # frame band corners
             out.append((W(fo.p(u, v, 0.0)), fo.n, 0.0075, 0.0105, 1))
-        for x, z in ((1.0, 0.035), (1.10, 0.035), (0.96, 0.60), (1.14, 0.60)):  # pillar top
+        for x, z in ((PC - 0.06, 0.035), (PC + 0.06, 0.035), (PC - 0.11, 0.60), (PC + 0.11, 0.60)):  # pillar top
             if sx > 0 and math.hypot(x - TM.BEACON["x"], z - TM.BEACON["z"]) < 0.09: continue
             out.append((W(TM.T((x, TM.PIL_H, z), sx)), np.array((0, 1, 0.0)), 0.008, 0.0115, 1))
         tf = TM.PIL_TF                                                        # top-front chamfer, mid-height
-        for x in (0.975, 1.125):
+        for x in (PC - 0.09, PC + 0.09):
             out.append((W(TM.T((x, TM.PIL_H - tf / 2, TM.DEPTH - tf / 2), sx)), np.array((0, 1, 1.0)) / math.sqrt(2), 0.008, 0.0115, 1))
     dfr = TM.desk_frame()
     fp = desk_frame_poly(); s0, s1 = fp[0][1], fp[4][1]
@@ -234,7 +238,7 @@ def details(part, mat, zone, P, N):
         reach = RNG.uniform(0.010, 0.024); off = RNG.normal(0, 0.25, 2) * w
         x2, y2 = x - off[0], y - off[1]; r2 = np.hypot(x2, y2) * GT.wobble(np.arctan2(y2, x2), RNG, 0.6)
         RUSTB[ys, xs] = np.maximum(RUSTB[ys, xs], ring * np.clip(1 - np.maximum(r2 - w, 0) / reach, 0, 1) * (r > 0.8 * w))
-        if abs(n[1]) < 0.3 and ring > 0.5 and RNG.random() < 0.6: streaks.append((pi, c - up * w * 0.8, n, up))
+        if abs(n[1]) < 0.3 and ring > 0.3 and RNG.random() < 0.9: streaks.append((pi, c - up * w * 0.8, n, up))
     # grooves: desk panel frame + dividers; pillar cap seam (front-facing pillar faces)
     dfr = TM.desk_frame(); dn = np.array(dfr.n); da = np.array(dfr.a); db = np.array(dfr.b); do = np.array(dfr.o)
     on_desk = body & (np.abs((P - do) @ dn) < 0.0006) & ((N @ dn) > 0.99)
@@ -246,8 +250,8 @@ def details(part, mat, zone, P, N):
     H[ys, xs] -= GROOVE_D * np.clip(1 - (dist / GROOVE_W) ** 2, 0, 1)
     GROOVE[ys, xs] = np.maximum(GROOVE[ys, xs], np.clip(1 - dist / 0.004, 0, 1))
     for u, v in [q for q in fp if q[1] < 0.2]:                               # streaks from the front frame corners
-        if RNG.random() < 0.5: streaks.append((1, np.array(dfr.p(u, v)), dn, -db))
-    fs = TM.hull_faces(TM.pillar_halfspaces(), (1.05, 0.7, 0.4))
+        if RNG.random() < 0.8: streaks.append((1, np.array(dfr.p(u, v)), dn, -db))
+    fs = TM.hull_faces(TM.pillar_halfspaces(), (PC, 0.7, 0.4))
     yseam = TM.front_layout(fs["front"])["top_y"] - 0.028 - 0.016
     cap = body & (np.abs(PL[..., 0]) > TM.PIL_IN - 1e-3) & (N[..., 2] > 0.5) & (np.abs(PL[..., 1] - yseam) < GROOVE_W)
     ys, xs = np.nonzero(cap)
@@ -270,10 +274,10 @@ def details(part, mat, zone, P, N):
     # rust blotches: plinth and body corners at the floor, pillar front bottom corners, desk front corners
     spots = []
     for sx in (1, -1):
-        spots += [((sx * x, y, z), R) for (x, y, z), R in (((1.19, 0.03, 0.78), 0.10), ((0.93, 0.03, 0.78), 0.07),
-                                                            ((1.19, 0.20, 0.79), 0.06), ((0.90, 0.88, 0.75), 0.05),
+        spots += [((sx * x, y, z), R) for (x, y, z), R in (((1.19, 0.03, 0.78), 0.10), ((TM.PIL_IN + 0.03, 0.03, 0.78), 0.07),
+                                                            ((1.19, 0.20, 0.79), 0.06), ((TM.PIL_IN, 0.88, 0.75), 0.05),
                                                             ((1.19, 1.20, 0.70), 0.05))]
-    spots += [((x, 0.02, 0.64), 0.07) for x in (-0.88, -0.30, 0.30, 0.88)]
+    spots += [((x, 0.02, TM.BODY_FRONT_Z - 0.01), 0.08) for x in (-(TM.PIL_IN - 0.02), -0.28, 0.28, TM.PIL_IN - 0.02)]
     for c, R0 in spots:
         if RNG.random() < 0.25: continue
         c = np.array(c); R = R0 * RNG.uniform(0.8, 1.3)
@@ -283,7 +287,7 @@ def details(part, mat, zone, P, N):
         rr = np.linalg.norm(q, axis=1) * GT.wobble(ang, RNG, 0.9)
         RUSTB[ys, xs] = np.maximum(RUSTB[ys, xs], np.clip(1 - rr / R, 0, 1) ** 0.7)
     for pi, s, n, up in streaks:                                              # run-off streaks
-        L = RNG.uniform(0.06, 0.26); wd = RNG.uniform(0.003, 0.007)
+        L = RNG.uniform(0.08, 0.34); wd = RNG.uniform(0.003, 0.008)
         m = (part == pi) & (np.abs((P - s) @ n) < 0.003) & ((N @ n) > 0.95)
         rt = np.cross(up, n); d = P - s; x, y = d @ rt, -(d @ up)
         sel = m & (y > 0) & (y < L) & (np.abs(x) < 3 * wd)
@@ -337,8 +341,9 @@ def surface_material(slot, d1, d2, d3):
     kind = {PAINT: "paint", HAZARD: "paint", POLYMER: "polymer", STEEL: "steel", CYAN: "light", SWITCH: "light",
             REDCAP: "redcap", LENS: "lens"}[slot]
     if kind == "paint":
-        base = b.mix(b.remap(nf, 0.3, 0.7), b.rgb(tuple(0.88 * c for c in PAINT_C)), b.rgb(tuple(1.12 * c for c in PAINT_C)))
-        base = b.mix(b.mul(b.remap(nw, 0.35, 0.65), 0.5), base, b.rgb(tuple(0.8 * c for c in PAINT_C)))
+        base = b.mix(b.remap(nf, 0.3, 0.7), b.rgb(tuple(0.84 * c for c in PAINT_C)), b.rgb(tuple(1.16 * c for c in PAINT_C)))
+        base = b.mix(b.mul(b.remap(nw, 0.35, 0.65), 0.6), base, b.rgb(tuple(0.75 * c for c in PAINT_C)))
+        base = b.mix(b.mul(b.remap(b.noise(obj, 1.3, 2.0), 0.45, 0.65), 0.35), base, b.rgb(lin((62, 84, 92))))   # teal-grey patches (concept)
         base = b.mix(REC, base, (RECESS_SHADE,) * 3, 'MULTIPLY')                 # recess floors / walls darker
         base = b.mix(CAGE, base, (CAGE_SHADE,) * 3, 'MULTIPLY')
         if slot == HAZARD:
@@ -347,8 +352,8 @@ def surface_material(slot, d1, d2, d3):
             chip = b.clamp(b.add(b.remap(b.add(b.mul(BE, 1.5), b.mul(b.sub(nr, 0.5), 1.2)), 0.26, 0.46),
                                  b.remap(b.add(b.mul(scratch, 0.8), b.mul(b.sub(nr, 0.5), 0.8)), 0.55, 0.7)))
             base = b.mix(chip, hz, base)
-        sect = b.remap(b.noise(obj, 12.0, 3.0), 0.48, 0.62)
-        wear = b.remap(b.add(b.mul(E, b.add(0.5, b.mul(sect, 0.9))), b.mul(b.sub(nr, 0.5), 0.7), b.mul(scratch, 0.25)), 0.63, 0.73)
+        sect = b.remap(b.noise(obj, 12.0, 3.0), 0.42, 0.58)                    # H2b: more edge sections worn
+        wear = b.remap(b.add(b.mul(E, b.add(0.5, b.mul(sect, 0.9))), b.mul(b.sub(nr, 0.5), 0.7), b.mul(scratch, 0.25)), 0.57, 0.68)
         hb = b.remap(sy, 0.0, 0.7, 0.12, 0.0)                                   # more towards the floor
         bot = b.mul(b.remap(sy, 0.01, 0.18, 0.45, 0.0), b.remap(b.noise(obj, 4.5, 3.0), 0.48, 0.66))   # patchy, no band
         er = b.mul(E, b.remap(b.noise(obj, 9.0, 4.0), 0.44, 0.62))
@@ -359,10 +364,10 @@ def surface_material(slot, d1, d2, d3):
         if slot == HAZARD: rv = b.add(rv, b.mul(b.remap(b.noise(obj, 6.0, 4.0), 0.4, 0.7), 0.3))
         near = b.clamp(b.add(b.remap(b.sub(1.0, C), 0.04, 0.25), b.remap(E, 0.10, 0.40), GR, b.mul(RB, 2.0),
                              b.mul(b.remap(sy, 0.0, 0.25, 1.0, 0.0), b.remap(b.noise(obj, 3.0, 3.0), 0.40, 0.60))))
-        rust = b.clamp(b.add(b.mul(b.remap(rv, 0.345, 0.465), near), b.mul(ST, b.remap(nf, 0.2, 0.6, 0.55, 1.0))))
+        rust = b.clamp(b.add(b.mul(b.remap(rv, RUST_LO, RUST_LO + 0.12), near), b.mul(ST, b.remap(nf, 0.2, 0.6, 0.65, 1.0))))
         rust = b.mul(rust, b.sub(1.0, CUP))
         col = b.mix(b.mul(scratch, 0.6), base, (1.9, 1.9, 1.9), 'MULTIPLY')
-        col = b.mix(wear, col, b.rgb(STEEL_C))
+        col = b.mix(wear, col, b.rgb(WEAR_C))
         tip = b.mul(b.mul(b.mul(BO, b.remap(Hn, 0.86, 0.93)), b.remap(nr2, 0.60, 0.72)), b.remap(nr, 0.35, 0.55))
         col = b.mix(tip, col, b.rgb(STEEL_C))
         col = b.mix(CUP, col, b.rgb(STEEL_C))                                    # steel cup ring under the button
@@ -373,7 +378,7 @@ def surface_material(slot, d1, d2, d3):
         col = b.mix(b.mul(b.mul(grime, 0.7), b.sub(1.0, bare)), col, b.rgb(GRIME_C))      # grime spares bare steel
         metal = bare
         rough = b.add(0.58, b.mul(b.sub(nw, 0.5), 0.35), b.mul(scratch, -0.25))
-        rough = b.mixf(bare, rough, b.add(0.58, b.mul(b.sub(nf, 0.5), 0.1), b.mul(grime, 0.25)))
+        rough = b.mixf(bare, rough, b.add(0.48, b.mul(b.sub(nf, 0.5), 0.1), b.mul(grime, 0.25)))
         rough = b.mixf(rust, rough, b.add(0.85, b.mul(b.sub(nr2, 0.5), 0.1)))
         rough = b.add(rough, b.mul(grime, 0.12))
         emis = b.rgb((0, 0, 0))
@@ -495,6 +500,11 @@ def check(args):
         # accepted: deep narrow crevices by design - the 4 mm gaps beside the pillar light strips and the 8 mm gaps
         # beside the desk strips (polymer slot and strip walls, 15 mm deep), seen only straight into the gap
         acc = [c for c in patches if (matix[c[:, 0], c[:, 1]] == POLYMER).mean() > 0.9]
+        # H2b: the display bar's end faces look into the 40 mm slot between the bar end (|x| 0.80) and the wider
+        # pillars' inner faces (|x| 0.84): a real, visible deep corner, not a hidden face
+        bar_end = lambda c: (lambda q: abs(abs(q[0]) - TM.BAR["hx"]) < 0.01 and TM.DESK_BACK_Y - 0.001 < q[1] < TM.BAR["y1"] + 0.001)(
+            local(tx["P"][c[:, 0], c[:, 1]].mean(0)))
+        acc += [c for c in patches if not any(c is a_ for a_ in acc) and bar_end(c)]
         patches = [c for c in patches if not any(c is a for a in acc)]
         ok = not patches; ok_all &= ok
         where = ""
