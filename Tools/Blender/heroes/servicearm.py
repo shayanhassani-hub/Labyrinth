@@ -76,7 +76,7 @@ SWIVEL_X, SWIVEL_R = -0.160, 0.016            # cable swivel on the shoulder axi
 CONN = dict(x0=-0.100, x1=-0.182, y0=-0.018, y1=-0.062, hz=0.024)
 # UpperArm
 UA_HW, UA_HH, LUG_R = 0.06, 0.08, 0.08        # 0.12 wide x 0.16 tall; the root is the full r 0.08 end (8 mm under the hub)
-SLOT_CAP_R, SLOT_CAP_T = 0.064, 0.018         # the concept's big slotted cap on the shoulder (+X, camera side)
+SLOT_CAP_R, SLOT_CAP_T = 0.064, 0.008         # the concept's big slotted cap on the shoulder (+X, camera side)
 ELBOW_CAP_R = 0.085
 # Forearm
 FA_HW, FA_HH = 0.05, 0.07                     # 0.10 wide x 0.14 tall
@@ -86,7 +86,7 @@ P_X = 0.128                                    # elbow swivel: forearm-local x (
 WR_HW, WR_R, WR_Z1 = 0.045, 0.065, -0.060
 WR_CAP_R, WR_CAP_X1 = 0.046, 0.062
 Q_X = 0.090                                    # wrist swivel: wrist-local x (forearm-local 0.190)
-NECK_R, NECK_Z0, NECK_Z1 = 0.050, -0.055, -0.075
+NECK_R, NECK_Z0, NECK_Z1 = 0.044, -0.055, -0.075   # 6 mm clear of the forearm side
 # ToolHead (origin TOOL_Z below the wrist axis)
 COLLAR_R, COLLAR_Z1 = 0.044, -0.035
 BLOCK_HY = 0.05
