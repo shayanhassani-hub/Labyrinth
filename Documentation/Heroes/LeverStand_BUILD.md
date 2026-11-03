@@ -191,3 +191,67 @@ grey 67, soft top key), `leverstand_h2_{room, 34, front, side, side_pulled, top,
 Remaining differences to the concept (texture): the concept's paint reads lighter and more metallic under its
 lighting. Its cyan is greener; we use the STYLE_GUIDE blue-cyan (70 170 255). Its rust is heavier (it would exceed the
 15 % rule).
+
+## H3a — Unity prep (done in the cloud; not compiled, not imported)
+- **FBX** (`leverstand_export.py`, EXPORT_CONTRACT hero mode): `Assets/Environment/Heroes/LeverStand/`
+  `LAB_HERO_LeverStand_{Body,Lever,Lamp}_01.fbx` (Git LFS), each at identity with one material slot. bpy
+  re-import check, all PASS: 836 / 206 / 58 tris (= export copy), root transform identity, one slot, review-file
+  origins = builder origins, custom normals match the export copy (worst 0.010°). Local bounds (Unity): Body
+  x/z ±0.15, y 0 … 1.116 (cage top); Lever ±0.0245, y −0.015 … 0.320 (upright, from the hinge); Lamp ±0.0155,
+  y 0 … 0.030.
+- **Builder** `Assets/Environment/Editor/LeverStandBuilder.cs` (GateBuilder pattern; Tools > Labyrinth >
+  LeverStand: Apply Import Settings / Build LeverStand / Verify LeverStand):
+  - Model and texture import settings: hero mode, ASTC 6×6 (normal map 4×4), max 1024, mipmaps.
+  - Material `M_LAB_HERO_LeverStand` (URP Lit; Mask in the Metallic and Occlusion slots; emission map ×1, realtime
+    emissive GI flag because the lamp switches).
+  - `HERO_LeverStand` at (0.85, 0, 0.60), yaw 180. Body: static, BoxColliders for the pedestal and the housing.
+    Lever: rest −30° local X, grip CapsuleCollider (r 0.03, h 0.12, slightly larger than the grip), kinematic
+    Rigidbody, XRSimpleInteractable, LeverHandle. Lamp: LeverLamp, no collider.
+  - Prefab `HERO_LeverStand.prefab`.
+  - Verify: tris, origins, material, no mesh colliders, root pose, panel clearance (body world x ≥ 0.70), body
+    height, LeverHandle wiring and travel, rest leans to world +Z, lamp, material keywords, texture settings.
+- **Runtime** (`Assets/Scripts/Facility/`, namespace `LabyrinthVR.Gameplay`):
+  - `LeverHandle`: the grip follows the hand around the hinge only. The hand is projected into the hinge's YZ plane
+    and applied relative to the grab, so there is no jump and no free grab.
+  - States: Locked → Armed (`Arm()`, from FacilitySequence once the service arm is stowed) → Pulled. At 80 % (+18°)
+    `onPulled` fires once, the lever runs to +30° and latches. Locked: the lever gives 3°, `onDenied` fires once
+    per grab (the "denied" cue), then it springs back. An early release springs back.
+  - Public tuning: angles, trigger fraction, follow / return / latch speeds, denied play.
+  - Context menus Arm / Simulate Pull / Reset.
+  - `LeverLamp`: Off / Pulse / Steady through a MaterialPropertyBlock (`_EmissionColor`) on the lamp's renderer
+    only. Pulse 0.15 … 1.5 at 1 s; Steady after the pull (`lampAfterPull`).
+- Syntax-checked with a C# parser (tree-sitter-c-sharp): 0 errors in the three files. Unity APIs were read against the
+  Gate scripts (same XRI 3.3 types); **not compiled**.
+
+### Decisions (H3a)
+- Behaviour after the trigger (HERO_SPEC §1/§10 say nothing beyond "Released"): the lever latches at +30° and grabs
+  are ignored. The pull is a one-way launch, and the latched lever shows the state. The lamp turns steady amber
+  (Armed = pulse, launched = steady); `lampAfterPull` can set Off or Pulse.
+- Locked lever: 3° of play plus the denied cue, so the player feels it is a lever, not a fixed prop. No audio is
+  wired; `onDenied` is the hook.
+- The lamp drops out of the SRP Batcher while it carries a property block (one extra draw). This was accepted
+  because the brief asks for an MPB and it avoids material copies.
+- Grab: XRSimpleInteractable, not XRGrabInteractable. A grab interactable would move the object itself; the
+  hinge-only follow is simpler and safer in our own script.
+
+### To verify in Unity (G3b-style local step)
+1. Recompile; `unity status` ready. Check the two scripts and the builder compile (XRI 3.3:
+   `SelectEnterEventArgs.interactorObject.GetAttachTransform`).
+2. Tools > Labyrinth > LeverStand: Apply Import Settings. Commit the .meta files (FBX, textures). Check `git diff` on
+   the metas: `normalImportMode: 0`, `tangentImportMode: 0`, ASTC overrides.
+3. Build LeverStand in BasicScene (scene not saved by the builder) → Verify: RESULT PASS. Check the 836 / 206 / 58
+   triangle counts and the body world x 0.70 … 1.00.
+4. EXPORT_CONTRACT hero-mode comparison (vertex / normal / tangent) on one part. The Gate and Cradle v2 are still
+   unverified too.
+5. Look: the cyan strip doesn't clip to white at the lighting pass's intensity; the lamp is dark (Off) at start.
+   The texture's lamp share is off only through LeverLamp's block: check the lamp reads dark in Edit Mode as well
+   (no block yet; Awake writes it in Play Mode).
+6. Play Mode without a headset: context menu Arm (lamp pulses), Simulate Pull (`onPulled`, lever runs to +30 and
+   latches, lamp steady), Reset.
+7. Quest: grab feel with direct and near-far. Does the far ray grab feel right, or should far select be disabled
+   (only direct)? Check the follow speed and the 80 % trigger point, the denied play, and reach from the operating
+   position (expected: one step).
+8. Labyrinth panel v2 in place: check the tilt clearance live (cloud sweep: 145.5 mm min at 12°, see H1).
+9. Teleport: the stand's colliders vs `NAV_TeleportFloor` (HERO_SPEC §10: footprints may need excluding).
+10. Wiring for FacilitySequence (not written): `LeverHandle.Arm()` when the service arm is stowed; `onPulled` →
+    Released (yoke arms, drone enable).
