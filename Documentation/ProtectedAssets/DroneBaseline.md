@@ -1,6 +1,9 @@
-# Drone Baseline (locked asset)
+# Drone Baseline (last verified state)
 
-Purpose: a verified record of the locked drone, so any change to it can be detected.
+Purpose: a verified record of the drone's last live-read state, so any change to it can be detected.
+It is a reference, not a lock: the drone is normal editable project code since the owner decision of
+2026-09-25 (CLAUDE.md). After any change to scale, bounds or gameplay values, re-read live and update
+this file.
 Every value below must come from a LIVE Editor read, not from YAML parsing.
 Status: FILLED — production step 2.
 
@@ -77,6 +80,12 @@ time same session, value changed mid-session (owner actively tuning): scalingMod
 `0.02`, constantMax `0.05`.
 
 ## DroneHoverAIV2 on DroneAI2 (BasicScene)
+**Script change 2026-11-03 (not yet read live, untested in Unity):** `DroneHoverAIV2.cs` gained a
+serialized field `takeoffBlend` (script default 1.5 s); hover phase now starts at enable and fades in,
+yaw-only turn during take-off, init moved to `OnEnable`/`Awake`, reach check on `basePosition`
+(`Documentation/Proposals/ServiceArm_S4_Proposal.md` §6). The existing field values below are unchanged
+by the edit; re-read live after the next Editor session and add `takeoffBlend` to this table.
+
 Re-verified live 2026-09-24: every field below is **unchanged** from 2026-09-22, including the
 object references (bounds, labyrinthBall, projectilePrefab, firePoint, droneRenderer, ringSparks).
 | Field | Value |

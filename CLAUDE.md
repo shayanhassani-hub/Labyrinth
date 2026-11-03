@@ -20,7 +20,7 @@ The owner often tunes values by hand in the Editor - don't overwrite hand-tuned 
 `Documentation/ProtectedAssets/DroneBaseline.md` = reference of the last verified state (not a lock):
 after any change to scale, bounds or gameplay values, re-read LIVE and update it and the protected-volume
 table in ENVIRONMENT_SPEC.md - never carry old numbers forward.
-Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the game drone. Source-model name typo:
+The old leftovers `DroneAI` and `Drone` (Tripo) were deleted by the owner on 2026-09-25. Source-model name typo:
 `Engline2_low` (search both spellings). Launch-sequence heroes: `Documentation/HERO_SPEC.md`.
 
 ## Working rules
@@ -85,7 +85,8 @@ Inactive leftovers `DroneAI` and `Drone` (Tripo) are not the game drone. Source-
 
 ## Naming and contracts
 - New environment assets go under `Assets/Environment/` (Git LFS tracks binaries there only).
-- Asset IDs: `LAB_ENV_<Name>_<Var>_<NN>` (e.g. LAB_ENV_Wall_A_01), `LAB_PROP_<Name>_<NN>`.
+- Asset IDs: `LAB_ENV_<Name>_<Var>_<NN>` (e.g. LAB_ENV_Wall_A_01), `LAB_PROP_<Name>_<NN>`,
+  `LAB_HERO_<Hero>_<Part>_<NN>`; textures `T_<AssetName>_<Map>`.
   Same name in Blender and Unity.
 - 1 Unity unit = 1 m. Blender->Unity export/import settings, axis conversion and the wall yaw
   table: `Documentation/EXPORT_CONTRACT.md` (verified 2026-09-23 - follow it, don't re-derive it).

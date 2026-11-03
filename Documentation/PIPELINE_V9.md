@@ -1,4 +1,8 @@
-<!-- Markdown copy of Pipeline_V9.docx (22 Sep 2026). The .docx is the master; update both together. -->
+<!-- Converted from Pipeline_V9.docx (22 Sep 2026). From 2026-11-03 this Markdown file is the master; Pipeline_V9.docx is frozen at 22 Sep 2026 and is not updated. -->
+
+> **Status note (2026-11-03).** Several sections below describe the 22 September state and are
+> superseded; each carries an inline "Update" note. The governing documents for current work are
+> ASSET_RULES.md, STYLE_GUIDE.md, HERO_SPEC.md, EXPORT_CONTRACT.md, ENVIRONMENT_SPEC.md and DEVLOG.md.
 
 # AI-Assisted 3D & Technical Art Production Pipeline
 
@@ -107,12 +111,12 @@ Verified on 21–22 September 2026 through a read-only inspection and live reads
 | Unity version | 6000.3.24f1 (Unity 6.3 LTS), upgraded from 6000.0.26f1 |
 | Packages | URP 17.3.0 · XR Interaction Toolkit 3.3.2 · OpenXR 1.16.1 · XR Management 4.6.1 · Input System 1.20.0 · com.unity.pipeline 0.7.0-exp.1 |
 | XR | OpenXR loader; Meta Quest feature and Oculus Touch profile on (Android); hand tracking, foveation, SpaceWarp off; new Input System only |
-| Android | Min SDK 32, ARM64, IL2CPP; package ID still com.unity.template.vr (must change) |
+| Android | Min SDK 32, ARM64, IL2CPP; package ID com.shayanhassani.labyrinthvr (changed 2026-09-22, was com.unity.template.vr) |
 | Main game scene | Assets/Scenes/BasicScene.unity |
 | Other scenes | RenderScene (look-dev/recording, drone tuned separately); SampleScene (VR template, currently the only build scene) |
-| Locked drone | DroneAI2 in BasicScene: drone_low.fbx, M_Drone.mat, Shader Graph SG_DroneOptimized, DroneHoverAIV2 |
+| Drone | DroneAI2 in BasicScene: drone_low.fbx, M_Drone.mat, Shader Graph SG_DroneOptimized, DroneHoverAIV2. No longer locked (owner decision 2026-09-25) |
 | Crystals / throwables | Never built. Optional future feature, not protected gameplay |
-| Quest 3S | The project has never been built or run on the headset |
+| Quest 3S | First APK built 2026-09-22; greybox and labyrinth tested on the headset 2026-09-24/26. Performance baseline still open |
 
 ### Git checkpoints so far
 
@@ -134,7 +138,7 @@ Verified on 21–22 September 2026 through a read-only inspection and live reads
 
 **Recorded, decided later:**
 
-- HologramToggle needs a keyboard (does not work on Quest) and uses r.material (creates material copies). It belongs to the locked drone, so it is only changed by explicit decision.
+- HologramToggle needs a keyboard (does not work on Quest) and uses r.material (creates material copies). It belongs to the drone (no longer locked since 2026-09-25); change it when a task asks for it.
 - Quest quality level uses 4096 shadow maps, 4× MSAA and HDR. Measure first (section 42), then change one setting at a time.
 - The XR rig comes from the XRI 3.0.6 samples; the package is 3.3.2. Re-import only if the rig misbehaves on Quest.
 - Cleanup candidates: inactive DroneAI and Drone (Tripo) objects, unused Oculus loader, legacy post-processing define, Test.cs, DroneHoverAI.cs, the leftover "Labyrinth Game" folder, the stale Labyrinth Game.sln.
@@ -154,8 +158,8 @@ Reading scene files as text misread the drone's prefab overrides. Reading the li
 | Blender headless (Python) | Procedural generation, batch processing, validation |
 | Claude Desktop Blender connector | Fallback for Blender work |
 | Gemini | Visual ideation and reference generation |
-| Meshy | Candidate AI 3D generation |
-| Substance Painter | Material refinement |
+| Hunyuan 3D / Meshy | AI 3D generation: Hunyuan 3D first choice for hard surface, Meshy backup and organic shapes (ASSET_RULES "AI tool choice") |
+| Substance Painter | Material refinement (Cradle); later heroes are textured in Blender (ASSET_RULES hero workflow v3) |
 | Unity | Realtime game and environment |
 | Quest 3S | Runtime authority |
 | Git + Git LFS / GitHub | Backup, version control, off-machine copy |
@@ -204,7 +208,7 @@ Target:
 - one primary laboratory/research room
 - one connected corridor/transition area
 - modular architectural system
-- approximately three hero assets
+- approximately three hero assets — **Update 2026-11-03:** five heroes (Cradle, ServiceArm, Terminal, LeverStand, Gate; ASSET_RULES tiers, HERO_SPEC)
 - controlled secondary prop library
 - reusable environment materials
 - limited environmental interactions
@@ -259,7 +263,11 @@ Existing gameplay is protected. Before modifying the project, Claude inspects th
 - build configuration
 - XR configuration
 
-Crystals/throwables are not part of the existing gameplay. If they are ever built, it is a recorded gameplay decision in PROJECT_BIBLE.md, and section 52 applies: only a few interactions, no second game.
+Crystals/throwables are not part of the existing gameplay. If they are ever built, it is a recorded gameplay decision in HERO_SPEC.md §11 (PROJECT_BIBLE.md was never created), and section 52 applies: only a few interactions, no second game.
+
+> **Update (owner decision 2026-09-25):** the drone lock below is superseded. The drone, the labyrinth and
+> all gameplay code are normal, editable project code (CLAUDE.md, HERO_SPEC §10/§11). DroneBaseline.md is a
+> reference of the last verified state, not a lock. The rest of §8 and §9 is kept as history.
 
 The drone is a locked asset. Do not modify its:
 
@@ -274,6 +282,8 @@ The drone is a locked asset. Do not modify its:
 unless explicitly decided later and recorded as a gameplay change.
 
 ## 9. Drone Protection
+
+> **Update 2026-09-25:** superseded (see §8). The drone deny rules are no longer in `.claude/settings.json`.
 
 Three small layers, no asset management system:
 
@@ -346,7 +356,7 @@ The Claude app chat is for planning, review and decisions. Decisions are written
 Claude Code reads CLAUDE.md at the start of every session, so every line costs tokens every time. Keep it to roughly 60–100 lines of facts and rules, and point to the longer documents instead of copying them:
 
 - paths, main scene, Unity/package versions, build target
-- the locked drone and what "locked" means
+- the drone and gameplay status (no lock since 2026-09-25)
 - rules: never save a scene unless asked; read Inspector values live, not from YAML; one change at a time; report git status after changes
 - how to reach the Editor (unity status) and Blender
 - naming (section 49), export and texture contracts (section 50), by reference
@@ -357,7 +367,7 @@ Claude Code reads CLAUDE.md at the start of every session, so every line costs t
 Defined in UnityProject/.claude/settings.json and committed:
 
 - **Allow without asking:** read-only commands such as ls, cat, grep, head, wc, git status / diff / log, unity status / list and read-only unity queries.
-- **Deny:** git push --force, git reset --hard, rm -rf, and Edit/Write on the drone's files (section 9).
+- **Deny:** git push --force, git reset --hard, rm -rf (the drone-file deny rules were removed 2026-09-25, section 8).
 - **Ask (default):** everything else, including all edits and Editor-changing commands.
 
 Auto mode is not used until the workflow has proven reliable. The exact rules are written and tested in production step 2.
@@ -401,7 +411,7 @@ UnityProject/
 ├── CLAUDE.md                 short facts + rules (always loaded)
 ├── .claude/settings.json     plugin + permission rules
 └── Documentation/
-    ├── PROJECT_BIBLE.md       defines the game and gameplay decisions
+    ├── HERO_SPEC.md           launch sequence, heroes and gameplay decisions (§11); PROJECT_BIBLE.md was never created
     ├── ENVIRONMENT_SPEC.md    dimensions and modular rules
     ├── ASSET_RULES.md         asset production rules
     ├── STYLE_GUIDE.md         palette, materials, shapes, visual language
@@ -561,6 +571,8 @@ Gemini produces visual references: concepts, reference images, variations, mater
 
 ## 24. Meshy
 
+> **Update 2026-09-27/28:** Hunyuan 3D is the first choice for hard-surface generation; Meshy is the backup and is used for organic or soft shapes (ASSET_RULES "AI tool choice").
+
 Meshy is the primary AI 3D generator. It generates **candidate models**. It does not determine whether the model is production-ready.
 
 #### Default generation decision
@@ -609,11 +621,15 @@ Asset complexity depends on silhouette, viewing distance, material complexity, o
 
 ## 28. AI Prop Pipeline
 
+(Update: Hunyuan 3D or Meshy per ASSET_RULES "AI tool choice".)
+
 `Asset need → Claude specification → Gemini reference → Meshy → Candidate model → Blender → Cleanup → Technical check → Substance if needed → Unity → Prefab → Quest`
 
 ## 29. Hero Asset Pipeline
 
 Approximately three hero assets: **Hero 01** large industrial machine · **Hero 02** control terminal · **Hero 03** facility door.
+
+> **Update 2026-11-03:** five heroes — Cradle, ServiceArm, Terminal, LeverStand, Gate (HERO_SPEC). Workflows: the Cradle on hero workflow v2 (clean high-poly, Substance Painter); the other four on hero workflow v3 (Blender-modelled and Blender-textured, each finished end-to-end). See ASSET_RULES.
 
 Hero assets receive stronger references, better silhouette control, more careful material work, stronger composition, additional cleanup and more portfolio documentation.
 
@@ -640,6 +656,8 @@ RESULT: PASS
 
 This is enough.
 
+> **Update 2026-11-03:** not built yet. Validation runs through per-hero checker scripts (`cradle_v2_check.py`, `gate_check.py`, `gate_tex.py -- check`; ASSET_RULES "Validation"). A generic validator stays on the roadmap.
+
 ## 32. Artistic Validation
 
 Technical validation is not artistic validation. After the technical pass, ask: Does it look like the reference? Does it belong to the environment? Does its silhouette work? Does it have the right visual language? Does it improve the scene? Is it worth keeping? An asset can technically pass and still be rejected.
@@ -647,6 +665,8 @@ Technical validation is not artistic validation. After the technical pass, ask: 
 ## 33. Substance Painter Strategy
 
 Substance Painter is a production tool, not a separate automation project. Use it primarily for hero assets, distinctive surfaces, controlled wear, dirt, damage, edge treatment and presentation-quality materials. For simple secondary props, reusable Unity materials may be sufficient. Do not automate Substance until repeated manual work proves that automation is worthwhile.
+
+> **Update 2026-10-29:** only the Cradle is textured in Substance Painter. ServiceArm, Terminal, LeverStand and Gate use hero workflow v3: procedural Blender materials baked in Cycles (ASSET_RULES).
 
 ## 34. Environment Material System
 
@@ -837,10 +857,14 @@ Stable IDs, identical in Blender and Unity:
 LAB_ENV_Wall_A_01
 LAB_ENV_Pillar_A_01
 LAB_ENV_Pipe_Straight_01
-LAB_PROP_Terminal_03
 LAB_PROP_Machine_01
 LAB_PROP_Crate_04
+LAB_HERO_Gate_Leaf_01
 ```
+
+- Environment kit: `LAB_ENV_<Name>_<Var>_<NN>`. Props: `LAB_PROP_<Name>_<NN>`.
+- Heroes: `LAB_HERO_<Hero>_<Part>_<NN>`, one FBX per part (HERO_SPEC §2).
+- Textures: `T_<AssetName>_<Map>` (e.g. `T_LAB_HERO_Gate_BaseColor`).
 
 ## 50. Scale / Export and Texture Contracts
 
@@ -856,6 +880,8 @@ Color textures: sRGB. Data textures (normal, metallic, roughness, AO, masks): li
 
 #### Golden Path 2: AI Prop
 
+(Update: Hunyuan 3D or Meshy, ASSET_RULES "AI tool choice".)
+
 `Specification → Gemini → Reference → Meshy → Blender → Cleanup → Validate → Substance if necessary → Unity → Prefab → Quest`
 
 #### Golden Path 3: Unity Development
@@ -866,7 +892,7 @@ Use Unity's built-in skills before creating custom tooling.
 
 ## 52. Scope Guard for Gameplay
 
-Crystals/throwables, extra enemies or new mechanics are gameplay decisions. They are only added if recorded in PROJECT_BIBLE.md and they fit the budget. The environment project does not become a second game.
+Crystals/throwables, extra enemies or new mechanics are gameplay decisions. They are only added if recorded in HERO_SPEC.md §11 (PROJECT_BIBLE.md was never created) and they fit the budget. The environment project does not become a second game.
 
 ## 53. Production Sequence
 
@@ -876,7 +902,7 @@ Replaces V8's "First Production Day". Do not start by developing the Technical A
 |---|---|---|
 | 1 | Connect Claude to Unity: plugin, Pipeline package, tests 1–5, tag unity-working | Done (tag unity-working) |
 | 2 | CLAUDE.md + permission rules (incl. drone deny rules) + DroneBaseline.md + turn on Git LFS | Done (commit e3a0edf) |
-| 3 | First Quest build + performance baseline: add BasicScene to build, change package ID, build, fix, measure, tag quest-baseline | Needs the headset |
+| 3 | First Quest build + performance baseline: add BasicScene to build, change package ID, build, fix, measure, tag quest-baseline | Build done 2026-09-22, headset tests 2026-09-24/26; performance baseline open |
 | 4 | Connect Blender to Claude Code; decide art-file backup | Done 22 Sep: headless Blender 5.2.2 works; Blender MCP registered in Claude Code (local scope) |
 | 5 | Test Meshy (standard vs Smart Topology on one prop) | Open |
 | 6 | One modular wall from the Python generator | Open |
@@ -907,6 +933,8 @@ If all eight work: **stop configuring and start building the environment.**
 Present it as: **An AI-assisted 3D and Technical Art workflow used to develop a realtime VR environment.** It demonstrates AI-assisted content creation + procedural modeling + technical art tooling + realtime environment art + XR optimization. Do not describe it as "a game made by AI."
 
 ## 56. Time Budget
+
+> **Retired 2026-09-27** (DEVLOG): the project needs more time than this budget; hours are still logged roughly in DEVLOG. Kept as history.
 
 Target approximately **80 hours**, stretch ceiling approximately **85 hours**. Setup ran over (a new drive layout, cleanup, Unity upgrade, the Pipeline package); the overrun is taken from contingency deliberately.
 

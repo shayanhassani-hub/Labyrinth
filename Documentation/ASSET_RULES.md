@@ -27,7 +27,8 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
   (owner decision 2026-10-04, Cradle Step 6c). Reason: the high-poly is truly round, so it
   bulges r(1 - cos(180°/n)) out of the low between two corners: on a 16-gon of Ø 1 m that is
   9.9 mm, which bakes as normal slivers at the foot of every facet and a cornered outline;
-  at 32 it is 2.5 mm, about one texel at hero density. A small part that is one continuous
+  at 32 it is 2.5 mm, about one texel at hero density. Interactive close-up parts, e.g. buttons:
+  up to 24 segments (owner decision 2026-11-03; the Gate button and bezel use 24). A small part that is one continuous
   stack with a larger one (e.g. pin caps on a drum) keeps the stack's count. Where round and
   straight forms meet, match vertex counts so the transition is quads; where the counts
   cannot match on a flat face, bridge quad-first (triangles only where the counts force them).
@@ -39,13 +40,17 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
   allowed and reported).
 ### Normals and baking
 - Low-poly: sharp edges only where there is a UV seam. Custom normals exported.
-  Triangulated on export; the SAME low file goes to Substance and Unity. Tangents:
-  MikkTSpace.
+  Triangulated on export; the SAME low file goes to the bake/texturing tool and Unity.
+  Tangents: MikkTSpace.
+- **Scope of the rest of this section: hero workflow v2 only (the Cradle).** Heroes on
+  workflow v3 (ServiceArm, Terminal, LeverStand, Gate) have no high-poly, no cage, no ID map
+  and no Substance step: their small detail and materials are baked in Cycles onto the low
+  itself; see "Hero workflow v3" for their steps and checks.
 - High-poly (bake source): low-poly + bevels (2-3 segments) + detail, floaters allowed.
   Low/high meshes named <Part>_low / <Part>_high so bakes match by name.
-- Bakes in Substance Painter: Normal (OpenGL), World Normal, AO, Curvature, Position,
+- Bakes in Substance Painter (v2): Normal (OpenGL), World Normal, AO, Curvature, Position,
   Thickness, ID.
-- Hero bake checks (Step 6d; `cradle_v2_bake_final.py -- verify`), all PASS before a Substance export:
+- Hero bake checks, workflow v2 (Step 6d; `cradle_v2_bake_final.py -- verify`), all PASS before a Substance export:
   - Cage both ways: every high vertex inside the cage, and no cage sample point inside the high over a visible low point (contact-line samples within 1 texel tolerated).
   - ID per feature: every feature of the HERO_SPEC ID table selects faces and all of them carry its colour (flat fills included); the FBX carries the same colours.
   - AO black scan on the verification bake: visible texels with AO < 0.05 may only form contact lines (<= 2 texels thick); any patch is a FAIL.
@@ -84,9 +89,11 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
 - Non-moving parts marked Static where lighting/batching needs it.
 - Naming per PIPELINE_V9 §49; textures T_<AssetName>_<Map>.
 ### Validation (per asset)
-- V9 §31 validator output + topology stats (quads/tris/n-gons, hidden faces,
-  manifold) + renders: shaded, wireframe, UV layout, texel checker. These double as
-  portfolio material.
+- The hero's own checker script (no generic validator exists yet; V9 §31 describes one as a
+  future tool): `cradle_v2_check.py` + `cradle_v2_bake_final.py -- verify` (Cradle),
+  `gate_check.py` + `gate_tex.py -- check` (Gate), one per later hero. Output: topology stats
+  (quads/tris/n-gons, hidden faces, manifold) and the workflow's checks, plus renders: shaded,
+  wireframe, UV layout, texel checker. These double as portfolio material.
 - Artistic validation by the owner (V9 §32). Technical pass does not mean accepted.
 ### Source files
 - A procedural hero's source is its generator script until the first hand edit. After
@@ -155,7 +162,9 @@ Substance, no separate high-poly, no cage.
 All other Hero-standard rules stay: real-world scale and pivots, chamfers, depth rule, round segment counts,
 UVs at 512 px/m with the padding rules, one texture set per hero, ASTC, naming, validation renders, hero
 export mode. Hero checks kept: topology (incl. hidden faces), winding / bow-tie, planarity report, and the
-AO black scan on the baked AO. Dropped with the high-poly: cage both ways, ID per feature (the materials are
+AO black scan on the baked AO. Added for v3 (Gate): shading check (no flat face with a corner normal more than
+0.5° off its face normal), PBR value check (ranges above, metal albedo sRGB >= 180), normal-map seam check, and
+a clearance sweep over every moving part's motion. Dropped with the high-poly: cage both ways, ID per feature (the materials are
 assigned on the low itself).
 
 ## AI tool choice

@@ -17,12 +17,14 @@ a standalone VR headset needs.
 
 - **Game and level design:** the gameplay, the room layout, the launch sequence (gate → terminal →
   lever → drone release) and the labyrinth control model.
-- **Art direction:** visual direction, palette and wear rules (dark painted metal, black polymer,
-  cyan/blue emissive accents, drone-yellow warning accents), concept images, and approval of every
-  hero design on review renders.
-- **Specs and quality rules:** I wrote the rules the project is built to: asset tiers, topology,
+- **Art direction:** visual direction, palette, wear and rust rules (dark painted metal, black
+  polymer, cyan/blue emissive accents, drone-yellow warning accents; edge wear, grime and rust are
+  part of the style for every asset), concept images, and approval of every hero design on review
+  renders.
+- **Specs and quality rules:** I define the rules the project is built to: asset tiers, topology,
   UV and texel-density targets, bake and texture rules, the export contract, and per-hero specs with
-  exact sizes, pivots and clearances.
+  exact sizes, pivots and clearances. The documents are drafted with AI assistance; I review and
+  approve every rule.
 - **Texturing** in Substance Painter (docking cradle).
 - **Directing an AI-assisted pipeline:** AI tools write code and drafts under my direction. I set
   the design, the rules and the acceptance criteria, and I review every step before it is accepted.
@@ -117,7 +119,7 @@ The Quest performance baseline (FPS, GPU time, thermals) is planned but not yet 
 | Greybox room + corridor, teleport floor | Built, tested on Quest |
 | Labyrinth v2 (panel, handle, stand, tilt control) | Built, tested on Quest; tuning backlog L1–L3 |
 | **Cradle** (docking cradle) | Low-poly, UVs, high-poly and final bake done; texturing in Substance Painter and Unity import of v2 next |
-| **Gate** (facility gate) | Design approved, low-poly, UVs, shading fix and baked textures done (G1/G2); Unity import and Quest check next |
+| **Gate** (facility gate) | Low-poly, UVs, shading fix and first baked textures done (G1/G2); look revision G2b (gunmetal paint, concept-level rust) in progress; then Unity import and Quest check |
 | **ServiceArm** (ceiling service arm) | Spec written; open clearance conflict with the docked drone's propellers ([proposal](Documentation/Proposals/ServiceArm_S4_Proposal.md)) |
 | **Terminal** (control terminal) | Spec written |
 | **LeverStand** (release lever) | Spec written |
@@ -165,7 +167,8 @@ Screenshots go in Documentation/Media/ (folder not created yet). Uncomment each 
 
 AI tools are part of the workflow and are disclosed: Gemini for concept and reference images,
 Hunyuan 3D as a shape and measurement reference for the cradle (no AI geometry ships), and Claude
-Code for code and document drafts under my direction. Design, rules, review and acceptance are mine.
+Code for code and document drafts (including the specs and rule documents) under my direction.
+Design, rules, review and acceptance are mine.
 
 ## Contact
 

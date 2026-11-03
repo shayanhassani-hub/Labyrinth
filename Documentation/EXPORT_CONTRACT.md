@@ -115,7 +115,13 @@ Lightmap UVs stays off until a bake needs it).
 - Seams sit on every edge where the dominant axis changes (all box edges; every few segments on
   cylinders, cones and spheres). Adding UVs did not change any Unity vertex or triangle count.
 
-## Hero mode (verified 2026-09-26, LAB_HERO_Cradle_*)
+## Hero mode (verified 2026-09-26, LAB_HERO_Cradle_* Part 1 only)
+
+**Scope of the verification (note 2026-11-03):** the Unity check below was done with the
+**superseded Part 1 cradle** (HERO_SPEC §3a; `CradleBuilder`). `Assets/Environment/Heroes/Cradle/`
+still holds only those Part 1 FBX files. Cradle v2 and the Gate have not been imported or verified in
+Unity yet: re-run the vertex / normal / tangent comparison on the first v2 / v3 hero import and record
+the result here.
 
 For heroes (ASSET_RULES.md, Hero tier): `export_fbx(obj, dir, name, mode="hero")`. Axis, scale
 and bake settings are the same as above; what differs:
@@ -170,7 +176,7 @@ left wall x = −4.0, right wall x = +4.0. Stacked panels repeat at y = 0 and y 
 
 ## Verification checklist (run for every new module)
 
-1. Import the FBX into `Assets/Environment/Kit/`.
+1. Import the FBX into the asset's folder: `Assets/Environment/Kit/`, `Heroes/<Hero>/` or `Props/`.
 2. Apply the importer settings above — they are NOT the defaults.
 3. Live-read the mesh bounds through the Editor and compare to the spec dimensions.
 4. Confirm the imported root transform is identity (rotation 0, scale 1).

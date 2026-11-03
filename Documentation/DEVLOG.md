@@ -250,3 +250,29 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   DroneHoverAIV2 yaw.
 - Next: Service Arm, starting with the §4 conflict.
   Hours: not logged
+
+## 2026-10-29 to 2026-11-03
+- Done: hero workflow v3 (ASSET_RULES) and STYLE_GUIDE.md (palette sampled from the style references and
+  the drone textures, wear, light rust). Gate G1: generator, low-poly, UVs, checks, design approved by the
+  owner. Gate G2: shading fix (hard edges by face kind and angle, face-weighted normals), baked textures
+  from procedural Blender materials: 1,736 tris (Leaf 1,048, Rail 272, ButtonPanel 298, Button 118), one
+  2048 set, 268 islands, 487 px/m, packing 59.8 %, 88 baked bolts; topology, clearance, AO black scan, PBR
+  and normal-seam checks PASS (commits 11438ed, 11f3707). Review on branch cloud/portfolio-docs: README
+  for the portfolio, ServiceArm §4 proposal, docs consistency report (29 findings) and its fixes in the
+  docs this branch may edit; DroneHoverAIV2 take-off fix applied from the proposal (hover fades in from
+  phase 0 after enable, yaw-only turn during take-off, init in OnEnable, reach check on basePosition).
+- Decisions: hero workflow v3 for ServiceArm, Terminal, LeverStand, Gate: each hero finished end-to-end
+  (design, low, UVs, textures, Unity import, Quest check) before the next; this replaces "model all heroes
+  first, Substance afterwards" for the v3 heroes. The Cradle stays on workflow v2 and is textured by the
+  owner in Substance Painter. Rust (2026-11-01): concept-level rust is part of the style for all assets.
+  Pipeline_V9.md is the master from 2026-11-03 (the .docx is frozen).
+- Problems: ServiceArm §4 rule was wrong: docked at -28.3 deg the spinning prop discs reach |x| 0.055 /
+  0.060 (recomputed from drone_low.fbx), not ~0.14, and even at yaw 0 they reach 0.287. DroneHoverAIV2
+  jumped up to +-0.30 m on enable (absolute-time hover phase). The take-off fix is **untested in Unity**
+  (no Editor in that session); DroneBaseline not re-read live.
+- Open: owner decision on the ServiceArm proposal (recommendation B: 3D clearance rule, HERO_SPEC §4
+  text pending); Gate PBR check threshold 175 -> 180 and the HERO_SPEC/STYLE_GUIDE report rows (other
+  session); recompile + Play Mode check of the take-off, then live re-read for DroneBaseline.
+- Next: Gate G2b look revision (gunmetal paint, concept-level rust) in progress; then Gate Unity import
+  and Quest check; then ServiceArm.
+  Hours: not logged

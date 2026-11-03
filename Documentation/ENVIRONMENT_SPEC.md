@@ -1,8 +1,9 @@
 # Environment Spec — Industrial Robotics Research Facility
 
 Approved 2026-09-23. All values in meters, 1 Unity unit = 1 m. The Blender generator in
-`Tools/Blender/` must read its parameters from this file's values; if a value changes here,
-regenerate the kit rather than editing meshes by hand.
+`Tools/Blender/` uses a parameter block copied from this file's values; keep both in sync. If a
+value changes here, update the generator's block and regenerate the kit rather than editing meshes
+by hand.
 
 ## Room (interior dimensions)
 
@@ -95,8 +96,8 @@ both ends must be checked. Getting the near end right does not make the far end 
   The 8 m wall is 4 modules wide, so module centers fall at x = −3, −1, +1, +3 and no module
   is centered on x = 0. The door sits one grid cell left of center, balancing Hero 01's mass
   on the +X side. Decided 2026-09-23.
-- **Heroes** (cradle, service arm, terminal, lever, gate, labyrinth stand): placement and design
-  in `HERO_SPEC.md`, which supersedes the first-pass hero notes that were here.
+- **Heroes** (cradle, service arm, terminal, lever, gate) and the labyrinth props (panel, handle,
+  stand): placement and design in `HERO_SPEC.md`, which supersedes the first-pass hero notes that were here.
 - Pipes run along the ceiling edges and the upper wall band; light panels in the ceiling grid.
 - **Trim** sits on the wall's inner face and protrudes 0.05 m into the room, so its yaw is the
   wall's yaw **+ 180°** (back 0°, far 180°, left 90°, right 270°). Placing trim with the wall's
