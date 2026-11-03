@@ -16,6 +16,8 @@ Scripts (`Tools/Blender/heroes/`):
 | `servicearm_kin.py` | §4 chain, IK for the working pose, idle and fold poses, docked drone rebuilt from `drone_low.fbx`, disc volumes |
 | `servicearm.py` | generator (`-- blockout` = H0); saves the review file `D:/AI_Labyrinth/Blender/Source/Heroes/ServiceArm/LAB_HERO_ServiceArm_v1.blend` |
 | `servicearm_check.py` | `topo`, `clearance`, `renders <stage>` |
+| `servicearm_tex.py` | `bake`, `check`, `renders` (H2) |
+| `servicearm_export.py` | hero-mode FBX export + re-import check (H3a) |
 
 ## Decisions (made without the owner, who was away; reasons given)
 
@@ -58,37 +60,37 @@ Rule (ASSET_RULES depth rule): ≥ 15 mm → geometry, smaller → normal map / 
 
 | # | Feature (concept) | How | H1 | H2 |
 |---|---|---|---|---|
-| 1 | Square ceiling plate, chamfered edge | geometry (0.40 × 0.025, 45° corner clips 12 mm, 6 mm chamfer) | | |
-| 2 | 4 hex nuts + stud ends on the plate underside | geometry (30 mm AF × 16 mm) | | |
-| 3 | Washers under the nuts | normal map (3 mm) | | |
-| 4 | Octagonal adapter under the plate | geometry (frustum 0.34 → 0.28, 23 mm) | | |
-| 5 | Adapter side ports (rectangular slot, oval slot) | normal map + dark texture | | |
-| 6 | Small bolts on the adapter | normal map | | |
-| 7 | Turret bearing disc Ø 0.26 × 0.07 | geometry (32 sides, 6 mm chamfers) | | |
-| 8 | Turret groove ring | normal map | | |
-| 9 | Round boss on the turret side | geometry (Ø 44 mm, 23 mm proud) | | |
-| 10 | Shoulder housing / bracket | geometry (cheek on −X, rounded r 0.055) | | |
-| 11 | Shoulder slotted cap | geometry (Ø 72 mm × 15 mm); slot normal map | | |
-| 12 | Bracket outer cap | geometry (Ø 80 mm) | | |
-| 13 | Cable connector box with gland | geometry (48 × 42 × 44 mm + gland) | | |
-| 14 | Link bodies with chamfered edges | geometry (6 / 5 mm chamfers), rounded ends on the hinges | | |
-| 15 | Link end collars (wider bands) | normal map + texture (the step is < 15 mm) | | |
-| 16 | Side panel: groove outline, raised plate with stepped edge | normal map | | |
-| 17 | Panel bolts, link-end bolts | normal map | | |
-| 18 | Cyan light strip on each link side | emission + normal map (slot < 15 mm) | | |
-| 19 | Elbow: big disc with 8-bolt ring and centre cap | geometry disc r 0.06 × 17 mm, cap r 0.03 × 15 mm; bolts normal map | | |
-| 20 | Wrist: rounded knuckle with small cap | geometry (cap Ø 64 mm) | | |
-| 21 | Wrist neck with ring grooves | geometry (Ø 84 mm); grooves normal map | | |
-| 22 | Tool collar (steel) | geometry (Ø 88 mm × 35 mm) | | |
-| 23 | Ochre tool block with the side notch | geometry (0.14 × 0.10 × 0.135, notch 35 mm) | | |
-| 24 | Tool bolts, soot / grime on the ochre | normal map, texture | | |
-| 25 | Steel pin | geometry (Ø 36 × 40 mm) | | |
-| 26 | Flexible conduit along the arm | geometry tube Ø 22 mm (8 sides) on clips; corrugation normal map | | |
-| 27 | Cable clips (band clamps) | geometry (34 × 16 mm arches) | | |
-| 28 | Slack loops at the joints | geometry: over the elbow and wrist ends, joined on the hinge axes at swivels | | |
-| 29 | Second, thinner cable beside the conduit | left out at H0 (see open points) | | |
-| 30 | Rust: edges, bottoms, around bolts, panel corners, streaks | texture (rust rule) | | |
-| 31 | Edge wear to steel, grime, scratches | texture | | |
+| 1 | Square ceiling plate, chamfered edge | geometry (0.40 × 0.025, 45° corner clips 12 mm, 6 mm chamfer) | ✓ | |
+| 2 | 4 hex nuts + stud ends on the plate underside | geometry (30 mm AF × 16 mm) | ✓ | |
+| 3 | Washers under the nuts | normal map (3 mm) | n/a (map) | |
+| 4 | Octagonal adapter under the plate | geometry (frustum 0.34 → 0.28, 23 mm) | ✓ | |
+| 5 | Adapter side ports (rectangular slot, oval slot) | normal map + dark texture | n/a (map) | |
+| 6 | Small bolts on the adapter | normal map | n/a (map) | |
+| 7 | Turret bearing disc Ø 0.26 × 0.07 | geometry (32 sides, 6 mm chamfers) | ✓ | |
+| 8 | Turret groove ring | normal map | n/a (map) | |
+| 9 | Round boss on the turret side | geometry (Ø 30 mm, 23 mm proud; H2: smaller and higher, clear of the disc chamfers) | ✓ | |
+| 10 | Shoulder housing / bracket | geometry (cheek on −X, rounded r 0.055) | ✓ | |
+| 11 | Shoulder slotted cap | geometry (Ø 72 mm × 15 mm); slot normal map | ✓ | |
+| 12 | Bracket outer cap | geometry (Ø 80 mm) | ✓ | |
+| 13 | Cable connector box with gland | geometry (box into the cheek, 42 × 44 mm face + gland) | ✓ | |
+| 14 | Link bodies with chamfered edges | geometry (6 / 5 mm chamfers), rounded ends on the hinges | ✓ | |
+| 15 | Link end collars (wider bands) | normal map + texture (the step is < 15 mm) | n/a (map) | |
+| 16 | Side panel: groove outline, raised plate with stepped edge | normal map | n/a (map) | |
+| 17 | Panel bolts, link-end bolts | normal map | n/a (map) | |
+| 18 | Cyan light strip on each link side | emission + normal map (slot < 15 mm) | n/a (map) | |
+| 19 | Elbow: big disc with 8-bolt ring and centre cap | geometry disc r 0.06 × 17 mm, cap r 0.03 × 15 mm; bolts normal map | ✓ | |
+| 20 | Wrist: rounded knuckle with small cap | geometry (cap Ø 64 mm) | ✓ | |
+| 21 | Wrist neck with ring grooves | geometry (Ø 84 mm); grooves normal map | ✓ | |
+| 22 | Tool collar (steel) | geometry (Ø 88 mm × 35 mm) | ✓ | |
+| 23 | Ochre tool block with the side notch | geometry (0.14 × 0.10 × 0.135, notch 35 mm) | ✓ | |
+| 24 | Tool bolts, soot / grime on the ochre | normal map, texture | n/a (map) | |
+| 25 | Steel pin | geometry (Ø 36 × 40 mm) | ✓ | |
+| 26 | Flexible conduit along the arm | geometry tube Ø 22 mm (8 sides) on clips; corrugation normal map | ✓ | |
+| 27 | Cable clips (band clamps) | geometry (34 × 16 mm arches) | ✓ | |
+| 28 | Slack loops at the joints | geometry: over the elbow and wrist ends, joined on the hinge axes at swivels | ✓ | |
+| 29 | Second, thinner cable beside the conduit | left out at H0 (see open points) | left out | |
+| 30 | Rust: edges, bottoms, around bolts, panel corners, streaks | texture (rust rule) | n/a (map) | |
+| 31 | Edge wear to steel, grime, scratches | texture | n/a (map) | |
 
 ## H0 — blockout (2026-11-03)
 
@@ -107,3 +109,44 @@ disc footprint below y 2.37, stowed layer 3.770 … 3.948, released volume clear
 H0 finding, fixed: stowed, the forearm's wrist end lay 2 mm into the underside of a full-height turret disc (spec disc
 bottom y 3.878, forearm top 3.88, at r 0.086 from the turret axis). The turret is now two-tier like the concept's
 ring over its housing: disc Ø 0.26 × 0.048 over a hub Ø 0.15 × 0.022 (total height 0.07 as in §4); gap 20 mm.
+
+## H1 — model (2026-11-03)
+
+`servicearm.py` (full) + `servicearm_check.py -- topo / clearance / renders h1`. Results on the final H1 geometry
+(after the H2-driven tweaks below, which changed no sizes in §4):
+
+| Part | Tris | Quads / tris | UV islands |
+|---|---|---|---|
+| Mount | 420 | 206 / 8 | 18 |
+| Turret | 950 | 439 / 72 | 23 |
+| UpperArm | 1,198 | 566 / 66 | 19 |
+| Forearm | 1,137 | 531 / 75 | 19 |
+| Wrist | 546 | 254 / 38 | 13 |
+| ToolHead | 272 | 131 / 10 | 10 |
+| **Total** | **4,523** | | 102 |
+
+- Topology PASS for every part: no n-gons, non-manifold edges, loose geometry, duplicates, zero-area faces or
+  inconsistent winding; no bow-tie / concave quads; winding agrees with the custom normals; 0 quads over 2 mm twist.
+  Open borders are the deleted hidden faces and the uncapped ends embedded in a parent shell (by design, as the Gate).
+- Shading PASS: no flat face has a corner normal > 0.5° off its face normal. Rule added for the arm: two FLAT faces
+  meeting at > 3° are always a hard edge (the Gate's 30° let the upper arm's ramp, the lug chamfer and the adapter sides
+  blend into their neighbours); CHAMFER strips and ROUND sides as the Gate. Hard edges = UV seams.
+- UVs PASS: every island at 512 px/m (fixed-density pack: `servicearm.pack_fixed`, same skyline packer as
+  `cradle_v2_uv.pack`, which would otherwise scale the islands up to fill the sheet: 999 px/m), padding ≥ 8 px,
+  border 4 px. The arm fills only **11.9 %** of the 2048 sheet at 512 px/m — the set could ship at 1024 (or go to
+  ~1000 px/m) after the Quest test; owner decision.
+- Cables: centripetal Catmull-Rom (the uniform version overshot at unevenly spaced points and folded the tube at the
+  forearm's wrist loop: 3 faces against their normals), simplified to a point per 7° of turn; 8-sided tube Ø 22 mm.
+- Clearance PASS (1,952 poses, see H0 for the set): discs ≥ 252.4 mm, drone mesh 54.1 mm (tool tip over the top),
+  lowest point inside a disc footprint y 2.371 (rule ≥ 2.00); part pairs: adjacent ≥ 2.0 mm (lug under the turret hub,
+  forearm beside the upper arm), others ≥ 20 mm; stowed layer y 3.770 … 3.948; released volume clear; ceiling clear;
+  reach 1.628 / 1.90.
+- H1 fixes found by the sweep: the wrist's cable gland dipped 1 mm into the tool collar (gland and cable end raised
+  6 mm); found by the texture checks (H2) and fixed in the model: cables lifted to 7 mm above the link tops on their
+  clips (AO crevice), turret boss Ø 30 mm moved up clear of the disc chamfers, connector box run into the cheek (no
+  10 mm pocket), embedded cylinder / prism ends no longer capped (buried faces; one had its normal flipped).
+- Renders (`Documentation/Media/servicearm/`): `servicearm_h1_vs_concept.jpg`, `..._vs_concept_side.jpg`,
+  `..._vs_concept_side_platescale.jpg`, `servicearm_h1_working_{34,side,player}.jpg`,
+  `servicearm_h1_stowed_{34,close,side}.jpg`, `servicearm_h1_wire.jpg`, `servicearm_h1_wire_wrist.jpg`,
+  `servicearm_h1_checker.jpg` (32 px cells = 6.25 cm), `servicearm_h1_uv_layout.jpg`.
+- Renders are Cycles only: Workbench needs a GPU context (libEGL) that the container doesn't have.

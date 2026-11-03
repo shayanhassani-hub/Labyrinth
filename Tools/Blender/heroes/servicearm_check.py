@@ -564,8 +564,48 @@ def renders(args):
     camera((3.2, 2.6, 2.6), (0.1, 3.3, 5.2), lens=35); shot(os.path.join(SCR, f"{tag}_stowed_34.png"))
     camera((1.6, 3.2, 3.3), (0.1, 3.86, 5.6), lens=45); shot(os.path.join(SCR, f"{tag}_stowed_close.png"))
     side_camera(390.0, aspect=(1600, 1000), plate_px=900, ceil_px=60); shot(os.path.join(SCR, f"{tag}_stowed_side.png"))
-    for k in ("working_34", "working_side", "working_player", "stowed_34", "stowed_close", "stowed_side"):
+    extra = []
+    if not h0:                                                   # ASSET_RULES validation renders: wire, UV, checker
+        for n in ("Ceiling",): bpy.data.objects[n].hide_render = True
+        for o in bpy.data.objects:
+            if o.type == 'MESH' and not o.name.startswith(S.HERO): o.hide_render = True
+        S.set_pose(objs, dict(K.WORKING, th4=-90.0))
+        # Cycles (no GPU / EGL here for Workbench): flat grey model, black wire overlay; checker as emission
+        sc.cycles.samples = 24
+        grey = simple_mat("M_WireGrey", lin((150, 154, 160)), 0.6)
+        blk = simple_mat("M_Wire", (0.0, 0.0, 0.0), 0.9)
+        keep = {n: list(o.data.materials) for n, o in objs.items()}
+        for o in objs.values():
+            for i in range(len(o.data.materials)): o.data.materials[i] = grey
+        wires = CC.add_wire(objs, 0.0008)
+        for _, w in wires:
+            w.data = w.data.copy(); w.data.materials.clear(); w.data.materials.append(blk)
+        camera((1.35, 3.0, 4.6), (0.2, 3.0, 5.35), lens=40); shot(os.path.join(SCR, f"{tag}_wire.png")); extra.append("wire")
+        camera((0.9, 2.5, 4.1), (0.12, 2.35, 4.75), lens=45); shot(os.path.join(SCR, f"{tag}_wire_wrist.png")); extra.append("wire_wrist")
+        for _, w in wires: bpy.data.objects.remove(w)
+        img = CC.checker_image(TEX)
+        mck = bpy.data.materials.new("M_Checker"); mck.use_nodes = True; nt = mck.node_tree
+        tn = nt.nodes.new("ShaderNodeTexImage"); tn.image = img
+        em = nt.nodes.new("ShaderNodeEmission"); nt.links.new(tn.outputs[0], em.inputs[0])
+        nt.links.new(em.outputs[0], nt.nodes["Material Output"].inputs["Surface"])
+        for o in objs.values():
+            for i in range(len(o.data.materials)): o.data.materials[i] = mck
+        camera((1.35, 3.0, 4.6), (0.2, 3.0, 5.35), lens=40); shot(os.path.join(SCR, f"{tag}_checker.png")); extra.append("checker")
+        uv_layout(os.path.join(MEDIA, f"{tag}_uv_layout.jpg"))
+    for k in ("working_34", "working_side", "working_player", "stowed_34", "stowed_close", "stowed_side", *extra):
         save_jpg(load_rgb(os.path.join(SCR, f"{tag}_{k}.png")), os.path.join(MEDIA, f"{tag}_{k}.jpg"))
+
+
+def uv_layout(path):
+    lab = np.load(os.path.join(SCR, "uv_labels.npy"))
+    rng = np.random.default_rng(2)
+    lut = rng.uniform(0.25, 0.85, (lab.max() + 1, 3)); lut[0] = (0.08, 0.08, 0.09)
+    rgb = lut[lab]
+    edge = np.zeros(lab.shape, bool)
+    edge[:, :-1] |= lab[:, :-1] != lab[:, 1:]; edge[:-1, :] |= lab[:-1, :] != lab[1:, :]
+    rgb[edge] = (0.02, 0.02, 0.02)
+    h = TEX // 2
+    save_jpg(rgb.reshape(h, 2, h, 2, 3).mean((1, 3))[::-1].astype(np.float32) ** 2.2, path)
 
 
 if __name__ == "__main__":

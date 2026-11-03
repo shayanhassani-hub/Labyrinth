@@ -66,12 +66,12 @@ NUT_AT, NUT_AF, NUT_T = 0.172, 0.030, 0.016
 DISC_R, DISC_Y0, DISC_Y1 = 0.13, -0.002, -0.050       # bearing disc d 0.26 ...
 HUB_R, HUB_Y1 = 0.075, -0.072                         # ... over a narrower hub: total 0.07 (spec); the stowed forearm end
                                               # passes under the disc at r >= 0.086 (a full-height disc would touch it)
-BOSS_R, BOSS_Y, BOSS_X1 = 0.022, -0.037, 0.145
+BOSS_R, BOSS_Y, BOSS_X1 = 0.015, -0.026, 0.145     # on the disc side, clear of its chamfers
 SHOULDER_Y = -0.12                            # = T_UPPER
 CHEEK_X0, CHEEK_X1, CHEEK_R = -0.068, -0.108, 0.055
 CHEEK_CAP_R, CHEEK_CAP_X1 = 0.040, -0.123
 SWIVEL_X, SWIVEL_R = -0.145, 0.016            # cable swivel on the shoulder axis (-X side)
-CONN = dict(x0=-0.118, x1=-0.166, y0=-0.018, y1=-0.060, hz=0.022)
+CONN = dict(x0=-0.100, x1=-0.166, y0=-0.018, y1=-0.060, hz=0.022)
 # UpperArm
 UA_HW, UA_HH, LUG_R = 0.06, 0.06, 0.044
 UA_TOP_RAMP = (0.135, 0.165)                  # lug top (0.044) -> link top (0.06): outside the turret disc (r 0.13)
@@ -152,6 +152,9 @@ def prism(sm, poly, frame, d0, d1, kinds=None, ch0=CH, ch1=CH, cap0=True, cap1=T
     """poly (u, v) extruded along the frame normal from d0 to d1 (d1 > d0), 45 deg chamfers ch0 / ch1 on the two end
     edges; kinds per edge (edge i -> i+1) for the walls"""
     if kinds is None: kinds = [ROUND if round_all else FLAT] * len(poly)
+    # an end built without a chamfer is the one embedded in the parent shell (or against the ceiling): no cap there,
+    # it would only be a buried face (and intersecting caps confuse the normal recalculation)
+    cap0 = cap0 and ch0 > 0; cap1 = cap1 and ch1 > 0
     n = len(poly)
     a = loop(frame, G.offset(poly, ch0) if ch0 > 0 else poly, d0)
     b = loop(frame, poly, d0 + ch0)
@@ -202,22 +205,40 @@ def clipped_square(h, c):
 
 
 def catmull(P, step=0.012):
+    """centripetal Catmull-Rom (alpha 0.5: no cusps or overshoot with unevenly spaced points), sampled at ~step"""
     P = [np.asarray(p, float) for p in P]
     Q = [P[0] * 2 - P[1]] + P + [P[-1] * 2 - P[-2]]
     out = []
     for i in range(1, len(Q) - 2):
         p0, p1, p2, p3 = Q[i - 1], Q[i], Q[i + 1], Q[i + 2]
+        t0 = 0.0; t1 = t0 + np.linalg.norm(p1 - p0) ** 0.5; t2 = t1 + np.linalg.norm(p2 - p1) ** 0.5
+        t3 = t2 + np.linalg.norm(p3 - p2) ** 0.5
         n = max(1, int(np.linalg.norm(p2 - p1) / step))
         for k in range(n):
-            t = k / n
-            out.append(0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t
-                              + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3))
+            t = t1 + (t2 - t1) * k / n
+            A1 = (t1 - t) / (t1 - t0) * p0 + (t - t0) / (t1 - t0) * p1
+            A2 = (t2 - t) / (t2 - t1) * p1 + (t - t1) / (t2 - t1) * p2
+            A3 = (t3 - t) / (t3 - t2) * p2 + (t - t2) / (t3 - t2) * p3
+            B1 = (t2 - t) / (t2 - t0) * A1 + (t - t0) / (t2 - t0) * A2
+            B2 = (t3 - t) / (t3 - t1) * A2 + (t - t1) / (t3 - t1) * A3
+            out.append((t2 - t) / (t2 - t1) * B1 + (t - t1) / (t2 - t1) * B2)
     out.append(P[-1])
     res = [out[0]]
     for p in out[1:]:
         if np.linalg.norm(p - res[-1]) > 0.004: res.append(p)
     if np.linalg.norm(res[-1] - P[-1]) > 1e-9: res[-1] = P[-1]
-    return res
+    return simplify(res)
+
+
+def simplify(path, turn=7.0, max_len=0.25):
+    """keep a point when the direction has turned by > turn deg since the last kept point (or after max_len)"""
+    keep = [path[0]]
+    for i in range(1, len(path) - 1):
+        a = path[i] - keep[-1]; b = path[i + 1] - path[i]
+        ang = math.degrees(math.acos(max(-1, min(1, a @ b / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-12)))))
+        if ang > turn or np.linalg.norm(path[i + 1] - keep[-1]) > max_len: keep.append(path[i])
+    keep.append(path[-1])
+    return keep
 
 
 def cable(sm, ctrl, r=CABLE_R, n=CABLE_N):
@@ -247,7 +268,7 @@ def clip(sm, c, along, up, w=0.016, half=0.017, foot=0.017):
     side = np.cross(up, along)
     fr = (np.asarray(c, float) - along * (w / 2), side, up, along)
     poly = [(-half, -foot), (half, -foot)] + [(u, v) for u, v in arc((0, 0), half, 0, 180, 8)]
-    kinds = [FLAT, FLAT] + [ROUND] * 7 + [FLAT, FLAT]
+    kinds = [FLAT, FLAT] + [ROUND] * 8 + [FLAT]
     poly, kinds = clean(poly, kinds)
     keep = sm.mat; sm.mat = STEEL
     solid(sm, poly, kinds, fr, 0.0, w, 0.002, 0.002)
@@ -316,13 +337,13 @@ def build_turret(detail=True):
         sm.mat = STEEL
         cylinder(sm, fr_down(), (SWIVEL_X, 0), 0.014, SEG["tiny"], -CONN["y1"] - 0.002, -CONN["y1"] + 0.010, 0.0, 0.002)  # gland
         cylinder(sm, fr_side(), (0, SHOULDER_Y), SWIVEL_R, SEG["small"], -0.165, CHEEK_CAP_X1 + 0.002, 0.003, 0.0)
-        cable(sm, [(SWIVEL_X, CONN["y1"] - 0.008, 0.0), (SWIVEL_X, SHOULDER_Y + SWIVEL_R + 0.003, 0.0)])
+        cable(sm, CABLES["Turret"]())
     return sm.finish(f"{HERO}_Turret_01")
 
 
 UA_CABLE = [(SWIVEL_X, 0.0, SWIVEL_R + 0.003), (SWIVEL_X, 0.0, 0.08), (-0.14, 0.012, 0.15), (-0.10, 0.045, 0.22),
-            (-0.04, 0.072, 0.28), (0.02, 0.072, 0.34), (0.025, 0.072, 0.42), (0.025, 0.072, 0.80),
-            (0.04, 0.082, 0.90), (0.10, 0.100, 0.975), (0.17, 0.103, 1.02), (0.235, 0.090, 1.065),
+            (-0.04, 0.078, 0.28), (0.02, 0.078, 0.34), (0.025, 0.078, 0.42), (0.025, 0.078, 0.80),
+            (0.04, 0.086, 0.90), (0.10, 0.100, 0.975), (0.17, 0.103, 1.02), (0.235, 0.090, 1.065),
             (0.235, 0.050, 1.075), (0.235, 0.028, 1.030)]
 UA_CLIPS = (0.50, 0.74)
 
@@ -339,24 +360,24 @@ def build_upper(detail=True):
     sm = ArmMesh(); sm.mat = PAINT
     r0, r1 = UA_TOP_RAMP
     prof, kinds = profile(
-        ([(0.07, -UA_HH), (1.0, -UA_HH)], FLAT),
+        ([(0.0229, -UA_HH), (1.0, -UA_HH)], FLAT),
         (arc((1.0, 0), UA_HH, -90, 90, 12), ROUND),
         ([(1.0, UA_HH), (r1, UA_HH), (r0, LUG_R)], FLAT),
-        (arc((0, 0), LUG_R, 90, 255, 11), ROUND),
-        ([(LUG_R * math.cos(math.radians(255)), LUG_R * math.sin(math.radians(255))), (0.07, -UA_HH)], FLAT))
+        (arc((0, 0), LUG_R, 90, 270, 12), ROUND),
+        ([(0.0, -LUG_R), (0.0229, -UA_HH)], FLAT))   # 35 deg: a crisp corner
     solid(sm, prof, kinds, fr_side(), -UA_HW, UA_HW)
     if detail:
         cylinder(sm, fr_side(), (0, 0), SLOT_CAP_R, SEG["mid"], UA_HW - 0.004, UA_HW + SLOT_CAP_T, 0.0, 0.003)
         cylinder(sm, fr_side(), (1.0, 0), ELBOW_CAP_R, SEG["mid"], -UA_HW - 0.015, -UA_HW + 0.004, 0.003, 0.0)
         cylinder(sm, fr_side(), (1.0, 0), 0.035, SEG["mid"], UA_HW - 0.004, 0.068, 0.0, 0.0015)    # elbow hub washer
-        path = cable(sm, ua_cable_ctrl())
+        cable(sm, CABLES["UpperArm"]())
         for zc in UA_CLIPS:
-            clip(sm, (0.025, 0.072, zc), Z, Y)
+            clip(sm, (0.025, 0.078, zc), Z, Y, foot=0.023)
     return sm.finish(f"{HERO}_UpperArm_01")
 
 
 FA_CABLE = [(P_X, 0.0, -(SWIVEL_R + 0.003)), (P_X, 0.0, -0.06), (0.105, 0.022, -0.12), (0.07, 0.052, -0.17),
-            (0.03, 0.062, -0.22), (0.02, 0.062, -0.30), (0.02, 0.062, -0.72), (0.03, 0.070, -0.78),
+            (0.03, 0.068, -0.22), (0.02, 0.068, -0.30), (0.02, 0.068, -0.72), (0.03, 0.074, -0.78),
             (0.08, 0.088, -0.85), (0.14, 0.092, -0.895), (Q_X + 0.10, 0.080, -0.90), (Q_X + 0.10, 0.040, -0.90)]
 FA_CLIPS = (-0.40, -0.62)
 
@@ -374,15 +395,15 @@ def build_forearm(detail=True):
         ([(-0.90, -FA_HH), (0, -FA_HH)], FLAT))
     solid(sm, prof, kinds, fr_side(), -FA_HW, FA_HW, 0.005, 0.005)
     if detail:
-        cylinder(sm, fr_side(), (0, 0), ELBOW_DISC_R, SEG["big"], FA_HW - 0.005, ELBOW_DISC_X1, 0.0, 0.004)
+        cylinder(sm, fr_side(), (0, 0), ELBOW_DISC_R, SEG["big"], FA_HW, ELBOW_DISC_X1, 0.0, 0.004)
         cylinder(sm, fr_side(), (0, 0), ELBOW_HUB_R, SEG["mid"], ELBOW_DISC_X1 - 0.002, ELBOW_HUB_X1, 0.0, 0.003)
         sm.mat = STEEL
         cylinder(sm, fr_side(), (0, 0), SWIVEL_R, SEG["small"], ELBOW_HUB_X1 - 0.002, P_X + 0.012, 0.0, 0.003)
         sm.mat = PAINT
         cylinder(sm, fr_side(), (-0.90, 0), 0.030, SEG["mid"], FA_HW - 0.004, 0.052, 0.0, 0.0015)   # wrist washer
-        cable(sm, fa_cable_ctrl())
+        cable(sm, CABLES["Forearm"]())
         for zc in FA_CLIPS:
-            clip(sm, (0.02, 0.062, zc), -Z, Y)
+            clip(sm, (0.02, 0.068, zc), -Z, Y, foot=0.023)
     return sm.finish(f"{HERO}_Forearm_01")
 
 
@@ -399,8 +420,8 @@ def build_wrist(detail=True):
         cylinder(sm, fr_side(), (0, 0), WR_CAP_R, SEG["mid"], WR_HW - 0.004, WR_CAP_X1, 0.0, 0.003)
         sm.mat = STEEL
         cylinder(sm, fr_side(), (0, 0), 0.014, SEG["small"], WR_CAP_X1 - 0.002, Q_X + 0.010, 0.0, 0.003)
-        cylinder(sm, fr_side(), (-0.055, 0), 0.011, SEG["tiny"], WR_HW - 0.004, 0.062, 0.0, 0.002)   # cable gland
-        cable(sm, [(Q_X, 0.0, -0.017), (Q_X, 0.0, -0.035), (0.075, 0.0, -0.052), (0.066, 0.0, -0.055)])
+        cylinder(sm, fr_side(), (-0.049, 0), 0.010, SEG["tiny"], WR_HW - 0.004, 0.062, 0.0, 0.002)   # cable gland (6 mm over the tool)
+        cable(sm, CABLES["Wrist"]())
     return sm.finish(f"{HERO}_Wrist_01")
 
 
@@ -412,6 +433,13 @@ def build_tool(detail=True):
     sm.mat = STEEL
     cylinder(sm, fr_axis_z(), (0, 0), PIN_R, SEG["small"], -PIN_Z0 - 0.006, -PIN_Z1, 0.0, 0.003)
     return sm.finish(f"{HERO}_ToolHead_01")
+
+
+CABLES = {   # cable control points per part (part-local); servicearm_tex.py uses the same curves for the corrugation
+    "Turret": lambda: [(SWIVEL_X, CONN["y1"] - 0.008, 0.0), (SWIVEL_X, SHOULDER_Y + SWIVEL_R + 0.003, 0.0)],
+    "UpperArm": lambda: ua_cable_ctrl(),
+    "Forearm": lambda: fa_cable_ctrl(),
+    "Wrist": lambda: [(Q_X, 0.0, -0.017), (Q_X, 0.0, -0.032), (0.076, 0.0, -0.046), (0.066, 0.0, -0.049)]}
 
 
 BUILDERS = {"Mount": build_mount, "Turret": build_turret, "UpperArm": build_upper, "Forearm": build_forearm,
@@ -473,7 +501,7 @@ def delete_hidden(o, ceiling=False):
     verts = [v.co.copy() for v in o.data.vertices]; polys = [list(p.vertices) for p in o.data.polygons]
     if ceiling:                                        # spec y >= 0 (part-local ceiling face): Blender z >= 0
         k = len(verts)
-        verts += [Vector(v) for v in ((-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0))]
+        verts += [Vector(v) for v in ((-1, -1, 0.001), (1, -1, 0.001), (1, 1, 0.001), (-1, 1, 0.001))]
         polys.append([k, k + 1, k + 2, k + 3])
     tree = BVHTree.FromPolygons(verts, polys)
     keep = visible_faces(o, tree, CV.fib_dirs(160))
@@ -490,6 +518,24 @@ def delete_hidden(o, ceiling=False):
 _HARD = set()
 
 
+FLAT_FLAT_HARD = 3.0                            # two FLAT faces meeting at more than this: hard (flat faces never blend;
+                                                # the Gate's 30 deg let the ramp, the lug chamfer and the adapter sides
+                                                # smooth into their neighbours)
+
+
+def hard_edge_keys(me):
+    hard = G.hard_edge_keys(me)
+    kind = me.attributes["kind"].data
+    faces = {}
+    for p in me.polygons:
+        for k in p.edge_keys: faces.setdefault(k, []).append(p)
+    for k, fs in faces.items():
+        if len(fs) == 2 and kind[fs[0].index].value == FLAT and kind[fs[1].index].value == FLAT \
+                and math.degrees(fs[0].normal.angle(fs[1].normal, 0.0)) > FLAT_FLAT_HARD:
+            hard.add(k)
+    return hard
+
+
 def _is_hard(e):
     return len(e.link_faces) == 2 and tuple(sorted(v.index for v in e.verts)) in _HARD
 
@@ -504,11 +550,43 @@ def unwrap_and_pack(parts):
     rep = {}
     for o in parts:
         if not o.data.uv_layers: o.data.uv_layers.new(name="UVMap")
-        _HARD.clear(); _HARD.update(G.hard_edge_keys(o.data))
+        _HARD.clear(); _HARD.update(hard_edge_keys(o.data))
         rep[o.name] = UV.unwrap_object(o)
         UV.scale_islands(o, lambda isl, o=o: uv_density(o, isl))
-    rep["px_per_m"] = round(UV.pack(parts), 1)
+    rep["px_per_m"] = round(pack_fixed(parts, TEXEL), 1)
     return rep
+
+
+TEXEL = 512.0                                   # ASSET_RULES hero density (px/m at 2048)
+
+
+def pack_fixed(objs, d):
+    """cradle_v2_uv.pack at a FIXED density (the arm's islands fill only part of the 2048 sheet at 512 px/m; the
+    bisection in UV.pack would scale them up to fill it): same skyline packer, padding and placement"""
+    bms = []; isls = []
+    for o in objs:
+        bm = bmesh.new(); bm.from_mesh(o.data); uvl = bm.loops.layers.uv.active
+        bms.append((o, bm, uvl))
+        for isl in UV.islands(bm):
+            U = np.array([l[uvl].uv[:] for f in isl for l in f.loops])
+            isls.append((uvl, isl, U.min(0), np.ptp(U, 0)))
+    rects = [(int(math.ceil(sz[0] * d)) + UV.PAD_PX + 1, int(math.ceil(sz[1] * d)) + UV.PAD_PX + 1) for _, _, _, sz in isls]
+    pos = None
+    for key in UV.ORDERS:
+        pos = UV._skyline(rects, UV.TEX, UV.TEX, key)
+        if pos: break
+    assert pos, "islands do not fit the sheet at this density"
+    T = UV.TEX
+    for (uvl, isl, mn, sz), (x, y, turned) in zip(isls, pos):
+        ox = (x + UV.PAD_PX // 2 + 0.5) / T; oy = (y + UV.PAD_PX // 2 + 0.5) / T
+        for f in isl:
+            for l in f.loops:
+                u, v = l[uvl].uv[0] - mn[0], l[uvl].uv[1] - mn[1]
+                if turned: u, v = sz[1] - v, u
+                l[uvl].uv = (ox + u * d / T, oy + v * d / T)
+    for o, bm, uvl in bms:
+        bm.to_mesh(o.data); bm.free()
+    return d
 
 
 def review_material(name, rgb):
