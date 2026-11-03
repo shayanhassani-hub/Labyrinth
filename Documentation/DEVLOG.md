@@ -288,9 +288,22 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   drone, nothing below y 2.00 over a disc). Gate G2b look: gunmetal paint, broken-up edge wear (1-6 mm, no outline,
   bare steel less bright through roughness/grime, albedo stays >= 180), concept-level rust, long hairline scratches,
   hazard band worn more at its edges; geometry and UVs unchanged.
-- Problems: this session ran in the cloud (no Blender, no D: drive, no concept image): the G2b materials, re-bake,
-  checks and renders were NOT done; the gunmetal value is not sampled yet.
-- Next: G2b in a local session: sample the concept panels, update the gate_tex.py materials, re-bake, run
-  `gate_tex.py -- check` (now >= 180), renders incl. gate_g2b_room_vs_concept.png (neutral even light, mid-grey
-  background) and a dim facility-light render, then update HERO_SPEC §7 textures.
+- Problems: the first session that day ran in the cloud without Blender or the concept, so G2b was done in a second
+  cloud session (below).
+- G2b done in the cloud (same day): bpy 5.2.2 from PyPI (= our Blender 5.2.2 LTS, Cycles CPU, 4 cores) runs the
+  hero scripts headless unchanged (D:\ paths redirected to scratch); the Gate rebuilt identically (1,736 tris, 268
+  islands, 486.7 px/m, topo/clearance/shading PASS). Concept now in the repo (Documentation/References/Gate/).
+  Gunmetal sampled from the concept: sRGB 90 104 115 (STYLE_GUIDE). gate_tex.py: gunmetal paint, noise-broken edge
+  wear (bare steel 0.3 % of the leaf paint, rougher, albedo >= 180), rust per the rust rule (7.2 % of the leaf paint,
+  12.8 % low / 4.7 % high), long hairline scratches, worn hazard band; GATE_TEX=512 for cheap iterations; review
+  renders with a concept-light shot. Eight look iterations (512 test bake, then 2048 with reused pre-bakes, fast
+  renders vs the concept). Final 2048 bake with "reuse edge": 6.1 min (a full bake incl. pre-bakes 15.6 min); checks
+  PASS (AO black, PBR metal >= 180: 0.27 % below, seams 1/96 over 6 deg). Maps in Assets/Environment/Heroes/Gate/
+  Textures/ (Git LFS), renders in Documentation/Media/gate_g2b/, HERO_SPEC §7 "Look revision".
+- Problems (G2b): the first rust/scratch relief broke the normal map across two UV seams (seam check 3/96): relief
+  halved, PASS. Rust coverage needed several steps (the rule's 5-15 % is far more than the G2 "light rust").
+  No Unity here: texture importer settings and .meta files come with the Unity import.
+- Next: owner review of the G2b renders (open point: the rollers still catch bright specular highlights in the
+  dim render); Gate Unity import (textures + FBX, importer settings per EXPORT_CONTRACT /
+  ASSET_RULES, commit the .meta files) and Quest check; then ServiceArm.
   Hours: not logged

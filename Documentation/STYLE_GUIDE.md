@@ -29,7 +29,7 @@ smoothness 0.54 (p10 0.28, p90 0.75); grey metal parts 111 111 111, metallic 0.8
 ## Palette (PBR albedo, sRGB; metallic; smoothness = 1 - roughness)
 | Material | Use | Albedo sRGB | Metallic | Smoothness |
 |---|---|---|---|---|
-| **Gunmetal paint** (doors) | the Gate and other doors (owner decision 2026-11-01, from the Gate concept) | **88 98 108** starting value (range 80-95 / 90-105 / 100-115, blue-grey); replace with the median sampled from the concept's panels at the G2b bake | 0 | 0.35-0.50 |
+| **Gunmetal paint** (doors) | the Gate and other doors (owner decision 2026-11-01, from the Gate concept) | **90 104 115** (blue-grey; sampled 2026-11-03 from the concept's door panels: hue = median of the blue-grey panel pixels, R:G:B 1 : 1.16 : 1.28; brightness = the fully lit top zone, 89 104 116, since the concept is lit from above and falls off to 52 59 64 at the bottom) | 0 | 0.35-0.50 |
 | **Charcoal paint** (structure) | walls, structure, frames, housings | **60 64 70** (range 52-70, B >= R + 6) | 0 | 0.35-0.50 |
 | **Polymer** (secondary) | recesses, channels, bezels, buttons, cable parts | **35 37 39** | 0 | 0.25-0.40 |
 | **Machined steel** | rails, rollers, pins, axles, exposed metal at worn edges | **188 190 192** (>= 180) | 1 | 0.55-0.70 |

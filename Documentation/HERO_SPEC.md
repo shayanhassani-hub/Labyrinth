@@ -594,7 +594,9 @@ the export-identical triangulated low (`env_kit_generator.triangulated_export_co
 tangent-space normals match MikkTSpace). One 2048 set, every part baked on its own (others hidden), margin 0, one 8 px
 dilation of the composite. Files in `D:\AI_Labyrinth\Blender\Export\Heroes\Gate\`:
 `T_LAB_HERO_Gate_BaseColor.png` (sRGB), `_Normal.png` (OpenGL), `_Mask.png` (linear: R metallic, G AO, B 0,
-A smoothness), `_Emission.png` (sRGB colour; strength set in Unity).
+A smoothness), `_Emission.png` (sRGB colour; strength set in Unity). **Since G2b the maps are also in the repo:**
+`Assets/Environment/Heroes/Gate/Textures/` (Git LFS). The materials bullet below is the G2 state; G2b changes it (see
+"Look revision").
 - Inputs: texel positions from the triangulated lows (closed pose); detail maps in numpy (bolt heights + masks,
   seams, rust streaks, rust base, band edge); Cycles pre-bakes per part: convex edges (AO node, inside, 8 mm), cavity
   (AO node, 50 mm, self), AO (0.3 m, self only).
@@ -616,6 +618,39 @@ A smoothness), `_Emission.png` (sRGB colour; strength set in Unity).
   panel gaps skipped: the walls' bevel zone); no white clipping in the review renders (emission strength 1.0).
 - Renders with the baked maps on the low, dim facility light: `Renders/gate_g2_{room,room_vs_concept,corridor,34,
   open,hanger,button,detail}.png`; flat maps `Renders/gate_g2_map_*.png`.
+
+### Look revision (Step G2b, 2026-11-03)
+Owner review of the G2 renders against the concept (`Documentation/References/Gate/gate_front.jpg`). Geometry and UVs
+unchanged; only the procedural materials in `gate_tex.py`, the re-bake and the renders. Run in a cloud container with
+bpy 5.2.2 (Blender 5.2.2 LTS, Cycles CPU, 4 cores); final bake `-- bake reuse edge` (edge, cavity and AO pre-bakes
+reused: same geometry and edge distance).
+- **Paint**: gunmetal **sRGB 90 104 115** (STYLE_GUIDE, sampled from the concept) instead of charcoal, on the leaf, hanger
+  plates and straps, rail body and button panel. Baked paint median 87 100 111 (mottling, grime and scratches).
+- **Edge wear**: no continuous outline. A coarse noise switches edge sections on and off and the threshold on the
+  convex-edge mask is higher, so bare steel shows on exposed corners and some edge sections only (0.28 % of the leaf
+  paint, 0.40 % of all paint). Bare steel keeps albedo sRGB >= 180 and metallic 1; it reads less bright through
+  roughness (smoothness ~0.50 instead of 0.64, more with grime), and grime no longer darkens its albedo. Rollers, axles
+  and the rail's running surface likewise: smoothness median 0.51 (G2: ~0.68), grime mostly in roughness.
+- **Rust** (STYLE_GUIDE "Rust rule"): irregular rust round some bolts (40 % stay clean; off-centre, wobbly outlines,
+  no rings), blotches in ~45 % of the panel corners (both faces), patchy rust on exposed edge sections, a patchy bottom
+  edge, sparse specks and irregular patches, more towards the floor; 34 run-off streaks below rusty bolts, blotches
+  and seam corners. Colour: brown-black centres (66 44 34) to orange-brown edges (112 64 38) round the palette rust;
+  non-metallic, smoothness ~0.15. Coverage (texels whose albedo is rust, metallic 0): **7.2 % of the leaf paint**,
+  12.8 % below y 0.8, 4.7 % above y 1.6. The hazard band carries extra rust and wear, as in the concept.
+- **Scratches**: long fine hairlines (horizontal, +28° and −35° sets) and a few longer, wider streaks, lighter than the
+  paint with lower roughness and a 0.1 mm dent; the G2 short dashes are gone. Rust and scratch relief kept gentle so
+  they don't break the normal map across UV seams.
+- **Kept**: bolts, the bluer light (70 170 255, no white clipping), hazard stripes (now worn more at their edges).
+- Checks (`gate_tex.py -- check`, 2048): AO black scan PASS (unchanged); PBR PASS — non-metal albedo 30–240: 0 %
+  outside; metal albedo **>= 180** (ASSET_RULES): 0.27 % of 79,430 metal texels below (limit 1 %); metallic
+  transitions 0.48 %; normal seams on the leaf faces PASS (1 of 96 samples over 6°, the same bolt sample as G2).
+- Bake times in the cloud container (4 CPU cores): full 2048 bake 15.6 min (pre-bakes 10.5 min); with the pre-bakes
+  reused ~6 min (normal map 2.8 min). 512 test bakes ~1 min.
+- Review renders (JPG): `Documentation/Media/gate_g2b/` — front (room side), 3/4, open, hanger, corridor, button,
+  detail, dim facility light, the concept-light render and `gate_g2b_room_vs_concept.jpg` (left: the baked Gate in
+  neutral even light on the concept's mid-grey 67, right: the concept); flat maps.
+- Differences to the concept that are geometry, not texture (unchanged by design): the concept's darker outer frame
+  band and its hanger shapes.
 
 ## 8. Labyrinth v2 — panel, stand and tilt mechanic (props, not heroes)
 
