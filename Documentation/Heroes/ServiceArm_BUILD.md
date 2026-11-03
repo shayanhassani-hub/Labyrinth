@@ -275,3 +275,8 @@ One look iteration on the owner's review (limited budget).
   (local positions, tris, stowed layer 3.60, MaxTextureSize 1024, working angles); C# parses, not compiled.
 - Renders: `Documentation/Media/servicearm/servicearm_h2b_*` (vs_concept, vs_concept_side, working_34,
   working_player, closeup_elbow, closeup_tool, stowed_34, stowed_close, maps).
+- **Clearance (H1b, final geometry, 1,952 poses):** all PASS — discs ≥ 251.6 mm, drone mesh 54.1 mm (tool tip over
+  the top), lowest point inside a disc footprint y 2.367, every part pair ≥ 3.0 mm (rule raised to ≥ 2 mm per the
+  owner; elbow washer, shoulder pin and all cable ends opened to 3-5 mm off their neighbours), stowed arm y
+  3.670 … 3.928 (layer 3.60 … 3.95), released volume clear, ceiling clear, reach 1.559 / 1.90. Stowed footprint
+  x −0.200 … 0.338, z 5.100 … 6.411 (keep ceiling lights out of it).
