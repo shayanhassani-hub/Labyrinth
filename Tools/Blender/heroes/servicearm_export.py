@@ -32,7 +32,7 @@ import env_kit_generator as K                            # noqa: E402
 PROJ = KIN.PROJ
 OUT = os.path.join(PROJ, "Assets", "Environment", "Heroes", "ServiceArm")
 PARTS = list(KIN.PARTS)
-TRIS = {"Mount": 420, "Turret": 936, "UpperArm": 1628, "Forearm": 1425, "Wrist": 564, "ToolHead": 272}   # BUILD.md H1b
+TRIS = {"Mount": 420, "Turret": 936, "UpperArm": 1621, "Forearm": 1441, "Wrist": 564, "ToolHead": 272}   # BUILD.md H1b
 REPORT = os.path.join(PROJ, "Temp", "claude", "servicearm", "export.json")
 # local positions ServiceArmBuilder.cs uses (Unity, parent space) -- must equal the kinematic chain
 BUILDER_LOCAL = {"Mount": (0.0, 4.00, 5.30), "Turret": (0.0, -0.07, 0.0), "UpperArm": (0.0, -0.16, 0.0),

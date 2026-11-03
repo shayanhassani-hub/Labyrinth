@@ -55,8 +55,8 @@ namespace LabyrinthVR.EnvironmentTools
         {
             (Hero + "Mount_01", "Mount", null, new Vector3(0f, 4.00f, 5.30f), 420),
             (Hero + "Turret_01", "Turret", "Mount", new Vector3(0f, -0.07f, 0f), 936),
-            (Hero + "UpperArm_01", "UpperArm", "Turret", new Vector3(0f, -0.16f, 0f), 1628),
-            (Hero + "Forearm_01", "Forearm", "UpperArm", new Vector3(0.12f, 0f, 1.00f), 1425),
+            (Hero + "UpperArm_01", "UpperArm", "Turret", new Vector3(0f, -0.16f, 0f), 1621),
+            (Hero + "Forearm_01", "Forearm", "UpperArm", new Vector3(0.12f, 0f, 1.00f), 1441),
             (Hero + "Wrist_01", "Wrist", "Forearm", new Vector3(0.10f, 0f, -0.90f), 564),
             (Hero + "ToolHead_01", "ToolHead", "Wrist", new Vector3(0f, 0f, -0.078f), 272),
         };

@@ -505,7 +505,8 @@ def bake(args):
     emis = np.concatenate([to_srgb(Dm["emis"][..., :3]), one], 2)
     for arr, k in ((base, "BaseColor"), (nrm, "Normal"), (mask, "Mask"), (emis, "Emission")):
         GT.save_png(arr, FILES[k], OUT)
-    np.savez_compressed(os.path.join(WORK, "masks.npz"), edge=edge, cavity=cav, ao=res["ao"], light=light)
+    np.savez_compressed(os.path.join(WORK, "masks.npz"), edge=edge, cavity=cav, ao=res["ao"], light=light,
+                        detail=np.maximum(d1[..., 1], d1[..., 3]))     # bolts + grooves (seam check skips them)
     if TEX == 1024:
         os.makedirs(REPO_TEX, exist_ok=True)
         for fn in FILES.values(): shutil.copy2(fs(os.path.join(OUT, fn)), os.path.join(REPO_TEX, fn))
@@ -583,7 +584,7 @@ def check(args):
               f"outside the strips max {em[cover & ~light].max() * 255:.0f}")
     seams_ok = True
     for n, o in lows.items():
-        seams_ok &= normal_seams(n, o, nrm)
+        seams_ok &= normal_seams(n, o, nrm, skip=np.load(os.path.join(WORK, "masks.npz"))["detail"] > 0.05)
     ok_all &= seams_ok
     print("RESULT:", "PASS" if ok_all else "FAIL")
 
@@ -636,7 +637,7 @@ def buried_texels(lows, part, P, N, cand, ndir=64, reach=0.5):
     return out
 
 
-def normal_seams(name, o, nrm, max_deg=6.0, seam_min=0.030):
+def normal_seams(name, o, nrm, max_deg=6.0, seam_min=0.030, skip=None):
     me = o.data; me.calc_tangents(); uv = me.uv_layers.active.data
     edge_faces = {}
     for p in me.polygons:
@@ -665,12 +666,15 @@ def normal_seams(name, o, nrm, max_deg=6.0, seam_min=0.030):
         for t in (0.25, 0.5, 0.75):
             pa = ua[0] + (ua[1] - ua[0]) * t; pb = ub[0] + (ub[1] - ub[0]) * t
             pa = pa + (ca - pa) / np.linalg.norm(ca - pa) * 2.5 / TEX; pb = pb + (cb - pb) / np.linalg.norm(cb - pb) * 2.5 / TEX
+            if skip is not None and (skip[int(np.clip(pa[1] * TEX, 0, TEX - 1)), int(np.clip(pa[0] * TEX, 0, TEX - 1))]
+                                     or skip[int(np.clip(pb[1] * TEX, 0, TEX - 1)), int(np.clip(pb[0] * TEX, 0, TEX - 1))]):
+                continue                                   # on a bolt / groove: relief, not a bake mismatch
             na, nb = sample(pa), sample(pb)
             wa = na[0] * Ta[0] + na[1] * Ta[1] + na[2] * Ta[2]; wb = nb[0] * Tb[0] + nb[1] * Tb[1] + nb[2] * Tb[2]
             ang = math.degrees(math.acos(np.clip(wa @ wb / (np.linalg.norm(wa) * np.linalg.norm(wb)), -1, 1)))
             worst = max(worst, ang); bad += ang > max_deg; n += 1
             if ang > max_deg: print(f"     seam sample {ang:.1f} deg at {np.round(spec(me.vertices[k[0]].co.lerp(me.vertices[k[1]].co, t)), 3).tolist()}")
-    ok = bad <= max(2, n // 10)                  # bolts / grooves crossing a split cap face count too (printed above)
+    ok = bad <= max(3, n // 20)                    # samples at shell contact edges (bevel shading) remain; printed above
     print(f"{'PASS' if ok else 'FAIL'} normal seams {name}: {n} samples on coplanar seams, {bad} over {max_deg} deg (worst {worst:.1f})")
     return ok
 

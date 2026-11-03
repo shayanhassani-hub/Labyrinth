@@ -95,7 +95,7 @@ BLOCK = [(-0.07, -0.145), (-0.05, -0.165), (0.055, -0.165), (0.07, -0.15), (0.07
 PIN_R, PIN_Z0, PIN_Z1 = 0.018, -0.160, -0.200
 # cables: thick corrugated conduit + thin black cable beside it (the concept's pair)
 CABLE_R, CABLE_N = 0.012, 8
-THIN_R, THIN_N, THIN_OFF = 0.0055, 6, 0.020
+THIN_R, THIN_N, THIN_OFF = 0.0055, 6, 0.024
 SEG = dict(big=32, mid=24, small=16, tiny=12)
 
 
@@ -349,7 +349,7 @@ def build_turret(detail=True):
     return sm.finish(f"{HERO}_Turret_01")
 
 
-UA_CABLE = [(SWIVEL_X, 0.0, SWIVEL_R + 0.003), (SWIVEL_X, 0.0, 0.09), (-0.155, 0.02, 0.17), (-0.11, 0.07, 0.25),
+UA_CABLE = [(SWIVEL_X, 0.0, SWIVEL_R + 0.005), (SWIVEL_X, 0.0, 0.09), (-0.155, 0.02, 0.17), (-0.11, 0.07, 0.25),
             (-0.04, 0.099, 0.31), (0.02, 0.099, 0.37), (0.025, 0.099, 0.45), (0.025, 0.099, 0.80),
             (0.04, 0.11, 0.90), (0.10, 0.128, 0.975), (0.17, 0.133, 1.02), (0.248, 0.12, 1.075),
             (0.248, 0.07, 1.10), (0.248, 0.035, 1.045)]
@@ -359,7 +359,7 @@ CABLE_TOP_UA, CABLE_TOP_FA = 0.099, 0.089      # cable centre over the link tops
 
 def ua_cable_ctrl():
     c = list(UA_CABLE)
-    d = (SWIVEL_R + 0.003) / math.sqrt(2)       # radial approach to the elbow swivel along 45 deg, 2 mm off it
+    d = (SWIVEL_R + 0.005) / math.sqrt(2)       # radial approach to the elbow swivel along 45 deg, 2 mm off it
     c.append((0.12 + P_X, d, 1.0 + d))
     return c
 
@@ -395,14 +395,14 @@ def build_upper(detail=True):
     return sm.finish(f"{HERO}_UpperArm_01")
 
 
-FA_CABLE = [(P_X, 0.0, -(SWIVEL_R + 0.003)), (P_X, 0.0, -0.07), (0.115, 0.03, -0.14), (0.08, 0.075, -0.20),
+FA_CABLE = [(P_X, 0.0, -(SWIVEL_R + 0.005)), (P_X, 0.0, -0.07), (0.115, 0.03, -0.14), (0.08, 0.075, -0.20),
             (0.024, 0.089, -0.26), (0.012, 0.089, -0.32), (0.012, 0.089, -0.70), (0.024, 0.095, -0.77),
             (0.08, 0.110, -0.85), (0.15, 0.115, -0.895), (Q_X + 0.10, 0.100, -0.90), (Q_X + 0.10, 0.050, -0.90)]
 FA_CLIPS = (-0.40, -0.62)
 
 
 def fa_cable_ctrl():
-    return FA_CABLE + [(Q_X + 0.10, 0.014 + 0.003, -0.90)]
+    return FA_CABLE + [(Q_X + 0.10, 0.014 + 0.005, -0.90)]
 
 
 def build_forearm(detail=True):
@@ -456,10 +456,10 @@ def build_tool(detail=True):
 
 
 CABLES = {   # cable control points per part (part-local); servicearm_tex.py uses the same curves for the corrugation
-    "Turret": lambda: [(SWIVEL_X, CONN["y1"] - 0.008, 0.0), (SWIVEL_X, SHOULDER_Y + SWIVEL_R + 0.003, 0.0)],
+    "Turret": lambda: [(SWIVEL_X, CONN["y1"] - 0.008, 0.0), (SWIVEL_X, SHOULDER_Y + SWIVEL_R + 0.005, 0.0)],
     "UpperArm": lambda: ua_cable_ctrl(),
     "Forearm": lambda: fa_cable_ctrl(),
-    "Wrist": lambda: [(Q_X, 0.0, -0.017), (Q_X, 0.0, -0.035), (0.080, 0.0, -0.058), (0.068, 0.0, -0.062)]}
+    "Wrist": lambda: [(Q_X, 0.0, -0.019), (Q_X, 0.0, -0.035), (0.080, 0.0, -0.058), (0.068, 0.0, -0.062)]}
 
 
 BUILDERS = {"Mount": build_mount, "Turret": build_turret, "UpperArm": build_upper, "Forearm": build_forearm,

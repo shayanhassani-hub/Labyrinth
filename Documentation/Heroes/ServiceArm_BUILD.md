@@ -255,11 +255,11 @@ One look iteration on the owner's review (limited budget).
 - **Links:** upper arm 0.12 × 0.16, forearm 0.10 × 0.14 (were 0.12 / 0.10 tall). The upper arm's root is now its full
   r 0.08 end (8 mm under the turret hub; the lug / ramp of H1 is gone).
 - **Joints:** the concept's big shoulder housing on −X (lobe r 0.10, reaching 0.125 fore and aft, outer cap r 0.068
-  with 8 bolts) and the big slotted cap r 0.064 on the shoulder (+X, camera side); elbow disc r 0.095 with an 8-bolt
+  with 8 bolts) and the big slotted cap r 0.064 × 8 mm on the shoulder (+X, camera side; 18 mm touched the stowed forearm); elbow disc r 0.095 with an 8-bolt
   circle (r 0.072) and hub r 0.045 (was r 0.06); upper-arm elbow cap r 0.085; wrist knuckle r 0.065, cap r 0.046
-  (6 bolts), neck r 0.05. Link widths stay 0.12 / 0.10 (the 0.12 / 0.10 offsets would otherwise close the gaps).
+  (6 bolts), neck r 0.044 (r 0.05 grazed the forearm side). Link widths stay 0.12 / 0.10 (the 0.12 / 0.10 offsets would otherwise close the gaps).
 - **Cables:** the thick corrugated conduit (Ø 24 mm) plus a thin black cable (Ø 11 mm) beside it on the link tops,
-  both under wider band clamps; the thin cable follows the thick one's curve 20 mm to the side and fades into it
+  both under wider band clamps; the thin cable follows the thick one's curve 24 mm to the side (6.5 mm slot between them) and fades into it
   0.10 m before each swivel, so both still meet on the hinge axes.
 - **Working pose:** same tool tip; with the lower shoulder the elbow bends more (interior 110°, was 118°). More bend
   would need *longer* links (the tip is fixed, so shorter links straighten the arm); the concept's ~54° Z is not
@@ -267,10 +267,11 @@ One look iteration on the owner's review (limited budget).
 - **UVs:** one **1024** sheet (owner), 512 px/m on everything except the two cable tubes (256 px/m: long, thin, seen
   from metres away); padding 4 px / border 2 px at 1024 (= ASSET_RULES 8 / 4 at 2048); islands capped at 1.9 m so the
   1.27 m-long upper-arm wall strip splits. Packing 56 % of the sheet.
-- **Results:** 5,245 tris (Mount 420, Turret 936, UpperArm 1,628, Forearm 1,425, Wrist 564, ToolHead 272); topology,
+- **Results:** 5,254 tris (Mount 420, Turret 936, UpperArm 1,621, Forearm 1,441, Wrist 564, ToolHead 272); topology,
   shading, UV checks PASS. Texture checks PASS at 1024 (AO black, PBR, rust 6.9 %, emission only in the strips,
-  seams: ≤ 10 % of the seam samples per part may exceed 6° — they are bolt circles and grooves crossing the split
-  housing-cap face, printed by the check). FBX re-export + re-import check PASS. Builder / driver numbers updated
+  seams: samples on bolts / grooves are skipped (relief, not a bake mismatch); ≤ max(3, 5 %) of the rest may exceed
+  6° — the remaining ones sit on shell contact edges (housing cap rim, turret top) where the bevel shader bends the
+  normal; all printed by the check). FBX re-export + re-import check PASS. Builder / driver numbers updated
   (local positions, tris, stowed layer 3.60, MaxTextureSize 1024, working angles); C# parses, not compiled.
 - Renders: `Documentation/Media/servicearm/servicearm_h2b_*` (vs_concept, vs_concept_side, working_34,
   working_player, closeup_elbow, closeup_tool, stowed_34, stowed_close, maps).

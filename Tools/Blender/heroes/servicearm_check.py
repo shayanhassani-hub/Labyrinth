@@ -266,7 +266,7 @@ def sweep_poses(n_fold=24):
 
 
 PAIRS_ADJ = [("Mount", "Turret"), ("Turret", "UpperArm"), ("UpperArm", "Forearm"), ("Forearm", "Wrist"), ("Wrist", "ToolHead")]
-ADJ_MIN, OTHER_MIN = 0.0015, 0.010
+ADJ_MIN, OTHER_MIN = 0.002, 0.010                 # owner: parts >= 2 mm
 
 
 def clearance(args):
