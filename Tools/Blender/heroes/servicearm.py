@@ -334,7 +334,7 @@ def build_turret(detail=True):
                         ([(CHEEK_R, -0.095), (0.125, -0.045), (-0.125, -0.045), (-CHEEK_R, -0.095)], FLAT))
     solid(sm, cheek, ck, fr_side(), CHEEK_X1, CHEEK_X0, 0.004, 0.004)
     # pin stub between cheek and lug (2 mm short of the lug)
-    cylinder(sm, fr_side(), (0, SHOULDER_Y), 0.030, SEG["mid"], CHEEK_X0 - 0.004, -UA_HW - 0.002, 0.0, 0.0015)
+    cylinder(sm, fr_side(), (0, SHOULDER_Y), 0.030, SEG["mid"], CHEEK_X0 - 0.004, -UA_HW - 0.003, 0.0, 0.0015)
     if detail:
         cylinder(sm, fr_side(), (0, SHOULDER_Y), CHEEK_CAP_R, SEG["mid"], CHEEK_CAP_X1, CHEEK_X1 + 0.004, 0.004, 0.0)
         cylinder(sm, fr_side(), (0, BOSS_Y), BOSS_R, SEG["small"], DISC_R - 0.008, BOSS_X1, 0.0, 0.003)   # side boss
@@ -387,7 +387,7 @@ def build_upper(detail=True):
     if detail:
         cylinder(sm, fr_side(), (0, 0), SLOT_CAP_R, SEG["big"], UA_HW, UA_HW + SLOT_CAP_T, 0.0, 0.004)
         cylinder(sm, fr_side(), (1.0, 0), ELBOW_CAP_R, SEG["big"], -UA_HW - 0.016, -UA_HW, 0.004, 0.0)
-        cylinder(sm, fr_side(), (1.0, 0), 0.045, SEG["mid"], UA_HW, 0.068, 0.0, 0.0015)    # elbow hub washer
+        cylinder(sm, fr_side(), (1.0, 0), 0.045, SEG["mid"], UA_HW, 0.067, 0.0, 0.0015)    # elbow hub washer (3 mm to the forearm)
         cable(sm, CABLES["UpperArm"]())
         thin_cable(sm, CABLES["UpperArm"]())
         for zc in UA_CLIPS:
