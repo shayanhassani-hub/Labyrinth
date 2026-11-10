@@ -354,3 +354,18 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   there (meshes not in the repo).
 - Next: local Unity step (H3b / G3b) for all four heroes, then FacilitySequence.
   Hours: not logged
+
+## 2026-11-10 (Heroes H3b / Gate G3b, local Unity)
+- Done: docs merged from the cloud build notes (HERO_SPEC §2/4/5/6/8/10, STYLE_GUIDE hero paints + holo teal + red cap,
+  ASSET_RULES check rules, README). ServiceArm vs Cradle v2 swept locally (new stage `servicearm_check.py -- cradle`):
+  371 mm min, PASS. Unity: clean compile; Apply Import Settings, hero-mode import check (new
+  Tools/Unity/hero_import_dump.cs + Tools/Blender/heroes/hero_import_compare.py, 18 parts), Build + Verify RESULT PASS for
+  Gate, Terminal, LeverStand, ServiceArm; Play Mode: gate opens, terminal Armed (red + beacon), lever arm/pull/latch,
+  arm folds to y 3.67-3.93; drone re-enable without jump, takeoffBlend 1.5 read live (DroneBaseline). BasicScene saved;
+  APK Builds/LabyrinthVR_heroes.apk built (0 errors).
+- Decisions: LeverLamp made [ExecuteAlways] (lamp glowed in Edit Mode); import weld differences (3 parts, a few vertices)
+  accepted as negligible; drone docking pose (−28.3°) left for FacilitySequence.
+- Problems: the Editor froze three times with zero CPU while Unity Hub was not running (Hub IPC timeouts); fine after
+  the owner restarted with Hub. Eval stalls give one 0.33 s frame, which makes DroneHoverAIV2's Lerp drift lurch.
+- Next: install the APK and run the headset checklist; FacilitySequence; commit.
+  Hours: ~4

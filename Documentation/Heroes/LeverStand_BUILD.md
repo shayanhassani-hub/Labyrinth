@@ -255,3 +255,14 @@ lighting. Its cyan is greener; we use the STYLE_GUIDE blue-cyan (70 170 255). It
 9. Teleport: the stand's colliders vs `NAV_TeleportFloor` (HERO_SPEC §10: footprints may need excluding).
 10. Wiring for FacilitySequence (not written): `LeverHandle.Arm()` when the service arm is stowed; `onPulled` →
     Released (yoke arms, drone enable).
+
+## H3b — Unity, local (2026-11-10)
+- Recompile clean (0 errors; only the 29 known XRI-sample CS0618 warnings). Apply Import Settings PASS (metas checked on disk: normals / tangents imported, no materials / animation / colliders, ASTC overrides). Hero-mode import check PASS (EXPORT_CONTRACT, 2026-11-10). Build + Verify in BasicScene: RESULT PASS; BasicScene saved with the hero.
+- Material: URP Lit, maps in the right slots, realtime emissive GI flag.
+- **Fix:** the lamp glowed amber in Edit Mode (LeverLamp wrote its block only in Awake). `LeverLamp` is now
+  `[ExecuteAlways]` and applies the mode in OnEnable / OnValidate (pulse animates only in Play Mode); the lamp reads
+  dark (emission 0) in Edit Mode.
+- Play Mode (Editor): Locked at −30° → Arm → Armed, lamp pulsing → Simulate Pull → **Pulled**, latched at +30°
+  (local X +30, the grip leans to world −Z, toward the player), lamp steady ×1.5.
+- Not done here (Quest): grab feel (ray and direct), follow speed, denied play, reach, tilt clearance with the live
+  panel, teleport vs the stand colliders.

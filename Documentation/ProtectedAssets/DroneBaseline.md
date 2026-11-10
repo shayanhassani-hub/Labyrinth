@@ -80,14 +80,18 @@ time same session, value changed mid-session (owner actively tuning): scalingMod
 `0.02`, constantMax `0.05`.
 
 ## DroneHoverAIV2 on DroneAI2 (BasicScene)
-**Script change 2026-11-03 (not yet read live, untested in Unity):** `DroneHoverAIV2.cs` gained a
-serialized field `takeoffBlend` (script default 1.5 s); hover phase now starts at enable and fades in,
-yaw-only turn during take-off, init moved to `OnEnable`/`Awake`, reach check on `basePosition`
-(`Documentation/Proposals/ServiceArm_S4_Proposal.md` §6). The existing field values below are unchanged
-by the edit; re-read live after the next Editor session and add `takeoffBlend` to this table.
+**Script change 2026-11-03, read live 2026-11-10** (BasicScene, Edit mode, saved scene): `DroneHoverAIV2.cs`
+gained the serialized field `takeoffBlend` = **1.5** (script default, not overridden in the scene); hover phase
+starts at enable and fades in, yaw-only turn during take-off, init in `OnEnable`/`Awake`, reach check on
+`basePosition` (`Documentation/Proposals/ServiceArm_S4_Proposal.md` §6). Every other field below re-read live
+2026-11-10: **unchanged**, object references included. Component enabled; DroneAI2 at (0, 2, 4.76), rotation 0
+(the docking pose of HERO_SPEC §10 is not applied yet).
+Play Mode check 2026-11-10 (Editor, no headset): component disabled and re-enabled in a normal frame (~9 ms):
+no position jump (0 mm on the enable frame, then ~15 mm/frame), no yaw snap (≤ 0.41°/frame), turns toward the
+ball, shoots (projectiles keep spawning). Note: the drift starts at cruise speed (1.8 m/s) on the first frame;
+`takeoffBlend` eases the bob and the pitch, not the translation, and the `Lerp(moveSpeed * deltaTime)` drift
+lurches on a long frame (a 0.33 s Editor hitch moved it 0.71 m in one frame).
 
-Re-verified live 2026-09-24: every field below is **unchanged** from 2026-09-22, including the
-object references (bounds, labyrinthBall, projectilePrefab, firePoint, droneRenderer, ringSparks).
 | Field | Value |
 |---|---|
 | bounds | BoxCollider on `/DroneBounds` |
@@ -95,6 +99,7 @@ object references (bounds, labyrinthBall, projectilePrefab, firePoint, droneRend
 | moveSpeed / reachThreshold | 1.5 / 0.1 |
 | hoverAmplitude / hoverFrequency | 0.3 / 2 |
 | rotationSpeed | 3 |
+| takeoffBlend | 1.5 (added 2026-11-10) |
 | projectilePrefab | Assets/3D Models/Sphere.prefab (guid df2a75de699d8f44b9916e706d89bae6) |
 | firePoint | Transform `/DroneAI2/drone_low/ToShoot_low/Shoot Point` |
 | shootInterval / projectileSpeed | 2 / 15 |

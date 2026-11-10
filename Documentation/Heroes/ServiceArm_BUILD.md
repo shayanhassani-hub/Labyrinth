@@ -292,3 +292,15 @@ moved to (0, 0, 4.69) per HERO_SPEC §3; Arm_L / Pad_L mirrored from Arm_R / Pad
 - Cradle open 75° (Released) against the stowed arm: min 2.83 m. PASS.
 - RESULT: PASS. The cradle top (1.763) is under the drone; the arm never comes below y 2.04, so the drone, not the
   cradle, sets the arm's margin.
+
+## H3b — Unity, local (2026-11-10)
+- Recompile clean (0 errors; only the 29 known XRI-sample CS0618 warnings). Apply Import Settings PASS (metas checked on disk: normals / tangents imported, no materials / animation / colliders, ASTC overrides). Hero-mode import check PASS (EXPORT_CONTRACT, 2026-11-10). Build + Verify in BasicScene: RESULT PASS; BasicScene saved with the hero.
+- Material: URP Lit, maps in the right slots; no colliders (Verify).
+- Live clearance (Edit Mode, working pose, against DroneAI2 as it is in the scene: (0, 2, 4.76), yaw 0 — the −28.3°
+  docking pose is not applied yet): tool tip 54.1 mm over the drone's renderer top (rule ≥ 50); arm ≥ 350 mm from
+  the four live propeller-disc volumes, nothing inside a disc footprint (rule ≥ 100 mm). No scene light in the
+  stowed footprint.
+- Play Mode (Editor): idle running; `RequestFold()` → **Stowed** after the 2.5 s delay + 2.0 s fold; renderer bounds
+  y 3.670 … 3.928 (layer 3.60 … 3.95).
+- Not done here: idle look by eye, Quest draw calls / texture memory / strip brightness; re-run the sweep once the
+  docking pose is applied.

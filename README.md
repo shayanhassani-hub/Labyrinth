@@ -129,10 +129,10 @@ The Quest performance baseline (FPS, GPU time, thermals) is planned but not yet 
 | Greybox room + corridor, teleport floor | Built, tested on Quest |
 | Labyrinth v2 (panel, handle, stand, tilt control) | Built, tested on Quest; tuning backlog L1–L3 |
 | **Cradle** (docking cradle) | Low-poly, UVs, high-poly and final bake done; texturing in Substance Painter and Unity import of v2 next |
-| **Gate** (facility gate) | Modelled, textured (G2c), FBX, builder and runtime scripts done; Unity import and Quest check in progress |
-| **Terminal** (control terminal) | Modelled, textured (H2b), FBX, builder and runtime scripts done; Unity import and Quest check in progress |
-| **LeverStand** (release lever) | Modelled, textured, FBX, builder and runtime scripts done; Unity import and Quest check in progress |
-| **ServiceArm** (ceiling service arm) | Modelled, textured (H2b, chunkier arm), FBX, builder and runtime scripts done; clearance PASS against drone and cradle; Unity import and Quest check in progress |
+| **Gate** (facility gate) | Modelled, textured (G2c), FBX, builder and runtime scripts done; imported and verified in Unity (Editor); Quest check next |
+| **Terminal** (control terminal) | Modelled, textured (H2b), FBX, builder and runtime scripts done; imported and verified in Unity (Editor); Quest check next |
+| **LeverStand** (release lever) | Modelled, textured, FBX, builder and runtime scripts done; imported and verified in Unity (Editor); Quest check next |
+| **ServiceArm** (ceiling service arm) | Modelled, textured (H2b, chunkier arm), FBX, builder and runtime scripts done; clearance PASS against drone and cradle; imported and verified in Unity (Editor); Quest check next |
 | Launch-sequence wiring (`FacilitySequence`), lighting states, secondary props | Planned |
 | Quest performance baseline | Planned |
 

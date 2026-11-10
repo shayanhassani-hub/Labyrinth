@@ -759,6 +759,13 @@ Written and checked in a cloud container (bpy 5.2.2, no Unity); G3b runs it in t
 - BasicScene's rig has no poke interactor, so the button is selected with the existing ray / near-far interactors;
   poke (§10) needs a poke interactor on the rig and an XRPokeFilter on the button (G3b or later).
 
+### Unity import, local part (Step G3b, 2026-11-10)
+Recompile clean; Gate: Apply Import Settings PASS (metas checked on disk); hero-mode import check PASS (EXPORT_CONTRACT,
+Leaf: 2 welded vertex groups with tangents ≤ 4.2° apart, negligible); Build Gate + Verify in BasicScene: **RESULT PASS**
+(tris, origins, material and keywords, texture settings, kinematic leaf, open pose x −3.55 … −1.85, button wiring);
+material URP Lit with the maps in the right slots. Play Mode (Editor): GateButton.Press → the leaf slides open, +X edge
+at x −1.85. BasicScene saved with `HERO_Gate`. Open: poke, Quest check.
+
 ## 8. Labyrinth v2 — panel, stand and tilt mechanic (props, not heroes)
 
 The current panel is a placeholder: loosely modelled, with its origin at a corner, so any tilt

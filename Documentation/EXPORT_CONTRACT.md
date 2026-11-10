@@ -119,9 +119,19 @@ Lightmap UVs stays off until a bake needs it).
 
 **Scope of the verification (note 2026-11-03):** the Unity check below was done with the
 **superseded Part 1 cradle** (HERO_SPEC §3a; `CradleBuilder`). `Assets/Environment/Heroes/Cradle/`
-still holds only those Part 1 FBX files. Cradle v2 and the Gate have not been imported or verified in
-Unity yet: re-run the vertex / normal / tangent comparison on the first v2 / v3 hero import and record
-the result here.
+still holds only those Part 1 FBX files. Cradle v2 has not been imported or verified in Unity yet.
+
+**Workflow v3 heroes, verified 2026-11-10** (Gate, Terminal, LeverStand, ServiceArm: 18 FBX files).
+Unity side `Tools/Unity/hero_import_dump.cs` (eval_file), Blender side
+`Tools/Blender/heroes/hero_import_compare.py` (FBX read in Blender, mapped x → −x, z → y, y → −z):
+- every root transform identity, one submesh, tangents on every vertex, Unity tris = export tris;
+- positions and normals match **both ways** on all 18 parts (every Unity vertex is an FBX corner and every
+  FBX corner is a Unity vertex, matched on position + normal + UV0): worst position 0.0002 mm, worst
+  normal difference 5e-4; tangent w −1 everywhere;
+- tangent direction ≤ 0.06° on 15 parts. Three parts have a few vertices where Unity's import weld merged
+  corners that the FBX keeps apart: Gate Leaf (2 vertex groups, tangents 1.4–4.2° apart), ServiceArm
+  Forearm (2 vertices, ≤ 6.2°), ServiceArm UpperArm (2 vertices merged across a 0.00045 UV difference,
+  ~0.5 texel at 1024). Visually negligible; turning `weldVertices` off would make the match exact.
 
 For heroes (ASSET_RULES.md, Hero tier): `export_fbx(obj, dir, name, mode="hero")`. Axis, scale
 and bake settings are the same as above; what differs:

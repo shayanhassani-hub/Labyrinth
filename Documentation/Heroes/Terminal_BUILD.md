@@ -305,3 +305,14 @@ renders show the H2 state (0.30 pillars, lighter paint).
    pulseWhenReleased, off.)
 7. Poke: like the Gate, the button is selected with the rig's ray / near-far interactors; HERO_SPEC §10 asks for poke
    (needs a poke interactor on the rig and an XRPokeFilter on the button).
+
+## H3b — Unity, local (2026-11-10)
+- Recompile clean (0 errors; only the 29 known XRI-sample CS0618 warnings). Apply Import Settings PASS (metas checked on disk: normals / tangents imported, no materials / animation / colliders, ASTC overrides). Hero-mode import check PASS (EXPORT_CONTRACT, 2026-11-10). Build + Verify in BasicScene: RESULT PASS; BasicScene saved with the hero.
+- Materials: M_LAB_HERO_Terminal URP Lit, maps in the right slots (Mask in Metallic + Occlusion, smoothness from
+  alpha ×1, emission ×1); M_LAB_HERO_Terminal_Holo URP Unlit, transparent, queue 3000, both faces, no depth write.
+- Edit Mode: the switching strips carry the property block (cyan, linear 0.061 0.402 1.0 = sRGB 70 170 255); beacon off.
+- Play Mode (Editor, no headset): GateButton.Press on the Button → TerminalController **Armed**, the 3 player's-right
+  indicators red (230 35 25), beacon steady red ×1.6; a second press changes nothing.
+- Not done here (Quest / later): ray / near-far selection from the player position, holo readability and sorting,
+  bloom clipping, teleport vs the body colliders, frame time, 2048 vs 1024. Static flags: Body / Display not static
+  yet (lighting pass); the material's emissive GI flag is Baked, so keep the switching parts out of lightmapping.
