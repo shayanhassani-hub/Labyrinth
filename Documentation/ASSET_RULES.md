@@ -61,6 +61,12 @@ built the way a professional does it for a standalone VR headset (Quest 3S).
   on one 2048 set: >= 400 px/m is acceptable; the achieved value is recorded in HERO_SPEC
   (owner decision 2026-10-03). Labyrinth panel/handle 1024 px/m (hand-held); secondary
   256 px/m. Tolerance +/-10%; rarely seen faces may go lower.
+- **Small heroes may use one 1024 sheet** (2026-11-03, LeverStand and ServiceArm): when the hero
+  fills well under half of a 2048 sheet at 512 px/m, author it at 1024 instead (still 512 px/m or a
+  little above; long thin parts seen from metres away, e.g. cable tubes, may drop to 256 px/m).
+  Padding at 1024: 4 px between islands, 2 px to the border (= 8 / 4 at 2048).
+- **Hand-held parts at 2x density** (~1024 px/m: lever grips and shafts, handles), like the
+  labyrinth handle.
 - Seams follow the hard edges; no fixed island count. Seams avoid front-facing and
   main-view areas (hidden places, back, sides). Rectangular shells straightened and
   aligned to U/V. Report distortion.
@@ -166,6 +172,30 @@ AO black scan on the baked AO. Added for v3 (Gate): shading check (no flat face 
 0.5° off its face normal), PBR value check (ranges above, metal albedo sRGB >= 180), normal-map seam check, and
 a clearance sweep over every moving part's motion. Dropped with the high-poly: cage both ways, ID per feature (the materials are
 assigned on the low itself).
+
+Check details (from the Terminal, LeverStand and ServiceArm builds, 2026-11-03):
+- **Normal-map seam check, same-point method:** sample the *same 3D point* from both islands of a seam
+  (the Gate's version stepped 2.5 px toward each face centroid, which on oblique seams put the samples
+  ~5 mm apart and gave false readings in grooves). Skip samples on deliberate relief (grooves, bolts) and
+  within ~4 mm of a real geometry edge (bevel zone). Pass: no sample over 6°, or at most max(3, 5 %) of
+  the remaining samples, each one printed with its location (typically shell contact edges).
+- **AO black scan, accepted crevices:** a dark patch beyond a contact line is accepted only when it is a
+  real crevice the player can see as dark: a slot or gap narrower than ~10 mm (e.g. beside a light strip),
+  a pocket deeper than it is wide (e.g. a lever slot), texels < 15 mm under a cable or clip, or buried
+  texels inside a part's own intersecting shells from which no ray escapes. The check prints every
+  accepted patch with its size and reason; any other patch is still a FAIL, and a black patch caused by
+  hidden or overlapping geometry is fixed in the model.
+- Detail inputs (height / mask maps) are dilated a few pixels past the island borders before the bake, so
+  island edges don't read empty texels.
+
+**Cloud sessions (bpy):** heroes may be built in a cloud container with `bpy` from PyPI in a venv, pinned
+to the project's Blender version (5.2.2 = Blender 5.2.2 LTS), Cycles on CPU. There is no GPU / EGL, so
+Workbench and EEVEE don't run: wireframe, checker and shading renders use Cycles (wireframe via a
+Wireframe-modifier copy, checker via emission). `D:/AI_Labyrinth/...` paths resolve through the
+`LAB_AI_ROOT` environment variable (default `D:/AI_Labyrinth`) or a launcher's scratch folder, so the
+scripts run unchanged on the owner's machine. Review renders use the **Standard** view transform (AgX
+shifts saturated blue toward lavender). C# written in the cloud is syntax-checked only (tree-sitter);
+it is compiled and verified in the local Unity step.
 
 ## AI tool choice
 - **Hunyuan 3D Global** (hy3d.tencent.ai): first choice for hard-surface generation, part

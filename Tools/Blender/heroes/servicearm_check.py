@@ -11,6 +11,8 @@ stages:
               (turret +-10, wrist +-15, tool roll 0..360), the whole fold path from every idle extreme and the stowed
               pose; part-against-part gaps over the same set; stowed layer y 3.77 ... 3.95; released drone volume;
               ceiling; reach 1.60 needed / 1.90 available
+  cradle      ServiceArm vs Cradle v2 (Substance bake-set low, LAB_CRADLE_LOW): sweep poses vs the closed cradle,
+              stowed vs the opened cradle; >= 50 mm
   renders     review renders (h0 / h1): working pose over the docked drone, stowed, 3/4, concept-camera matches side
               by side with the concept (servicearm_<stage>_vs_concept*.jpg)
   shading     flat grey renders of the untextured low (normals check)
@@ -361,6 +363,84 @@ def clearance(args):
     print("RESULT:", "PASS" if ok and ok2 and ok3 and pair_ok and not hits and okl and inside == 0 and okr else "FAIL")
 
 
+CRADLE_FBX = os.environ.get("LAB_CRADLE_LOW", os.path.join(os.environ.get("LAB_AI_ROOT", "D:/AI_Labyrinth"),
+                                                            "Substance", "Cradle", "Mesh", "Cradle_low.fbx"))
+CRADLE_ORIGIN = np.array([0.0, 0.0, 4.69])               # HERO_SPEC §3
+CRADLE_PIVOT_X, CRADLE_PIVOT_Y, CRADLE_OPEN = 0.385, 0.637, 75.0
+CRADLE_MIN = 0.050                                        # same margin as the drone mesh rule
+
+
+def cradle_meshes(open_deg=0.0):
+    """Cradle v2 low (Substance bake set, assembled closed, cradle origin at 0) in spec world; Arm_L / Pad_L are
+    not in the bake set: mirror copies of Arm_R / Pad_R (Pad_L on top of Riser_L). open_deg turns the arms out."""
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.fbx(filepath=CRADLE_FBX)
+    raw = {}
+    for o in [o for o in bpy.data.objects if o not in before]:
+        if o.type != 'MESH': continue
+        me = o.data; me.calc_loop_triangles()
+        M = np.array(o.matrix_world)
+        v = np.array([M[:3, :3] @ np.array(x.co) + M[:3, 3] for x in me.vertices])
+        vs = np.column_stack((-v[:, 0], v[:, 2], -v[:, 1]))          # contract mapping, as K.docked_drone
+        t = np.array([tuple(lt.vertices) for lt in me.loop_triangles], np.int32)[:, ::-1]
+        raw[o.name.split(".")[0].replace("_low", "")] = (vs, t)
+    for o in [o for o in bpy.data.objects if o not in before]:
+        bpy.data.objects.remove(o, do_unlink=True)
+    mir = np.array([-1.0, 1.0, 1.0])
+    riser_top = raw["Riser"][0][:, 1].max(); pad_bot = raw["Pad"][0][:, 1].min()
+    parts = {"Base": raw["Base"], "Riser_L": raw["Riser"], "Arm_R": raw["Arm_R"], "Pad_R": raw["Pad"],
+             "Arm_L": (raw["Arm_R"][0] * mir, raw["Arm_R"][1][:, ::-1].copy()),
+             "Pad_L": (raw["Pad"][0] * mir + [0, riser_top - pad_bot, 0], raw["Pad"][1][:, ::-1].copy())}
+
+    def turn(v, side):                                    # Unity: +Z turns +Y toward -X; Arm_L +open, Arm_R -open
+        a = math.radians(open_deg * (1 if side == "L" else -1)); c, s = math.cos(a), math.sin(a)
+        p = np.array([CRADLE_PIVOT_X * (-1 if side == "L" else 1), CRADLE_PIVOT_Y, 0.0]); d = v - p
+        return np.column_stack((c * d[:, 0] - s * d[:, 1], s * d[:, 0] + c * d[:, 1], d[:, 2])) + p
+    out = {}
+    for n, (v, t) in parts.items():
+        side = n[-1] if n[-2:] in ("_L", "_R") else None
+        if open_deg and side: v = turn(v, side)
+        out[n] = (v + CRADLE_ORIGIN, t)
+    return out
+
+
+def cradle(args):
+    """ServiceArm vs Cradle v2 (open item from H3a): every sweep pose against the closed cradle; the stowed arm
+    against the opened cradle (Released)."""
+    objs = open_file()
+    for o in objs.values(): o.matrix_world = Matrix.Identity(4)
+    arm = Arm(objs, spacing=0.006)
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    ok_all = True
+    for open_deg, poses in ((0.0, sweep_poses()), (CRADLE_OPEN, [("stowed", K.STOWED)])):
+        C = cradle_meshes(open_deg)
+        cv = np.vstack([v for v, t in C.values()]); ct = []; k = 0
+        for v, t in C.values(): ct.append(t + k); k += len(v)
+        tree = bvh(cv, np.vstack(ct)); lo, hi = cv.min(0), cv.max(0)
+        worst = (1e9, None, None); lowest = 1e9
+        for label, pose in poses:
+            P = np.vstack(list(arm.world_samples(pose).values()))
+            lowest = min(lowest, float(P[:, 1].min()))
+            near = P[np.all((P > lo - 0.6) & (P < hi + 0.6), axis=1)]
+            if len(near):
+                d = nearest(tree, near)
+                if d[0] < worst[0]: worst = (d[0], label, d[1])
+            elif worst[1] is None:
+                worst = (1e9, label, None)
+        if worst[2] is None:                              # nothing within 0.6 m of the cradle box: exact minimum anyway
+            for label, pose in poses:
+                P = np.vstack(list(arm.world_samples(pose).values()))
+                d = nearest(tree, P[P[:, 1].argsort()[:4000]])
+                if d[0] < worst[0]: worst = (d[0], label, d[1])
+        ok = worst[0] >= CRADLE_MIN; ok_all &= ok
+        print(f"INFO cradle {'closed' if not open_deg else f'open {open_deg:.0f} deg'}: x {lo[0]:.3f} ... {hi[0]:.3f}, "
+              f"y {lo[1]:.3f} ... {hi[1]:.3f}, z {lo[2]:.3f} ... {hi[2]:.3f}; {len(poses)} arm poses; arm lowest y {lowest:.3f}")
+        print(f"{'PASS' if ok else 'FAIL'} arm >= {CRADLE_MIN * 1e3:.0f} mm from the cradle "
+              f"({'closed' if not open_deg else 'open'}): min {worst[0] * 1e3:.1f} mm ({worst[1]}, arm point "
+              f"{np.round(worst[2], 3).tolist()})")
+    print("RESULT:", "PASS" if ok_all else "FAIL")
+
+
 # --------------------------------------------------------------------------- renders
 
 
@@ -610,4 +690,4 @@ def uv_layout(path):
 
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    {"topo": topo, "clearance": clearance, "renders": renders}[argv[0]](argv[1:])
+    {"topo": topo, "clearance": clearance, "cradle": cradle, "renders": renders}[argv[0]](argv[1:])

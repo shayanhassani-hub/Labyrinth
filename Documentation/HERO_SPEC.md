@@ -1,9 +1,10 @@
 # Hero Spec — Launch Sequence Assets
 
-Status: **v7, 2026-11-03.** Design direction set by the owner; cradle sized from the live drone measurement
+Status: **v8, 2026-11-10.** Design direction set by the owner; cradle sized from the live drone measurement
 (2026-09-25). §3 Cradle v2 (2026-09-28 onward, hero workflow v2); §4 ServiceArm clearance rule decided
-2026-11-03 (3D envelope, option B); §7 Gate G1/G2 (2026-10-29), G2b look revision in progress. Open: none in the design;
-ServiceArm, Terminal and LeverStand are not built yet. All values in meters, Unity axes (+Y up, +Z toward the far wall
+2026-11-03 (3D envelope, option B); §7 Gate G1–G3a. §4 ServiceArm, §5 Terminal and §6 LeverStand updated from
+their cloud builds (H0–H3a, owner decisions 2026-11-03; build notes in `Heroes/<Hero>_BUILD.md`). Open: none in
+the design. All values in meters, Unity axes (+Y up, +Z toward the far wall
 and corridor), 1 unit = 1 m.
 
 Inputs: `ENVIRONMENT_SPEC.md` (room, protected volumes), `ProtectedAssets/DroneBaseline.md`
@@ -30,13 +31,16 @@ until the service arm is fully stowed, so the drone can never launch into it.
 - **One FBX per part, origin on its hinge / slide reference.** Parts are modelled in the closed
   pose and assembled into a hierarchy in Unity by an Editor builder (same pattern as
   `GreyboxBuilder`) from the tables below. Multi-object FBX hierarchies under
-  `bake_space_transform` are unverified, so we don't depend on them.
+  `bake_space_transform` are unverified, so we don't depend on them. Exceptions (2026-11-03): the
+  **LeverStand lever is modelled upright** (0° = middle of its ±30° travel; the builder sets the rest
+  angle), and the **ServiceArm links are modelled in the stowed pose** (the builder sets the working pose).
 - **Naming:** `LAB_HERO_<Hero>_<Part>_01`, files in `Assets/Environment/Heroes/<Hero>/`.
 - **Released-state rule:** once the drone flies, nothing may intersect the drone volume
   (X −2.45 … 2.39, Y 1.19 … 3.48, Z 2.84 … 6.32). Standby poses may, because the drone is docked.
 - **Palette rule:** ochre (drone yellow, STYLE_GUIDE) marks equipment that *handles the drone* (yoke pads, service-arm
   tool head, lever grip). Everything else: dark painted metal, black polymer, cyan emissive.
-  Red is reserved for the Armed state. "Amber" is used only for lamps and indicators.
+  Red is reserved for the Armed state; the one exception is the Terminal's red polymer arming cap
+  (owner 2026-11-03), the control that starts it. "Amber" is used only for lamps and indicators.
 - **Quality:** Hero tier in `ASSET_RULES.md`. Heroes whose dimensions are fully specified (the
   Cradle) are built directly at production quality, no separate greybox.
 
@@ -448,18 +452,27 @@ Verified 2026-09-26 (540 / 68 / 36 tris for Base / Arm / Pad).
 A robot arm that works on the docked drone from above and behind, then folds flat against the
 ceiling. Mount **(0, 4.0, 5.30)**, 0.61 behind the body centre, so it never blocks the player's view.
 
-| Part | Size | Hinge (parent-local) | Axis |
-|---|---|---|---|
-| Mount | plate 0.40 × 0.05 × 0.40 | ceiling face, body downward | — |
-| Turret | cylinder Ø 0.26 × 0.07 | (0, −0.05, 0) | Y (yaw) |
-| UpperArm | 0.12 × 0.12 × 1.00 | shoulder (0, −0.12, 0) | X (pitch) |
-| Forearm | 0.10 × 0.10 × 0.90 | elbow, **offset 0.12 in X** | X |
-| Wrist | 0.10 × 0.10 × 0.10 | wrist, offset 0.10 in X | X |
-| ToolHead (ochre) | 0.14 × 0.10 × 0.20 | on wrist | Z (roll) |
+Updated 2026-11-03 from the cloud build (H0–H3a, H1b; `Heroes/ServiceArm_BUILD.md`) and the owner's
+decision to lower the stowed layer to y 3.60 for a chunkier arm.
 
-- **Working pose (Standby):** tool tip ~0.05 above the drone's top (y ≈ 2.04, drone top 1.986),
-  pointing down, near x = 0. Roughly shoulder −60°, elbow +70°, wrist keeping the tool vertical;
-  tune by eye. Reach check: 1.60 needed, 1.90 available.
+| Part | Size (built) | Hinge (parent-local) | Axis |
+|---|---|---|---|
+| Mount | plate 0.40 × 0.035 × 0.40 (45° corner clips) + octagonal adapter; stack 0.068 under the ceiling | ceiling face, body downward | — |
+| Turret | two-tier: disc Ø 0.26 × 0.048 over hub Ø 0.15 × 0.022 (0.07 total) | **(0, −0.07, 0)** | Y (yaw) |
+| UpperArm | **0.12 × 0.16 × 1.00**; shoulder housing on −X (lobe r 0.10), slotted cap on +X | shoulder **(0, −0.16, 0)** | X (pitch) |
+| Forearm | **0.10 × 0.14 × 0.90**; elbow disc r 0.095 | elbow, **offset 0.12 in +X** | X |
+| Wrist | knuckle 0.09 wide (r 0.065), neck r 0.044 | wrist, offset 0.10 in +X | X |
+| ToolHead (ochre) | block 0.14 × 0.10 × 0.135 with side notch, steel collar and pin | on the wrist, 0.078 below its hinge | Z (roll) |
+
+Ceiling → shoulder axis 0.23. Both X offsets go to +X (the side the concept's side sheet is drawn from), so
+the turret yaws the arm plane to bring the tip onto x = 0. **Elbow behind the shoulder** (the concept's Z;
+folds by lifting straight up and back). One 1024 texture sheet (owner), 512 px/m (cable tubes 256),
+5,254 tris (Mount 420, Turret 936, UpperArm 1,621, Forearm 1,441, Wrist 564, ToolHead 272). **No
+colliders** (owner): the arm is ≥ 2.04 m up, outside the teleport floor and out of reach.
+
+- **Working pose (Standby), from IK:** tool vertical, tip **(0, 2.04, 4.69)**, ~0.05 above the drone's top
+  (1.986). Unity localEulerAngles: turret **+21.14°**, shoulder **+78.61°**, elbow **−110.22°**, wrist
+  **−58.39°** (elbow interior 110°). Reach shoulder → wrist 1.559, 1.90 available.
 - **Clearance rule (3D; replaces the |x| < 0.3 strip, owner decision 2026-11-03):** docked at yaw
   −28.3° (§3), the spinning propeller discs (radius 0.327 about each propeller pivot) reach in to
   |x| 0.055 (front-left, y 1.817 … 1.845) and 0.060 (back-right, y 1.870 … 1.898); even at yaw 0
@@ -471,9 +484,19 @@ ceiling. Mount **(0, 4.0, 5.30)**, 0.61 behind the body centre, so it never bloc
 - **Idle motion (Standby):** procedural, no clips: turret ±10° yaw, wrist ±15°, tool roll
   spinning, each on its own slow sine (0.2–0.5 Hz) so it never visibly loops.
 - **Stowed pose:** all links horizontal, pointing +Z; the X offsets at elbow and wrist lay the
-  forearm and tool *beside* the upper arm, not under it. One flat layer at **y 3.77 … 3.95**,
-  0.29 above the drone volume. Stowed footprint z 5.30 … 6.30: keep ceiling lights out of it.
-- **Fold:** starts 2.5 s after the terminal button, takes 2.0 s, ease-in-out.
+  forearm and tool *beside* the upper arm, not under it. One flat layer at **y 3.60 … 3.95**,
+  0.12 above the drone volume (owner decision 2026-11-03; was 3.77, 0.29 above); built arm y 3.670 … 3.928.
+  Stowed footprint **x −0.200 … 0.338, z 5.100 … 6.411** (the tool lies along −Z beside the turret):
+  keep ceiling lights out of it.
+- **Fold:** starts 2.5 s after the terminal button, takes 2.0 s, ease-in-out (smoothstep per joint, tool
+  roll unwinds the short way). `ServiceArmDriver.RequestFold()` / `onStowed`.
+- **Clearance result (H1b, final geometry, 1,952 poses: working, 600 idle combinations, the fold from 54
+  idle extremes, stowed), all PASS:** discs ≥ 251.6 mm, drone mesh 54.1 mm (tool tip over the top), lowest
+  point inside a disc footprint y 2.367, every part pair ≥ 3.0 mm (owner rule ≥ 2 mm), released volume and
+  ceiling clear. Swept against the drone rebuilt from `drone_low.fbx` + DroneBaseline, not a live read.
+  **Against Cradle v2** (local, 2026-11-10, `servicearm_check.py -- cradle`, Substance bake-set low): min
+  **371 mm** to the closed cradle over all 1,952 poses (tool tip over the left pad / riser), 2.83 m stowed vs
+  the opened cradle. PASS (rule ≥ 50 mm).
 
 ## 5. Hero 02 — Control terminal (`Terminal`)
 
@@ -482,18 +505,34 @@ Against the back wall, left of centre (read from the owner's top-down sketch; po
 player operates it facing the wall. Reference: a console with end pillars, sloped desk and a
 display rising behind.
 
+Updated 2026-11-03 from the cloud build (H0–H3a, H2b; `Heroes/Terminal_BUILD.md`). Terminal-local +X = the
+**player's left** as they face the wall; Pillar_L / Pillar_R are named from the player's view.
+
 | Part | Size / placement (terminal-local) |
 |---|---|
-| Body | 2.40 × 0.90 × 0.80 (z 0 … 0.80) |
-| Desk | sloped 15°: 0.92 high at the front edge, 1.05 at the back |
-| Pillar_L / Pillar_R | 0.30 × 1.25 × 0.80 at each end; red beacon Ø 0.08 on Pillar_L |
+| Footprint | 2.40 × 0.80 (z 0 … 0.80), backs on the wall; plinths 0.16 high, 15 mm inset, stop at z 0.055 over the floor trim |
+| Pillar_L / Pillar_R | **0.36** × 1.25 × 0.80 at |x| 0.84 … 1.20 (owner, H2b; was 0.30); hazard bands on the 60 mm outer vertical chamfers, top-front chamfer 150 mm; red beacon Ø 0.08 on **Pillar_L (+X)** at (1.02, 1.272, 0.33) |
+| Desk / lower body | 1.68 wide between the pillars. Desk sloped 15°: 0.92 high at the front edge (z 0.75, 50 mm behind the pillar fronts), 1.05 at the back of the slope (z 0.265), flat shelf behind with the display bar 1.60 × 0.05 × 0.07. Slab front edge 70 mm thick; lower body front at z 0.62 (130 mm overhang, the concept's shadow gap) |
 | Display | 1.50 × 0.85 quad, bottom at 1.10, z 0.15, leaning back 8° |
-| Button | Ø 0.12 × 0.04 in a guard ring Ø 0.20, desk centre; press travel 0.015 |
-| Indicators | 6 emissive strips on the desk, cyan; 3 of them switch to red on Armed |
+| Button | red polymer cap Ø 0.12 in a guard collar Ø 0.20 (notch toward the player's front-right), desk centre; press travel 0.015 along the desk normal |
+| Indicators | 6 emissive strips (230 mm) in desk slots at |x| 0.41, cyan; the **3 on the player's right (−X)** switch to red on Armed |
 
-- **Display: see-through holo screen** (owner decision). On Quest a transparent emissive quad this
-  size is cheap to render; the effort is authoring the UI texture, not the effect. Greybox: plain
-  emissive quad.
+| Mesh | Origin (terminal-local) | Motion / switching | Tris |
+|---|---|---|---|
+| `LAB_HERO_Terminal_Body_01` | (0, 0, 0) | static; pillars, desk, lower body, bar, guard, beacon base + cage, the 3 always-cyan strips | 1,676 |
+| `LAB_HERO_Terminal_Button_01` | (0, 1.031, 0.521) cap top centre | press 0.015 into the desk | 140 |
+| `LAB_HERO_Terminal_Indicators_01` | (0, 0, 0) | cyan → red (MaterialPropertyBlock) | 30 |
+| `LAB_HERO_Terminal_Beacon_01` | (1.02, 1.272, 0.33) lens base | off → **steady red** when Armed (MaterialPropertyBlock) | 112 |
+| `LAB_HERO_Terminal_Display_01` | (0, 1.10, 0.15) bottom-edge centre | static, own transparent material | 2 |
+
+Total 1,958 tris (no LOD). One 2048 set, 512 px/m; the holo screen has its own 1024 × 512 RGBA texture and
+material (the one allowed second material). Paint 72 86 98 (owner, H2b), rust 9.0 %.
+
+- **Display: see-through holo screen** (owner decision) in **holo teal** (STYLE_GUIDE, 2026-11-03), not the
+  strips' cyan. On Quest a transparent emissive quad this size is cheap to render; the effort is authoring
+  the UI texture, not the effect.
+- Runtime: the button reuses `GateButton`; `TerminalController` (Standby / Armed / Released) switches the
+  indicators and beacon and fires `onArmed` once.
 - Footprint x −3.4 … −1.0, z −2.0 … −1.2. The player reaches it by teleporting along the −X side
   of the room, clear of the cradle and the drone's path.
 
@@ -504,15 +543,34 @@ Reference: a throttle-style lever on a plain pedestal, in room style.
 
 | Part | Size |
 |---|---|
-| Pedestal | 0.30 × 0.95 × 0.30, 0.02 chamfers, cyan strip, black/yellow warning band 0.06 under the top |
-| Housing | 0.22 × 0.08 × 0.16 on top, with a slot |
-| Lever | shaft Ø 0.03 × 0.22 + grip Ø 0.05 × 0.10 (ochre); hinge in the slot, axis X; rest +30° (away from the player), pulled −30°; triggers at 80 % of travel |
-| Indicator | small lamp on the housing: off → amber pulse when Armed |
+| Pedestal | 0.30 × 0.95 × 0.30 (depth 0.30 kept, owner 2026-11-03), 0.02 chamfers, cyan strip, black/yellow warning band 0.06 under the top |
+| Housing | 0.22 × 0.08 × 0.16 on top, with a slot 42 × 88 mm on the flat top (hinge 35 mm below it) |
+| Lever | shaft Ø 0.03 × 0.22 + grip Ø 0.05 × 0.10 (ochre); hinge in the slot, axis X; rest +30° (away from the player), pulled −30° (world sense, see below); triggers at 80 % of travel |
+| Indicator | small lamp (glass Ø 32 mm, wire cage) on the housing's back corner: off → amber pulse when Armed → steady after the pull |
 
+Updated 2026-11-03 from the cloud build (H0–H3a; `Heroes/LeverStand_BUILD.md`).
+
+| Mesh | Origin (stand-local; +Z = front, faces the player) | Motion | Tris |
+|---|---|---|---|
+| `LAB_HERO_LeverStand_Body_01` | (0, 0, 0) floor centre | static | 836 |
+| `LAB_HERO_LeverStand_Lever_01` | (0.041, 0.995, −0.010) hinge | local X **−30° (rest) … +30° (pulled)**, trigger at +18° | 206 |
+| `LAB_HERO_LeverStand_Lamp_01` | (−0.055, 1.040, −0.035) glass base | emission only (MaterialPropertyBlock) | 58 |
+
+- **Angle convention:** "rest +30° away from the player, pulled −30°" is in world terms. In the stand's yawed
+  frame (yaw 180) the same motion is local Euler X −30° … +30°, because positive local X tilts the lever
+  toward local +Z, which faces the player. The lever is **modelled upright** (0° = middle of the travel, §2).
+- **Textures: one 1024 set** (the asset fills a 1024 sheet at hero density, ASSET_RULES), 580 px/m; the
+  hand-held lever at 2× (1,161 px/m). Paint cool steel grey **86 88 94** (owner-accepted), rust 9.3 % (kept).
+  Total 1,100 tris (no LOD).
+- **Grab:** both the far ray and the direct grab are allowed (owner). `LeverHandle` on an
+  XRSimpleInteractable: the grip follows the hand around the hinge only. Locked → `Arm()` → Pulled
+  (latches at +30°); a pull while locked gives 3° of play and `onDenied`.
 - 1.04 from the labyrinth operating position, reachable with one step. It sits inside the
   labyrinth's protected cylinder (r 1.24) as a deliberate exception: it's a control used from
   the same spot.
-- 0.15 clear of the panel's +X edge when level; the panel's tilt only moves that edge up/down.
+- 0.15 clear of the panel's +X edge when level. At full tilt the gap shrinks to **145.5 mm** (12°,
+  azimuth 330°): the 80 mm rim swings ~5 mm outward as the edge dips (see §8). Accepted by the owner
+  2026-11-03; no contact anywhere in the tilt cone.
 
 ## 7. Hero 03 — Facility gate (`Gate`)
 
@@ -771,8 +829,11 @@ headset test (1.05 × 1.05) and the same place in the room.
   physics steps/s it moves 0.30 m between checks — nearly 3× the ball's Ø 0.11 — so most shots
   would pass through the ball. Set ContinuousDynamic (or ContinuousSpeculative) on the bullet.
 - On release the panel **keeps its tilt** (owner decision).
-- Clearances: at 12° the panel edges move ≤ 0.11 up or down; the lever stand (0.15 from the +X
-  edge) and the stand column stay clear. The labyrinth protected cylinder is unchanged.
+- Clearances: at 12° the panel edges move ≤ 0.11 up or down. They also move slightly sideways:
+  the 0.08 rim rotates with the plate, so its top swings ~5 mm outward as an edge dips (correction
+  2026-11-03, LeverStand H1 sweep). The lever stand (0.15 from the +X edge when level) keeps
+  **≥ 145.5 mm** over the whole cone (owner-accepted), and the stand column stays clear. The labyrinth
+  protected cylinder is unchanged.
 
 ### Backlog (owner, 2026-09-26, parked)
 
@@ -807,7 +868,8 @@ most 2–3 realtime lights whose colour lerps, plus an ambient/probe tint. Every
   rotation Y **−28.3°**, position (−0.032, 2.000, 4.754). `DroneHoverAIV2` must take off from that
   yaw and turn smoothly, without snapping to 0°. After the pose change, re-read the drone live and
   update `ProtectedAssets/DroneBaseline.md`.
-- `ServiceArmIdle`: procedural idle motion; disabled on fold.
+- `ServiceArmDriver` (built 2026-11-03): procedural idle motion, stopped by the fold; `RequestFold()` /
+  `onStowed`.
 - `LabyrinthTilt`: handle grab → cone-clamped pitch/roll on `LabyrinthPivot` (§8). Replaces the old panel control.
 - `AtmosphereController`: light and emissive colour transitions.
 - Buttons: XRI poke (`XRSimpleInteractable` + poke filter). Lever: grab-driven hinge; settle the

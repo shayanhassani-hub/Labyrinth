@@ -29,7 +29,7 @@ smoothness 0.54 (p10 0.28, p90 0.75); grey metal parts 111 111 111, metallic 0.8
 ## Palette (PBR albedo, sRGB; metallic; smoothness = 1 - roughness)
 | Material | Use | Albedo sRGB | Metallic | Smoothness |
 |---|---|---|---|---|
-| **Gunmetal paint** (doors) | the Gate and other doors (owner decision 2026-11-01, from the Gate concept) | **90 104 115** (blue-grey; sampled 2026-11-03 from the concept's door panels: hue = median of the blue-grey panel pixels, R:G:B 1 : 1.16 : 1.28; brightness = the fully lit top zone, 89 104 116, since the concept is lit from above and falls off to 52 59 64 at the bottom) | 0 | 0.35-0.50 |
+| **Gunmetal paint** (doors) | the Gate and other doors (owner decision 2026-11-01, from the Gate concept; other heroes: see "Hero paints") | **90 104 115** (blue-grey; sampled 2026-11-03 from the concept's door panels: hue = median of the blue-grey panel pixels, R:G:B 1 : 1.16 : 1.28; brightness = the fully lit top zone, 89 104 116, since the concept is lit from above and falls off to 52 59 64 at the bottom) | 0 | 0.35-0.50 |
 | **Charcoal paint** (structure) | walls, structure, frames, housings | **60 64 70** (range 52-70, B >= R + 6) | 0 | 0.35-0.50 |
 | **Polymer** (secondary) | recesses, channels, bezels, buttons, cable parts | **35 37 39** | 0 | 0.25-0.40 |
 | **Machined steel** | rails, rollers, pins, axles, exposed metal at worn edges | **188 190 192** (>= 180) | 1 | 0.55-0.70 |
@@ -39,13 +39,33 @@ smoothness 0.54 (p10 0.28, p90 0.75); grey metal parts 111 111 111, metallic 0.8
 | Rust (wear only) | patches, blotches and streaks, see "Rust rule" | 120 62 34 (range 95-140 R); centres darker brown-black, patch edges orange-brown | 0 | 0.10-0.25 |
 | Amber lamp | small status lamps | emission 240 150 60 | 0 | 0.6 |
 | Red | Armed state only (terminal indicators, beacon) | emission 230 35 25 | 0 | 0.6 |
+| **Red polymer** (arming cap) | the Terminal's arming button cap only: the one non-emissive red, allowed by the owner 2026-11-03 because it marks the control that starts the Armed state | 168 40 30 | 0 | 0.25-0.40 |
+| Red lens (off) | the Terminal beacon's glass while off | 96 20 16 | 0 | 0.88 |
+| **Holo teal** (holo screens only) | screen UI lines and tint; never on strips or lamps, which stay cyan | emission 120 200 205, highlights 165 225 228, tint 120 200 205 at alpha ~0.10 (sampled from the Terminal concept, hue ~186°; owner 2026-11-03) | - | - |
 | Orange accent light | room accent lights and emissive strips in Armed / Released (HERO_SPEC §1, §9; cyan → orange, slow alarm pulse) | value set in the lighting pass | - | - |
 
 Values follow ASSET_RULES (non-metal albedo 30-240, metal >= 180, metallic 0 or 1 except transitions).
 Emission intensity is set in Unity per light role (lighting pass); textures carry the colour. **The emission
 must never clip to white**, in renders or in Unity: keep the strength low enough that the brightest channel
 saturates but the other two stay well below it (the colour stays readable as blue-cyan); check the pixels of
-light strips in every review render (no white core).
+light strips in every review render (no white core). The rule applies to **emissive pixels, not specular
+glints**: a white highlight on machined steel (shaft, pins, worn edges) is fine; the check looks at white
+pixels on or next to emissive surfaces (2026-11-03, LeverStand H2).
+
+## Hero paints
+Each hero's paint is decided in its design step (owner rule 2026-11-01). Values are albedo sRGB; the baked
+median comes out a few levels darker (mottling, grime). Metallic 0, smoothness 0.35-0.50 for all.
+
+| Hero | Paint | Albedo sRGB | Source / decision |
+|---|---|---|---|
+| Gate | gunmetal | **90 104 115**; leaf frame band x0.6 linear (~70 81 90) | Gate concept, owner 2026-11-01 / G2c |
+| Terminal | dark saturated gunmetal | **72 86 98**, large teal-grey patches | owner review H2b, 2026-11-03 (was 90 104 115 at H2) |
+| LeverStand | cool steel grey | **86 88 94** | LeverStand concept, accepted by the owner 2026-11-03 |
+| ServiceArm | service-arm grey | **88 92 100** | sampled from the ServiceArm concept's lit link panels, 2026-11-03 |
+| Cradle | owner's choice in Substance Painter | - | pads stay ochre (palette rule) |
+
+Shared on all heroes: polymer, machined steel, ochre, cyan and rust from the palette above; hazard
+stripes ochre / hazard black at 45°.
 
 ## Wear (match the drone)
 - **Grime**: moderate, in cavities and on lower parts (AO / cavity driven): albedo x0.75-0.85, smoothness

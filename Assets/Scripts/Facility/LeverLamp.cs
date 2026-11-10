@@ -9,6 +9,9 @@ using UnityEngine;
 
 namespace LabyrinthVR.Gameplay
 {
+    // [ExecuteAlways] so the Editor shows the current mode (Off = dark); without the block the lamp glows amber
+    // from the emission map at the material's x1 (H3b, 2026-11-10).
+    [ExecuteAlways]
     [RequireComponent(typeof(Renderer))]
     public class LeverLamp : MonoBehaviour
     {
@@ -28,12 +31,9 @@ namespace LabyrinthVR.Gameplay
         float m_Last = -1f;
         float m_PulseStart;
 
-        void Awake()
-        {
-            m_Renderer = GetComponent<Renderer>();
-            m_Block = new MaterialPropertyBlock();
-            Write(Level(), true);
-        }
+        void OnEnable() => Write(Level(), true);
+
+        void OnValidate() { if (isActiveAndEnabled) Write(Level(), true); }
 
         public void SetMode(Mode m)
         {
@@ -57,12 +57,14 @@ namespace LabyrinthVR.Gameplay
 
         void Update()
         {
-            if (mode == Mode.Pulse) Write(Level(), false);
+            if (mode == Mode.Pulse && Application.isPlaying) Write(Level(), false);
         }
 
         void Write(float level, bool force)
         {
             if (!force && Mathf.Abs(level - m_Last) < 1e-3f) return;
+            if (m_Renderer == null) m_Renderer = GetComponent<Renderer>();
+            if (m_Block == null) m_Block = new MaterialPropertyBlock();
             m_Last = level;
             m_Renderer.GetPropertyBlock(m_Block);
             m_Block.SetColor(EmissionColorId, Color.white * level);

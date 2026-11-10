@@ -335,3 +335,22 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   per EXPORT_CONTRACT (vertex/normal/tangent comparison), Play Mode press test, commit the .meta files, prefab,
   material and scene; Quest check.
   Hours: not logged
+
+## 2026-11-03/04 (Terminal, LeverStand, ServiceArm H0-H3a, cloud)
+- Done: three heroes built in parallel cloud sessions (bpy 5.2.2 venv, Cycles CPU, hero workflow v3, Gate as the
+  reference), each on its own branch, merged to main 2026-11-04. Per hero: generator + checks + bake + export scripts in
+  Tools/Blender/heroes/, blockout and model vs the concept (camera-matched composites), textures (Git LFS), hero-mode FBX
+  with a bpy re-import check, Editor builder (Apply Import Settings / Build / Verify) and runtime scripts in
+  Assets/Scripts/Facility/. Terminal 1,958 tris (2048 set + 1024x512 holo texture; TerminalController, reuses
+  GateButton); LeverStand 1,100 tris (one 1024 set; LeverHandle, LeverLamp); ServiceArm 5,254 tris (one 1024 sheet;
+  ServiceArmDriver with idle, fold, onStowed). All checks PASS (topology, shading, UVs, AO black with documented
+  crevices, PBR, rust 5-15 %, normal seams, clearance sweeps). Notes: Documentation/Heroes/<Hero>_BUILD.md.
+- Decisions (owner review 2026-11-03): Terminal pillars 0.36, deeper desk overhang, paint 72 86 98, rust 9 %, holo teal,
+  red arming cap, player's-right indicators switch red, beacon steady; ServiceArm stowed layer down to y 3.60 for a
+  chunkier arm (links 0.16 / 0.14 tall, bigger joints), 1024 sheet, no colliders; LeverStand paint 86 88 94, depth
+  0.30 kept, rust kept, 145.5 mm tilt clearance accepted, ray + direct grab.
+- Problems: no Unity in the cloud (C# syntax-checked only); no GPU, so wire / checker renders in Cycles; the Gate's
+  seam check gave false readings on oblique seams (same-point method added); ServiceArm vs Cradle v2 not checkable
+  there (meshes not in the repo).
+- Next: local Unity step (H3b / G3b) for all four heroes, then FacilitySequence.
+  Hours: not logged

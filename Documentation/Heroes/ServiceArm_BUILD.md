@@ -229,9 +229,7 @@ Written and checked in the cloud (bpy 5.2.2, no Unity); H3b runs it in the Edito
 7. Quest: draw calls (6 renderers, 1 material), texture memory at 2048 vs 1024, emission brightness of the strips.
 
 ### Open (not done here)
-- **Cradle v2 clearance:** the Cradle v2 meshes are not in the repo, so the arm was not swept against the cradle.
-  The cradle sits below the drone (yoke arms around the body), the arm's lowest point is the tool tip at y 2.04 over
-  the drone's top — expected clear, **not checked**.
+- ~~**Cradle v2 clearance**~~ — done locally 2026-11-10, see "Cradle v2 clearance (local)" at the end.
 - FacilitySequence wiring (terminal button → `RequestFold`, `onStowed` → lever armed).
 
 ## Owner decision 2026-11-03 — HERO_SPEC §4 change to apply at merge
@@ -280,3 +278,17 @@ One look iteration on the owner's review (limited budget).
   owner; elbow washer, shoulder pin and all cable ends opened to 3-5 mm off their neighbours), stowed arm y
   3.670 … 3.928 (layer 3.60 … 3.95), released volume clear, ceiling clear, reach 1.559 / 1.90. Stowed footprint
   x −0.200 … 0.338, z 5.100 … 6.411 (keep ceiling lights out of it).
+
+## Cradle v2 clearance (local, 2026-11-10)
+
+Run on the owner's machine (Blender 5.2.2). The review file was regenerated with `servicearm.py` (tris identical to H1b:
+420 / 936 / 1,621 / 1,441 / 564 / 272). New stage `servicearm_check.py -- cradle`: the arm against the Cradle v2 low
+`D:\AI_Labyrinth\Substance\Cradle\Mesh\Cradle_low.fbx` (Substance bake set, Step 6g; assembled closed, cradle origin
+moved to (0, 0, 4.69) per HERO_SPEC §3; Arm_L / Pad_L mirrored from Arm_R / Pad_R, Pad_L on Riser_L). Rule: ≥ 50 mm
+(the drone-mesh margin).
+- Closed cradle (x ±1.214, y 0 … 1.763, z 3.476 … 5.904) against all 1,952 sweep poses (working, idle, fold, stowed):
+  **min 371.3 mm** (idle turret +10°, wrist +15°, roll 45°: tool tip at (−0.157, 2.05, 4.643) over the left pad /
+  riser top). PASS.
+- Cradle open 75° (Released) against the stowed arm: min 2.83 m. PASS.
+- RESULT: PASS. The cradle top (1.763) is under the drone; the arm never comes below y 2.04, so the drone, not the
+  cradle, sets the arm's margin.

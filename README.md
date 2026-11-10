@@ -76,7 +76,8 @@ Concept ─► Spec ─► Blender generator (Python, headless) ─► Automated
 5. **Unity import** per [`EXPORT_CONTRACT.md`](Documentation/EXPORT_CONTRACT.md): 1 unit = 1 m,
    axis conversion baked into the mesh (Unity's X mirror cancelled in authoring), identity root
    transforms, imported normals and tangents. Editor builders assemble the scene from data tables
-   (`GreyboxBuilder`, `LabyrinthBuilder`, `CradleBuilder`).
+   (`GreyboxBuilder`, `LabyrinthBuilder`, `CradleBuilder`, and one builder per hero: Gate, Terminal,
+   LeverStand, ServiceArm), each with a Verify step.
 6. **Quest 3S** is the runtime authority: Editor results are not accepted as proof.
 
 ### Standalone-VR budgets and targets (from `ASSET_RULES.md`)
@@ -109,6 +110,15 @@ The Quest performance baseline (FPS, GPU time, thermals) is planned but not yet 
   drone.
 - **Facility gate (hero):** 1,736 triangles, one 2048 set at 487 px/m, 88 baked bolts, clearance
   checked over the whole slide, textures baked from procedural Blender materials.
+- **Control terminal (hero):** 1,958 triangles, one 2048 set plus a see-through holo screen; the
+  Armed state switches three indicator strips and the beacon to red through `MaterialPropertyBlock`s
+  (no material copies). Every part checked against a camera-matched comparison with the concept.
+- **Lever stand (hero):** 1,100 triangles on one 1024 set, the hand-held lever at 2× texel density;
+  hinge-only grab that follows the hand without a jump, locked / armed / pulled states with a
+  "denied" cue; tilt-clearance sweep against the labyrinth board.
+- **Ceiling service arm (hero):** 5,254 triangles, six rigid links; working pose solved by IK, a
+  procedural non-repeating idle and a 2 s fold. Swept over 1,952 poses against the docked drone's
+  spinning-propeller volumes, the drone mesh, the cradle and itself.
 - **Export contract:** found and documented a silent X-mirror on FBX import that a symmetric test
   asset had hidden; every verification batch now includes an asset that is asymmetric on each axis.
 
@@ -119,11 +129,11 @@ The Quest performance baseline (FPS, GPU time, thermals) is planned but not yet 
 | Greybox room + corridor, teleport floor | Built, tested on Quest |
 | Labyrinth v2 (panel, handle, stand, tilt control) | Built, tested on Quest; tuning backlog L1–L3 |
 | **Cradle** (docking cradle) | Low-poly, UVs, high-poly and final bake done; texturing in Substance Painter and Unity import of v2 next |
-| **Gate** (facility gate) | Low-poly, UVs, shading fix and first baked textures done (G1/G2); look revision G2b (gunmetal paint, concept-level rust) in progress; then Unity import and Quest check |
-| **ServiceArm** (ceiling service arm) | Spec written; open clearance conflict with the docked drone's propellers ([proposal](Documentation/Proposals/ServiceArm_S4_Proposal.md)) |
-| **Terminal** (control terminal) | Spec written |
-| **LeverStand** (release lever) | Spec written |
-| Launch-sequence wiring, lighting states, secondary props | Planned |
+| **Gate** (facility gate) | Modelled, textured (G2c), FBX, builder and runtime scripts done; Unity import and Quest check in progress |
+| **Terminal** (control terminal) | Modelled, textured (H2b), FBX, builder and runtime scripts done; Unity import and Quest check in progress |
+| **LeverStand** (release lever) | Modelled, textured, FBX, builder and runtime scripts done; Unity import and Quest check in progress |
+| **ServiceArm** (ceiling service arm) | Modelled, textured (H2b, chunkier arm), FBX, builder and runtime scripts done; clearance PASS against drone and cradle; Unity import and Quest check in progress |
+| Launch-sequence wiring (`FacilitySequence`), lighting states, secondary props | Planned |
 | Quest performance baseline | Planned |
 
 ## Repository structure
@@ -131,12 +141,13 @@ The Quest performance baseline (FPS, GPU time, thermals) is planned but not yet 
 ```
 Assets/
   Environment/        new environment work (Git LFS for binaries)
-    Editor/           GreyboxBuilder, LabyrinthBuilder, CradleBuilder (Editor C#)
+    Editor/           GreyboxBuilder, LabyrinthBuilder, CradleBuilder, hero builders (Editor C#)
     Heroes/           hero FBX files
     Kit/              modular greybox kit (walls, floor, ceiling, pillar, trim)
     Materials/        greybox materials
     Props/            labyrinth panel, handle, stand
   Scripts/            gameplay C# (drone AI, labyrinth tilt and goal, projectile)
+    Facility/         hero runtime scripts (gate slide, buttons, terminal, lever, service arm)
   Tests/              EditMode tests
   Scenes/             BasicScene (game), RenderScene (look-dev), SampleScene
   Drone_Asset/, Materials/, Shaders/   drone model, materials and Shader Graphs
@@ -153,15 +164,12 @@ Key documents: [ASSET_RULES](Documentation/ASSET_RULES.md) ·
 
 ## Screenshots
 
-<!--
-Screenshots go in Documentation/Media/ (folder not created yet). Uncomment each line once the file exists.
-![Room overview on Quest 3S](Documentation/Media/room_overview.png)
-![Docking cradle with the drone docked](Documentation/Media/cradle_docked.png)
-![Facility gate, baked textures](Documentation/Media/gate_g2_room.png)
-![Gate wireframe and UV layout](Documentation/Media/gate_wire_uv.png)
-![Labyrinth board in play](Documentation/Media/labyrinth_play.png)
-![Pipeline: generator, checks, bake](Documentation/Media/pipeline_overview.png)
--->
+Review renders (Blender Cycles, baked textures on the export low-poly).
+
+![Facility gate, room side](Documentation/Media/gate_g2b/gate_g2b_room.jpg)
+![Control terminal in the room](Documentation/Media/terminal/terminal_h2b_room.jpg)
+![Lever stand](Documentation/Media/leverstand/leverstand_h2_34.jpg)
+![Ceiling service arm over the docked drone](Documentation/Media/servicearm/servicearm_h2b_working_34.jpg)
 
 ## AI disclosure
 
