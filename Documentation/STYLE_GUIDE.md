@@ -8,8 +8,8 @@ the maps M_Drone uses per `ProtectedAssets/DroneBaseline.md`).
 
 **Replaces the 2026-10-04 Cradle starting palette** (warm light-grey paint). **Update 2026-11-01 (owner):** the
 Gate and other doors use **gunmetal**; charcoal stays for walls and structure. Each later hero's paint is decided in
-its own design step; the Cradle's paint is the owner's choice in Substance Painter (its pads stay ochre, palette
-rule). Rust follows the rust rule below for every asset.
+its own design step. The Cradle is textured in Blender like the other heroes (owner decision 2026-11-12, Step C-T1;
+the Painter project stays as it is): dark gunmetal, its pads stay ochre (palette rule). Rust follows the rust rule below for every asset.
 
 ## Sampled values (median sRGB)
 The style images are lit renders: their values are darker than albedo and include shadow. They set hue and
@@ -62,7 +62,7 @@ median comes out a few levels darker (mottling, grime). Metallic 0, smoothness 0
 | Terminal | dark saturated gunmetal | **72 86 98**, large teal-grey patches | owner review H2b, 2026-11-03 (was 90 104 115 at H2) |
 | LeverStand | cool steel grey | **86 88 94** | LeverStand concept, accepted by the owner 2026-11-03 |
 | ServiceArm | service-arm grey | **88 92 100** | sampled from the ServiceArm concept's lit link panels, 2026-11-03 |
-| Cradle | owner's choice in Substance Painter | - | pads stay ochre (palette rule) |
+| Cradle | dark gunmetal | **80 94 106** | C-T1 2026-11-12: inside the Gate / Terminal gunmetal family (brief); pads ochre; pending the owner's look review |
 
 Shared on all heroes: polymer, machined steel, ochre, cyan and rust from the palette above; hazard
 stripes ochre / hazard black at 45°.
@@ -81,7 +81,7 @@ stripes ochre / hazard black at 45°.
 ## Rust rule (all assets)
 Owner decision 2026-11-01: the rust level of the Gate concept (`D:\AI_Labyrinth\Gemini\References\Gate\gate_front.jpg`)
 is the style for **all** assets, heroes and environment. It replaces "light rust room-wide" (2026-10-29). The Cradle
-(textured by the owner in Substance Painter) follows the same rule.
+follows the same rule (C-T1b: 6.6 % of the painted texels, on edges / seams / joints / fasteners, heavier low).
 - **Where:** patchy, irregular rust on exposed edges, outer corners and bottom edges; blotches in some panel corners;
   rust around some fasteners (not all, irregular shapes, no perfect rings); a few run-off streaks below rusty spots.
 - **How much:** clearly visible at 1-2 m, not a wreck. Rough guide **5-15 % of a painted surface**, more towards the

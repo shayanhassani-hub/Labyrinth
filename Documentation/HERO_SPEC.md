@@ -47,7 +47,7 @@ until the service arm is fully stowed, so the drone can never launch into it.
 ## 3. Hero 01 — Docking cradle (`Cradle`), v2 (hero workflow v2)
 
 Status: **v2 spec, 2026-09-28**, built on ASSET_RULES **hero workflow v2** (AI model as shape/measurement
-reference, clean high-poly; textured by the owner in Substance Painter). Started as Step 2 of the AI transfer
+reference, clean high-poly; textured in Blender since Step C-T1, 2026-11-12, see "Textures" below). Started as Step 2 of the AI transfer
 workflow (hero workflow v1), which was superseded on 2026-10-03.
 Supersedes the Part 1 design (§3a). Design source: Hunyuan 3D model `cradle_hy_*`
 (D:\AI_Labyrinth\Hunyuan\Downloads\Cradle, originals untouched), fitted and measured in
@@ -437,6 +437,76 @@ docked: pads to limbs ≥ 3.1 mm (they only fall away), engines ≥ 11.7 mm, bod
   overlap, not a collision); the low-poly boss needs its own clearance check over 0 … 75°.
 - Protected volumes: labyrinth ≥ 1.0 m, player ≥ 2.47 m, spawn ≥ 6.5 m clear; the static body
   (top 0.884) and the released arms (≤ 1.023) stay below the drone volume.
+
+### Textures (Steps C-T1 / C-T1b, 2026-11-12) — C-T1b awaiting the owner's look review
+
+Owner decision 2026-11-12: Code textures the Cradle in Blender, same approach as the v3 heroes; the Substance Painter
+project (`Substance\Cradle\LAB_HERO_Cradle_v01_baked.spp`) stays untouched. Script `cradle_v2_tex.py`
+(`-- bake [reuse]`, `-- check`, `-- renders [views] [fast]`; `CRADLE_TEX=512` for cheap iterations). Low, UVs, high and
+cage unchanged (6g set); no FBX export and no Unity step yet.
+- *Pipeline.* High-poly maps = the verified 6g Blender bake (`Substance\Cradle\Bake_6g`: Normal OpenGL, AO per part,
+  ID; Cycles, high -> export-identical triangulated low through the cage, 2048 at 2x2). Material kind per texel from the
+  ID map. New mask pre-bakes from the **high** through the cage (convex edge AO-inside 8 mm, cavity AO 50 mm, ray-miss
+  mask: 0.73 % missed = the 6g buried drum texels, filled from neighbours). Numpy details: rust round 6 of the 12
+  modelled fasteners, 34 rust spots weighted to the floor and cavities, 7 run-off streaks, limb-contact scuff band on
+  the pad tops. One procedural material baked on the lows (Cycles CPU, margin 0, one 16 px dilation): BaseColor,
+  smoothness, metallic, scratch mask, detail normal (bump only: fine noise, rust relief, scratches), the detail
+  normal combined with the 6g normal by reoriented normal mapping. Full bake 8.5 min (5.6 min with `reuse`).
+- *Look.* Paint dark gunmetal sRGB **80 94 106** (between Gate 90 104 115 and Terminal 72 86 98), access panel x0.8;
+  pads ochre 159 120 58, worn (rubbing marks along the limb, few chips, rust x0.3); pins, caps, drum bands, turntable
+  annulus machined steel 188 190 192; riser the same steel, rougher (blasted); fasteners painted, chipped at the edges;
+  broken edge wear to steel, hairline scratches, cavity / floor grime, rust per the rust rule (more on the plinth).
+  No lights on the model (no emissive ID group): Emission map black.
+- *Outputs* (outside the repo until the review): `D:\AI_Labyrinth\Blender\Export\Heroes\Cradle\`
+  `T_LAB_HERO_Cradle_{BaseColor,Normal,Mask,Emission}.png`, 2048 (BaseColor sRGB, Normal OpenGL, Mask linear
+  R metallic G AO B 0 A smoothness, Emission sRGB). Texel density stays **435.1 px/m** (Step 6f UVs), below the
+  512 px/m of the v3 heroes: raising it needs new UVs and a new high-poly bake, not done in C-T1.
+- *Checks* (`-- check`, RESULT PASS): AO black PASS for all four parts (visibility = hero check c, Base 52 / Arm_R 145
+  dark visible texels, all contact lines); PBR non-metal 30-240 0.00 / 0.00 %, metal >= 180: 0.14 % below; medians
+  paint 74 84 94 (smoothness 0.40), steel 187 188 190, ochre 150 113 55, metal 5.9 % of the texels; rust rule 8.9 %
+  of the painted texels (below y 0.45: 10.7 %, above 5.6 %), ochre 0 % rust; emission max 0. Normal seams
+  (same-point method, MikkTSpace frame interpolated at each sample because the low is smooth-shaded across its
+  chamfers; samples on hidden surfaces, in the 4 mm edge zone and on rust / scratch / fastener relief skipped): C-T1
+  adds <= 1.6° to the 6g bake at every sample (PASS). **Inherited from the 6g high-poly bake:** 4 samples over 6° at
+  the plinth-tier corners (+-1.05, 0.176, +-0.327) and (0.289, 0.176, 1.06-1.07), 8.8-25.7°, identical without the
+  C-T1 layer; close-up `cradle_ct1_close_plinth_seam.jpg` for the owner to judge.
+- *Review renders* `Documentation/Media/cradle/cradle_ct1_*.jpg` (Cycles, Standard view): 34, front, back34,
+  close_pad, close_pad_left, close_hinge, close_plinth, close_column, close_plinth_seam, docked_closed / docked_open
+  (drone at (-0.032, 2.000, 4.754), yaw -28.3; arms 0 / +-75°), open_34, dim_facility (lights x0.35), lineup
+  (Terminal | Cradle | Gate, their Assets textures; the Terminal from its hero-mode FBX files at the §5 origins),
+  map previews `cradle_ct1_map_*.jpg`.
+- *Next* after the owner's review: look changes if any; then the Unity step (hero-mode FBX export at own pivots,
+  Arm_L / Pad_L, material, import check) and the Quest check.
+
+**C-T1b (owner / lead review of the C-T1 renders, 2026-11-12): texture-only pass.** No geometry, UV or high-poly bake
+change; accepted as is: the plinth-tier line pattern from the 6g bake and 435 px/m. Pre-bakes reused; the outputs above
+are overwritten with the C-T1b set (`-- bake reuse` 7.3 min).
+- *Rust* (STYLE_GUIDE rule, like the Gate after G2c): the 34 large soft paint blotches are replaced by 150 small,
+  irregular spots (r 8-25 mm, 5-harmonic outline) placed only on features (convex edges, recesses / tier seams,
+  joints), weighted to the floor and x2.5 on the arms; a rust band along the plinth's bottom edge; rings round 19 of
+  the bolts / fasteners; 37 run-off streaks. Result 6.6 % of the painted texels (below y 0.45: 7.2 %, above 5.6 %),
+  99.3 % of the rust within 25 mm of an edge or recess, flat face centres 0.2 %.
+- *Arms, rest plates, column* get the plinth's wear: broken edge wear (extra on the arm part: bare steel 3.3 % of the
+  arm paint), cavity grime (stronger everywhere), hairline scratches; rust weight round the arm pivot (0.385, 0.637),
+  the elbow (0.563, 0.96), the drums and in a ring round the pad footprint on the plate top.
+- *Visual language (texture only):* 36 normal-map hex bolts with washers (both ends of every plinth side panel at
+  y 0.066 / 0.112, the four rest-plate top corners x 0.352 / 1.074, z +-0.146), some heads chipped to steel; the
+  column hatch keeps its 4 modelled fasteners, now with rust rings. Hazard band: 45° ochre / black stripes (Gate
+  colours, 110 mm pitch) round the tier-1 top chamfer (y 0.158-0.207), worn at its edges. One cyan status strip
+  0.18 x 0.010 m in a dark recessed polymer frame on the tier-2 front wall (z -0.843, y 0.211), Emission map only,
+  STYLE_GUIDE cyan 70 170 255.
+- *Steel* (caps, turntable ring, pins, drum bands): roughness 0.50 -> 0.68 base (smoothness median 0.30, polished only
+  on the edges), dielectric grime in recesses and broad handling smudges; clean steel albedo stays >= 180 (median
+  181 183 185).
+- *Checks* (RESULT PASS): AO black PASS all parts (unchanged); PBR non-metal 0.01 / 0.00 %, metal >= 180: 0.77 %
+  below; rust rule 6.6 %; emission: strip 225 core texels, median sRGB 69 169 253, 0 outside the strip, no white
+  texels; renders: no near-white pixels in lineup / dim_facility (the close-up near-white pixels are specular on the
+  steel caps); normal seams: C-T1b adds <= 1.6° at every sample (bolts and the strip slot skipped as relief), the 2
+  remaining > 6° samples are the inherited 6g plinth-tier corners.
+- *Review renders* `Documentation/Media/cradle/cradle_ct1b_*.jpg`: the same set as C-T1 (lineup included), map
+  previews `cradle_ct1b_map_*.jpg`.
+- *Open for the owner:* the rest-plate tops stay fairly clean (rust 1.0 %, wear 0.5 %: large flat faces, wear only
+  on their edges); the pin caps read light because metal albedo must stay >= 180.
 
 ## 3a. Superseded Part 1 design (2026-09-26)
 
