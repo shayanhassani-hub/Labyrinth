@@ -1,5 +1,5 @@
 // CradleBuilder.cs - assembles Hero 01, the docking cradle v2, in the open scene and saves it as a prefab.
-// Step C-T2 (2026-11-13), on the GateBuilder pattern. The superseded Part 1 builder is CradlePart1Builder.cs.
+// Step C-T2 (2026-11-13), on the GateBuilder pattern. The superseded Part 1 cradle (builder, FBX) was removed 2026-11-13; it is in git history.
 //
 // Menu:  Tools > Labyrinth > Cradle: Apply Import Settings   (models + textures, hero mode)
 //        Tools > Labyrinth > Build Cradle                     (Build(): material, hierarchy, prefab, Verify())

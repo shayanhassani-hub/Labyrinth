@@ -118,8 +118,8 @@ Lightmap UVs stays off until a bake needs it).
 ## Hero mode (verified 2026-09-26, LAB_HERO_Cradle_* Part 1 only)
 
 **Scope of the verification (note 2026-11-03, updated 2026-11-13):** the "Verification on the Cradle" block
-below was done with the **superseded Part 1 cradle** (HERO_SPEC §3a; now `CradlePart1Builder`, FBX files moved to
-`Assets/Environment/Heroes/Cradle/Part1/`). Cradle v2 is verified with the v3-hero workflow (next paragraph).
+below was done with the **superseded Part 1 cradle** (HERO_SPEC §3a). Part 1 assets removed 2026-11-13; kept in git history (FBX, builder,
+`M_Greybox_Amber.mat`). Cradle v2 is verified with the v3-hero workflow (next paragraph).
 
 **Cradle v2, verified 2026-11-13 (Step C-T2, 5 FBX files).** Export `Tools/Blender/heroes/cradle_v2_export.py`
 from the export-identical bake lows (Arm_L = a real x-mirrored mesh, not negative scale); Unity

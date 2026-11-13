@@ -383,3 +383,17 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   Pipeline's 5 s main-thread reply limit, so Build / Verify ran detached and wrote a report file.
 - Next: owner decision on the Part 1 assets; Quest check; FacilitySequence.
   Hours: ~3
+
+## 2026-11-13 (S1: Part-1 cleanup, FacilitySequence, atmosphere, drone take-off)
+- Done: Part 1 cradle deleted (Part1/ FBX, CradlePart1Builder, M_Greybox_Amber; no references). FacilitySequence
+  (Arrival -> GateOpen -> Armed -> Released, debug jumps incl. Skip To Released), AtmosphereController (strips via
+  MaterialPropertyBlock on 4 cyan-only renderers, 2 realtime accent lights, ambient-probe tint; cyan -> orange 255 110 25
+  over 2.5 s, Released alarm pulse 2.4 s), FacilitySequenceBuilder (Verify PASS); drone docked at -28.3 deg,
+  PropellerSpin attached; DroneHoverAIV2 take-off ramp + 0.05 s step cap. CradleBuilder Verify at the real dock pose PASS
+  (pads 3.04 / 2.97 mm, ServiceArm 54.1 mm). Play Mode full sequence: pull -> launch 1.008 s, take-off 0 mm first frame.
+  BasicScene saved; APK Builds/LabyrinthVR_S1.apk (6.6 min, 0 errors). New standing Git rule in CLAUDE.md.
+- Decisions: Gate ButtonPanel left out of the recolour (shares the amber lamp); ServiceArm strips left cyan (stowed);
+  sRGB colour lerp; ServiceArmDriver.SnapStowed() added for Skip To Released.
+- Problems: none blocking; Play Mode wait loop polled the wrong status field once (fixed).
+- Next: Quest test of the S1 APK (sequence, take-off, atmosphere look, accent-light cost); poke setup; denied sound cue.
+  Hours: ~3

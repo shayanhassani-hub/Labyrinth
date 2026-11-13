@@ -31,13 +31,21 @@ The old leftovers `DroneAI` and `Drone` (Tripo) were deleted by the owner on 202
 - Prefer one script (Editor C# or Blender Python) over many small Editor calls. Keep
   validator output short (PASS/FAIL lines).
 - Say clearly what you confirmed versus what you expect.
-- Don't commit or push unless asked. Never force-push, never `git reset --hard`.
-- Commit messages: NEVER include Claude session links. Add the trailer
-  `Co-Authored-By: Claude <noreply@anthropic.com>` only when Claude wrote substantial code
-  (generators, builder/Editor scripts, non-trivial fixes). No trailer on docs, settings, small
-  edits, or the owner's own work. No model name in the trailer.
+- Commits and pushes: see "Git" below.
 - Don't install packages or change Project/XR/Player settings without asking first.
 - Quest is the runtime authority; Editor results are not proof of Quest behavior.
+
+## Git (standing rule, owner 2026-11-13)
+- Claude commits and pushes itself at the end of each step, once all its checks pass and the report is written.
+- Stage only the files that belong to the step (never `git add -A` on the whole repo). Leave
+  `ProjectSettings/ProjectSettings.asset` out unless the step deliberately changed project settings.
+- One clear commit message per step. Add exactly `Co-Authored-By: Claude <noreply@anthropic.com>` only when
+  Claude wrote substantial code (generators, builder/Editor scripts, runtime scripts, non-trivial fixes); none for
+  docs, settings or small edits. Never add Claude session or conversation links, "Generated with" lines or a model
+  name anywhere.
+- Push to `main`. Never force-push, `reset --hard`, `git clean` or `rm -rf`; never rewrite history.
+- If a step fails or stops for the owner's review, commit only what's finished and say what isn't.
+- End each report with the commit hash and `git status --short`.
 
 ## Unity connection (com.unity.pipeline 0.7.0-exp.1, experimental)
 - Check with `unity status` (expect: ready, port 7800). The Editor must be open.

@@ -7,6 +7,12 @@ this file.
 Every value below must come from a LIVE Editor read, not from YAML parsing.
 Status: FILLED — production step 2.
 
+- **Latest live read: 2026-11-13 (Step S1, BasicScene, Edit mode, after the S1 build, before the save).** Changed in S1
+  (by Claude, asked in the S1 brief): DroneAI2 docking pose, DroneHoverAIV2 disabled in the scene + take-off ramp and
+  step cap, PropellerSpin attached (disabled) - see the marked rows below. Everything else re-read and unchanged:
+  hierarchy, drone_low / Shoot Point locals, every other DroneHoverAIV2 field and reference, DroneBounds
+  raw (-1.952, 1.688, 3.339)..(1.893, 2.976, 5.823) (so the ENVIRONMENT_SPEC protected drone volume is unchanged);
+  the docked DroneAI2 lies inside DroneBounds.
 - Verified on: 2026-09-24 (transforms/scales/bounds refresh after owner's hand rescale + Quest test;
   earlier sections below — Assets, Material properties, hierarchy — last verified 2026-09-22 and
   re-confirmed unchanged this pass except where noted). Read live twice this session, several
@@ -40,8 +46,8 @@ Shader: `Shader Graphs/SG_DroneOptimized`, render queue -1, no enabled keywords.
 ## Scene object: BasicScene / DroneAI2
 Hierarchy (names, active state, components):
 ```
-DroneAI2 [active] (Transform, DroneHoverAIV2)
-└── drone_low [active] (Transform, HologramToggle)
+DroneAI2 [active] (Transform, DroneHoverAIV2 [disabled; FacilitySequence enables it, S1])
+└── drone_low [active] (Transform, HologramToggle [component disabled, as read 2026-11-13])
     ├── ArmLeft_low [active] (Transform, MeshFilter, MeshRenderer)
     ├── ArmRight_low [active] (Transform, MeshFilter, MeshRenderer)
     ├── Body_low [active] (Transform, MeshFilter, MeshRenderer)
@@ -49,10 +55,10 @@ DroneAI2 [active] (Transform, DroneHoverAIV2)
     ├── Engine3_low [active] (Transform, MeshFilter, MeshRenderer)
     ├── Engine4_low [active] (Transform, MeshFilter, MeshRenderer)
     ├── Engline2_low [active] (Transform, MeshFilter, MeshRenderer)   -- note: source asset naming typo, not ours
-    ├── Propellor1_low [active] (Transform, MeshFilter, MeshRenderer) -- no PropellerSpin attached
-    ├── Propellor2_low [active] (Transform, MeshFilter, MeshRenderer) -- no PropellerSpin attached
-    ├── Propellor3_low [active] (Transform, MeshFilter, MeshRenderer) -- no PropellerSpin attached
-    ├── Propellor4_low [active] (Transform, MeshFilter, MeshRenderer) -- no PropellerSpin attached
+    ├── Propellor1_low [active] (Transform, MeshFilter, MeshRenderer, PropellerSpin [disabled]) -- S1
+    ├── Propellor2_low [active] (Transform, MeshFilter, MeshRenderer, PropellerSpin [disabled]) -- S1
+    ├── Propellor3_low [active] (Transform, MeshFilter, MeshRenderer, PropellerSpin [disabled]) -- S1
+    ├── Propellor4_low [active] (Transform, MeshFilter, MeshRenderer, PropellerSpin [disabled]) -- S1
     ├── Ring_low [active] (Transform, MeshFilter, MeshRenderer)
     │   └── VFX_RingSparks [active] (Transform, ParticleSystem, ParticleSystemRenderer)
     ├── Top_low [active] (Transform, MeshFilter, MeshRenderer)
@@ -66,11 +72,11 @@ DroneAI2 [active] (Transform, DroneHoverAIV2)
 Important transforms (local position / rotation / scale) — **updated 2026-09-24, post-rescale**:
 | Object | Position | Rotation (quaternion x,y,z,w) | Scale |
 |---|---|---|---|
-| DroneAI2 | (0, 2, 4.76) — unchanged | (0, 0, 0, 1) — identity, unchanged | (1, 1, 1) — unchanged |
+| DroneAI2 | **(−0.032, 2.000, 4.754)** — docking pose, S1 2026-11-13 (was (0, 2, 4.76)) | **(0, −0.24446, 0, 0.96966)** = yaw −28.3° (euler 331.70), S1 (was identity) | (1, 1, 1) — unchanged |
 | drone_low | (0, -0.228, 0) — was (0, 0, 0) | (0, -1, 0, 0.00023) — ≈180.03° about Y, unchanged | (0.59, 0.59, 0.59) — was (1, 1, 1) |
 | ToShoot_low/Shoot Point | (0, -0.00813, 0) — unchanged | (0, 0, 0, 1) — identity | (1, 1, 1) |
 
-World position, DroneAI2/drone_low/ToShoot_low/Shoot Point: **(0, 1.767203, 4.76)** — not previously
+World position, DroneAI2/drone_low/ToShoot_low/Shoot Point: **(−0.032, 1.7672, 4.754)** at the docking pose (2026-11-13); before S1 **(0, 1.767203, 4.76)** — not previously
 recorded (2026-09-22 baseline only had the local offset above; DroneAI2 world pos (0,2,4.76) confirmed
 still inside DroneBounds' world bounds, see below).
 
@@ -80,6 +86,16 @@ time same session, value changed mid-session (owner actively tuning): scalingMod
 `0.02`, constantMax `0.05`.
 
 ## DroneHoverAIV2 on DroneAI2 (BasicScene)
+**Script change 2026-11-13 (Step S1), read live 2026-11-13:** component **disabled** in the scene (FacilitySequence
+enables it 1.0 s after the lever pull). New serialized field `maxStepDeltaTime` = **0.05** (script default). Movement
+runs on a capped step (`min(deltaTime, maxStepDeltaTime)`) and its own clock; drift (`Lerp` factor), turn (`Slerp`
+factor), hover bob and pitch are all scaled by `SmoothStep(0, 1, clock / takeoffBlend)`, so the take-off starts at zero
+speed and zero turn rate; pitch blends in instead of switching on at the end of the take-off. Shooting and the flash
+decay still use real `deltaTime`. Every other field re-read: unchanged.
+Play Mode check 2026-11-13 (Editor, full sequence, launch from the docking pose): 0 mm on the first frame; max speed
+0.69 m/s in the first 0.5 s, 1.37 m/s in the first 1.5 s, 3.43 m/s later in normal drift (unchanged gameplay); yaw rate
+≤ 18 °/s in the first 0.5 s, turning out of −28.3° without a snap; ≥ 233 mm from the cradle colliders in the first 2 s.
+
 **Script change 2026-11-03, read live 2026-11-10** (BasicScene, Edit mode, saved scene): `DroneHoverAIV2.cs`
 gained the serialized field `takeoffBlend` = **1.5** (script default, not overridden in the scene); hover phase
 starts at enable and fades in, yaw-only turn during take-off, init in `OnEnable`/`Awake`, reach check on
@@ -99,7 +115,9 @@ lurches on a long frame (a 0.33 s Editor hitch moved it 0.71 m in one frame).
 | moveSpeed / reachThreshold | 1.5 / 0.1 |
 | hoverAmplitude / hoverFrequency | 0.3 / 2 |
 | rotationSpeed | 3 |
-| takeoffBlend | 1.5 (added 2026-11-10) |
+| takeoffBlend | 1.5 (added 2026-11-10; since S1 it also ramps drift and turn speed) |
+| maxStepDeltaTime | 0.05 (added 2026-11-13, S1) |
+| enabled | **false** in the scene (S1); FacilitySequence enables it |
 | projectilePrefab | Assets/3D Models/Sphere.prefab (guid df2a75de699d8f44b9916e706d89bae6) |
 | firePoint | Transform `/DroneAI2/drone_low/ToShoot_low/Shoot Point` |
 | shootInterval / projectileSpeed | 2 / 15 |
@@ -155,7 +173,7 @@ No component lists above differ from what DroneHoverAIV2 already referenced by n
 ## Other scripts on the drone
 | Script | Object | Key values |
 |---|---|---|
-| PropellerSpin | NOT ATTACHED in BasicScene | `find_gameobjects --type PropellerSpin --include_inactive true` returned 0 results anywhere in the open scene. The script file exists on disk (`Assets/Scripts/PropellerSpin.cs`) but is not on any GameObject in BasicScene today — propeller spin (if any) is not driven by this component currently. |
+| PropellerSpin | **Attached 2026-11-13 (S1)** on Propellor1–4_low, rotationSpeed 3500 (script default), all **disabled**; FacilitySequence enables them with the drone. Pivots checked live: on the hubs (3-blade mesh bounds offset −0.128 / +0.128 local X is the blade asymmetry), local Y = world up. Earlier: NOT ATTACHED in BasicScene | `find_gameobjects --type PropellerSpin --include_inactive true` returned 0 results anywhere in the open scene. The script file exists on disk (`Assets/Scripts/PropellerSpin.cs`) but is not on any GameObject in BasicScene today — propeller spin (if any) is not driven by this component currently. |
 | HologramToggle | `/DroneAI2/drone_low` | pbrMaterial: Assets/Drone_Asset/M_Drone.mat (guid 054186815ab8661469b902129eea4eac) · hologramMaterial: Assets/Shaders/Holographic Mode/MAT_Hologram.mat (guid 892e79f615230dc43857e6efd6976dad) |
 
 ## RenderScene differences
@@ -173,8 +191,7 @@ BasicScene stayed the only open scene, per instruction not to open/save scenes.
 
 ## Known issues (recorded, not fixed)
 - HologramToggle needs a keyboard and uses `r.material` (creates material copies).
-- PropellerSpin is not attached to any GameObject in BasicScene as of this verification (see "Other
-  scripts" above) — flagged for the user, not changed.
+- ~~PropellerSpin is not attached in BasicScene~~ — resolved 2026-11-13 (S1), see "Other scripts".
 - Of the three Scanner Light shader graphs in `Assets/Shaders/Scanner Light/`, only SG_FakeBloom
   (via MAT_FakeBloom.mat) is actually referenced by the drone, on the inactive `ScannerGlow` child.
   SG_DroneScanner and SG_PulseScanner (MAT_DroneScanner.mat / MAT_PulseScanner.mat) are not referenced
@@ -183,6 +200,7 @@ BasicScene stayed the only open scene, per instruction not to open/save scenes.
 ## Owner decisions (Shayan, 2026-09-22)
 - PropellerSpin is attached only in RenderScene. It will be attached to the propellers in
   BasicScene later. This is an approved drone change; update this baseline when it's done.
+  **Done 2026-11-13 (S1).**
 - Holographic Mode (SH_Hologram / MAT_Hologram) was an experimental Shader Graph. Stays
   protected; its use in the final game is not decided.
 - Scanner Light: several glow variants exist (SG_FakeBloom, SG_DroneScanner, SG_PulseScanner).

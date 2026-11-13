@@ -29,8 +29,10 @@ public class DroneHoverAIV2 : MonoBehaviour
     public float rotationSpeed = 3f;
 
     [Header("Take-off")]
-    [Tooltip("Seconds after enable during which the hover fades in and the drone turns on yaw only (no pitch).")]
+    [Tooltip("Seconds after enable over which drift speed, turn speed, hover bob and pitch ramp up from 0 (smoothstep).")]
     public float takeoffBlend = 1.5f;
+    [Tooltip("Largest time step (s) the movement may use in one frame. After a stall the drone just moves less that frame instead of lurching.")]
+    public float maxStepDeltaTime = 0.05f;
 
     // --------------------------------------------------------
     // [2] SHOOTING VARIABLES
@@ -66,7 +68,7 @@ public class DroneHoverAIV2 : MonoBehaviour
     // Internal navigation tracking
     private Vector3 targetPoint;
     private Vector3 basePosition;
-    private float enabledTime;
+    private float flightClock;   // movement time since enable, advanced by the capped step
 
     // ========================================================
     // UNITY METHODS
@@ -89,14 +91,18 @@ public class DroneHoverAIV2 : MonoBehaviour
         // so take-off always starts from the current (docked) pose without a jump.
         targetPoint = GetRandomPointInBounds();
         basePosition = transform.position;
-        enabledTime = Time.time;
+        flightClock = 0f;
         shootTimer = 0f;
     }
 
     void Update()
     {
-        float sinceEnable = Time.time - enabledTime;
-        float takeoff = takeoffBlend > 0f ? Mathf.Clamp01(sinceEnable / takeoffBlend) : 1f;
+        // Movement uses a capped step, so a frame stall (loading, GC) cannot make the drone jump.
+        float dt = Mathf.Min(Time.deltaTime, maxStepDeltaTime);
+        flightClock += dt;
+        float takeoff = takeoffBlend > 0f ? Mathf.Clamp01(flightClock / takeoffBlend) : 1f;
+        // 0 -> 1 over the take-off: everything that moves the drone starts from zero speed.
+        float ramp = Mathf.SmoothStep(0f, 1f, takeoff);
 
         // --------------------------------------------------------
         // 1. HANDLE VFX (The Emissive Flash Decay)
@@ -119,17 +125,17 @@ public class DroneHoverAIV2 : MonoBehaviour
         // --------------------------------------------------------
         // 2. HANDLE MOVEMENT (Drifting to target)
         // --------------------------------------------------------
-        // Move the drone's invisible "base" position smoothly toward the target point
+        // Move the drone's invisible "base" position smoothly toward the target point.
+        // The take-off ramp makes the drift speed start at 0 instead of moveSpeed x distance on the first frame.
         basePosition = Vector3.Lerp(
             basePosition,
             targetPoint,
-            moveSpeed * Time.deltaTime
+            moveSpeed * dt * ramp
         );
 
         // Bobbing starts at phase 0 when the drone is enabled and fades in over takeoffBlend,
         // so the first frame after release does not jump by up to hoverAmplitude.
-        float hoverOffset = Mathf.Sin(sinceEnable * hoverFrequency) * hoverAmplitude
-                            * Mathf.SmoothStep(0f, 1f, takeoff);
+        float hoverOffset = Mathf.Sin(flightClock * hoverFrequency) * hoverAmplitude * ramp;
 
         // Apply the physical bobbing offset to the base position
         Vector3 finalPosition = basePosition + new Vector3(0, hoverOffset, 0);
@@ -143,9 +149,9 @@ public class DroneHoverAIV2 : MonoBehaviour
             // Find the direction from the drone to the target
             Vector3 lookDir = labyrinthBall.transform.position - transform.position;
 
-            // During take-off turn on yaw only, so the body doesn't tip into the opening cradle arms.
-            if (takeoff < 1f)
-                lookDir.y = 0f;
+            // Take-off: start on yaw only and blend the pitch in with the ramp, so the body doesn't tip into
+            // the opening cradle arms and there is no pitch step when the take-off ends.
+            lookDir.y *= ramp;
 
             // Only rotate if the target isn't sitting inside the drone (prevents math errors)
             if (lookDir.sqrMagnitude > 0.001f)
@@ -157,11 +163,12 @@ public class DroneHoverAIV2 : MonoBehaviour
                 // this 180-degree flip fixes it. 
                 targetRot *= Quaternion.Euler(0f, 180f, 0f);
 
-                // Smoothly rotate the drone toward the target rotation
+                // Smoothly rotate the drone toward the target rotation. The ramp makes the turn out of the docked
+                // yaw (-28.3 deg) start at zero angular speed: no snap on the first frame.
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
                     targetRot,
-                    rotationSpeed * Time.deltaTime
+                    rotationSpeed * dt * ramp
                 );
             }
         }

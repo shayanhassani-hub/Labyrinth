@@ -123,6 +123,16 @@ namespace LabyrinthVR.Gameplay
             Apply(workTurretYaw, workShoulder, workElbow, workWrist, 0f);
         }
 
+        /// <summary>Test helper (FacilitySequence Debug/Skip To Released): jump to the stowed pose at once, fire onStowed.</summary>
+        [ContextMenu("Snap Stowed")]
+        public void SnapStowed()
+        {
+            m_DelayLeft = -1f; m_Roll = stowRoll;
+            m_State = ArmState.Stowed;
+            Apply(stowTurretYaw, stowShoulder, stowElbow, stowWrist, stowRoll);
+            onStowed.Invoke();
+        }
+
         [ContextMenu("Fold Now")]
         void FoldNowMenu() => BeginFold();
 

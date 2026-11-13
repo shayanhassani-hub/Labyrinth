@@ -78,7 +78,7 @@ Concept ─► Spec ─► Blender generator (Python, headless) ─► Automated
    axis conversion baked into the mesh (Unity's X mirror cancelled in authoring), identity root
    transforms, imported normals and tangents. Editor builders assemble the scene from data tables
    (`GreyboxBuilder`, `LabyrinthBuilder`, `CradleBuilder`, and one builder per hero: Gate, Terminal,
-   LeverStand, ServiceArm), each with a Verify step.
+   LeverStand, ServiceArm; `FacilitySequenceBuilder` wires the launch sequence), each with a Verify step.
 6. **Quest 3S** is the runtime authority: Editor results are not accepted as proof.
 
 ### Standalone-VR budgets and targets (from `ASSET_RULES.md`)
@@ -134,7 +134,8 @@ The Quest performance baseline (FPS, GPU time, thermals) is planned but not yet 
 | **Terminal** (control terminal) | Modelled, textured (H2b), FBX, builder and runtime scripts done; imported and verified in Unity (Editor); Quest check next |
 | **LeverStand** (release lever) | Modelled, textured, FBX, builder and runtime scripts done; imported and verified in Unity (Editor); Quest check next |
 | **ServiceArm** (ceiling service arm) | Modelled, textured (H2b, chunkier arm), FBX, builder and runtime scripts done; clearance PASS against drone and cradle; imported and verified in Unity (Editor); Quest check next |
-| Launch-sequence wiring (`FacilitySequence`), lighting states, secondary props | Planned |
+| Launch-sequence wiring (`FacilitySequence`), atmosphere states, drone take-off from the cradle | Wired and run in the Editor (S1); Quest check next |
+| Secondary props | Planned |
 | Quest performance baseline | Planned |
 
 ## Repository structure
@@ -148,7 +149,8 @@ Assets/
     Materials/        greybox materials
     Props/            labyrinth panel, handle, stand
   Scripts/            gameplay C# (drone AI, labyrinth tilt and goal, projectile)
-    Facility/         hero runtime scripts (gate slide, buttons, terminal, lever, service arm)
+    Facility/         hero runtime scripts (gate slide, buttons, terminal, lever, service arm, cradle hinges),
+                      launch sequence (FacilitySequence) and atmosphere states
   Tests/              EditMode tests
   Scenes/             BasicScene (game), RenderScene (look-dev), SampleScene
   Drone_Asset/, Materials/, Shaders/   drone model, materials and Shader Graphs

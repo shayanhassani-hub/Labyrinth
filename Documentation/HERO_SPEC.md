@@ -555,7 +555,7 @@ Owner approved the C-T1b look (2026-11-13). Gate / Terminal pattern.
 - *BasicScene* (saved): the Part 1 `HERO_Cradle` replaced by the v2 prefab instance. The drone stays at its scene pose
   (0, 2.000, 4.760), yaw 0: 13 mm clear of the closed cradle, but not on the pads; the docking pose (−28.3°) is still
   the FacilitySequence / drone step (§10).
-- *Part 1 assets kept* (owner decision pending): FBX `Cradle/Part1/LAB_HERO_Cradle_{Base,Arm,Pad}_01.fbx` (moved there
+- *Part 1 assets* (Part 1 assets removed 2026-11-13; kept in git history, Step S1): were FBX `Cradle/Part1/LAB_HERO_Cradle_{Base,Arm,Pad}_01.fbx` (moved there
   with their .meta, GUIDs unchanged; their names collided with v2's Base_01 / Pad_01), `Materials/M_Greybox_Amber.mat`
   (created by the Part 1 builder; used only by the Part 1 pads), `Editor/CradlePart1Builder.cs` (the old CradleBuilder,
   retargeted to `Part1/`, root `HERO_Cradle_Part1`, menu Tools > Labyrinth > Superseded). References after the swap:
@@ -564,6 +564,8 @@ Owner approved the C-T1b look (2026-11-13). Gate / Terminal pattern.
 - *Next*: Quest check (headset); FacilitySequence (release = both HingeDrivers Open; drone docking pose).
 
 ## 3a. Superseded Part 1 design (2026-09-26)
+
+**Part 1 assets removed 2026-11-13; kept in git history** (owner decision, Step S1): `Cradle/Part1/` FBX, `CradlePart1Builder.cs`, `M_Greybox_Amber.mat`; nothing referenced them. The record below stays for reference.
 
 Procedural cradle (`Tools/Blender/heroes/cradle.py`, `LAB_HERO_Cradle.blend`, `HERO_Cradle` in
 BasicScene, `CradleBuilder`), kept in the project until the v2 cradle is accepted. Drone docked at
@@ -996,7 +998,7 @@ most 2–3 realtime lights whose colour lerps, plus an ambient/probe tint. Every
 - `FacilitySequence`: the state machine above; all timings serialized.
 - `HingeDriver` / `SlideDriver`: move one part between its closed and open pose (duration, easing).
   Cradle v2: Arm_L 0 → +75°, Arm_R 0 → −75° about local Z, 1.2 s (§3).
-- Drone start pose (Cradle v2; integration note, not implemented yet): `DroneAI2` starts docked at
+- Drone start pose (Cradle v2; implemented in Step S1): `DroneAI2` starts docked at
   rotation Y **−28.3°**, position (−0.032, 2.000, 4.754). `DroneHoverAIV2` must take off from that
   yaw and turn smoothly, without snapping to 0°. After the pose change, re-read the drone live and
   update `ProtectedAssets/DroneBaseline.md`.
@@ -1014,6 +1016,43 @@ most 2–3 realtime lights whose colour lerps, plus an ambient/probe tint. Every
 - XR Origin moves to the spawn point (§7).
 - The inactive leftovers (`Ruller`, `Ruller (1)`, `Plane`, `DroneAI`, `Drone` (Tripo)) were
   deleted by the owner on 2026-09-25.
+
+### Status (Step S1, 2026-11-13) — wired and run in the Editor; Quest check next
+- `Assets/Scripts/Facility/FacilitySequence.cs` (`SYS_FacilitySequence`): states Arrival → GateOpen → Armed → Released as
+  in §1, runtime listeners on the heroes' events, serialized poses and `droneEnableDelay` 1.0 s; events onStateChanged,
+  onLeverDenied (hook for the "denied" sound cue), onDroneLaunched. Context menu Debug/1 Open Gate, 2 Arm, 3 Stow Service
+  Arm Now, 4 Pull Lever, **Skip To Released** (whole chain at once, arm snapped stowed, player to the labyrinth (0, 0, 0)).
+  Arrival: DroneHoverAIV2 + PropellerSpin off, drone at the docking pose, room teleport collider off, XR Origin
+  (−1, 0, 13) yaw 180, atmosphere Standby.
+- Wiring: Gate Leaf `SlideDriver.onOpenStarted` → room teleport collider on; `TerminalController.onArmed` →
+  `AtmosphereController.SetArmed()` + `ServiceArmDriver.RequestFold()`; `ServiceArmDriver.onStowed` → `LeverHandle.Arm()`;
+  `LeverHandle.onPulled` → `TerminalController.Release()`, both Cradle `HingeDriver.Open()`, atmosphere Released,
+  +1.0 s DroneHoverAIV2 + PropellerSpin on; `LeverHandle.onDenied` → `onLeverDenied`. The buttons keep their persistent
+  wiring from the hero builders (Gate button → Leaf Open, Terminal button → Arm).
+- `Assets/Scripts/Facility/AtmosphereController.cs` (`FX_Atmosphere`, §9): Standby cyan 70 170 255; Armed cyan → orange
+  **255 110 25** over 2.5 s (smoothstep, sRGB lerp); Released orange, slow alarm pulse (2.4 s period, low 35 %, lights and
+  strips). Emissive strips through a MaterialPropertyBlock (per-channel _EmissionColor = target / map cyan; block cleared
+  in Standby so the SRP Batcher keeps them there): **Gate Leaf, Terminal Body (pillar strips), LeverStand Body, Cradle
+  Base** — each UV-sampled: emission map cyan only. Left out: Gate ButtonPanel (its renderer also carries the amber lamp,
+  which the recolour would blow out), ServiceArm (stowed during Armed/Released). Lights: `LIGHT_Accent_Cradle`
+  (1.2, 3.3, 6.2) and `LIGHT_Accent_Terminal` (−2.2, 3.3, −0.8), realtime point, no shadows, intensity 1.5, range 6.
+  Ambient: the ambient probe scaled per channel toward (1.0, 0.78, 0.68), restored on disable.
+- `Assets/Environment/Editor/FacilitySequenceBuilder.cs` (Tools > Labyrinth > Facility Sequence: Build / Verify) sets all
+  of the above; Verify RESULT PASS. `ServiceArmDriver` gained `SnapStowed()` (test helper).
+- Drone (DroneBaseline 2026-11-13): `DroneAI2` at (−0.032, 2.000, 4.754) yaw −28.3 in the scene; DroneHoverAIV2 disabled;
+  PropellerSpin (3500 °/s, pivots on the hubs) on Propellor1–4_low, disabled. `DroneHoverAIV2`: drift, turn, bob and
+  pitch ramp up from 0 over `takeoffBlend` (1.5 s, smoothstep); movement uses a step capped at `maxStepDeltaTime` 0.05 s.
+- Live checks (CradleBuilder Verify with the drone really docked): pad gaps **3.04 / 2.97 mm**, opening path ≥ 3.3 mm,
+  ServiceArm working pose **54.1 mm** from the drone, released arms below the drone volume — PASS.
+- Play Mode (Editor, simulated inputs; t from the driver start): gate press 0.51 → GateOpen 0.59 (button press 0.08 s),
+  room teleport on, gate fully open 2.59; lever pull before Armed → denied; terminal press 3.01 → Armed 3.09; fold start
+  5.59 (+2.50 s); arm stowed + lever armed 7.60 (+4.51 s after Armed); lever pull 7.60 → Released; drone launched 8.61
+  (**+1.008 s**); cradle arms ±75.00° at 8.81 (+1.21 s). Take-off: 0 mm on the first frame, ≤ 0.69 m/s in the first
+  0.5 s, ≤ 1.37 m/s in the first 1.5 s, yaw rate ≤ 18 °/s in the first 0.5 s (from −28.3°, no snap), drone mesh ≥ 233 mm
+  from the cradle colliders in the first 2 s. Atmosphere ended Released, fully orange. Skip To Released: all states
+  reached, drone launched. No errors, no freeze.
+- Open: Quest check (APK built, see DEVLOG); poke interactors; the sound cue on onLeverDenied; teleport exclusions for
+  the cradle / terminal / stand footprints.
 
 ## 11. Decisions (all resolved 2026-09-25)
 

@@ -10,7 +10,6 @@ foreach (var hero in new[] { "Gate", "Terminal", "LeverStand", "ServiceArm", "Cr
     foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:Model", new[] { "Assets/Environment/Heroes/" + hero }))
     {
         var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-        if (path.Contains("/Part1/")) continue;                          // superseded Cradle Part 1 (kept, not verified)
         var root = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(path);
         var mfs = root.GetComponentsInChildren<UnityEngine.MeshFilter>(true);
         var name = System.IO.Path.GetFileNameWithoutExtension(path);
