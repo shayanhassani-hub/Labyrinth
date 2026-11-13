@@ -117,9 +117,18 @@ Lightmap UVs stays off until a bake needs it).
 
 ## Hero mode (verified 2026-09-26, LAB_HERO_Cradle_* Part 1 only)
 
-**Scope of the verification (note 2026-11-03):** the Unity check below was done with the
-**superseded Part 1 cradle** (HERO_SPEC §3a; `CradleBuilder`). `Assets/Environment/Heroes/Cradle/`
-still holds only those Part 1 FBX files. Cradle v2 has not been imported or verified in Unity yet.
+**Scope of the verification (note 2026-11-03, updated 2026-11-13):** the "Verification on the Cradle" block
+below was done with the **superseded Part 1 cradle** (HERO_SPEC §3a; now `CradlePart1Builder`, FBX files moved to
+`Assets/Environment/Heroes/Cradle/Part1/`). Cradle v2 is verified with the v3-hero workflow (next paragraph).
+
+**Cradle v2, verified 2026-11-13 (Step C-T2, 5 FBX files).** Export `Tools/Blender/heroes/cradle_v2_export.py`
+from the export-identical bake lows (Arm_L = a real x-mirrored mesh, not negative scale); Unity
+`CradleBuilder.ApplyImportSettings()` (hero mode, the same settings as the v3 heroes). `hero_import_dump.cs` +
+`hero_import_compare.py`: every root identity, one submesh, tangents on every vertex, Unity tris = export tris
+(2,800 / 500 / 500 / 38 / 38); positions and normals match both ways on all five parts (0 unmatched, worst
+0.0001 mm, normal 6e-4); tangent direction ≤ 0.06° on Pad and Riser; the import weld again merged a few
+same-position / normal / UV corners: Arm_L 6.2°, Arm_R 2.8°, Base 2.1° at 1–2 vertex groups each (the same effect
+as the Gate Leaf / ServiceArm below; accepted). Tangent w: Arm_L +1 (mirrored), the others −1.
 
 **Workflow v3 heroes, verified 2026-11-10** (Gate, Terminal, LeverStand, ServiceArm: 18 FBX files).
 Unity side `Tools/Unity/hero_import_dump.cs` (eval_file), Blender side

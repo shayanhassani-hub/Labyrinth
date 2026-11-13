@@ -47,7 +47,7 @@ until the service arm is fully stowed, so the drone can never launch into it.
 ## 3. Hero 01 — Docking cradle (`Cradle`), v2 (hero workflow v2)
 
 Status: **v2 spec, 2026-09-28**, built on ASSET_RULES **hero workflow v2** (AI model as shape/measurement
-reference, clean high-poly; textured in Blender since Step C-T1, 2026-11-12, see "Textures" below). Started as Step 2 of the AI transfer
+reference, clean high-poly; textured in Blender since Step C-T1, 2026-11-12, see "Textures" below; in Unity since Step C-T2, 2026-11-13, see "Unity"). Started as Step 2 of the AI transfer
 workflow (hero workflow v1), which was superseded on 2026-10-03.
 Supersedes the Part 1 design (§3a). Design source: Hunyuan 3D model `cradle_hy_*`
 (D:\AI_Labyrinth\Hunyuan\Downloads\Cradle, originals untouched), fitted and measured in
@@ -438,7 +438,7 @@ docked: pads to limbs ≥ 3.1 mm (they only fall away), engines ≥ 11.7 mm, bod
 - Protected volumes: labyrinth ≥ 1.0 m, player ≥ 2.47 m, spawn ≥ 6.5 m clear; the static body
   (top 0.884) and the released arms (≤ 1.023) stay below the drone volume.
 
-### Textures (Steps C-T1 / C-T1b, 2026-11-12) — C-T1b awaiting the owner's look review
+### Textures (Steps C-T1 / C-T1b, 2026-11-12) — C-T1b approved by the owner 2026-11-13
 
 Owner decision 2026-11-12: Code textures the Cradle in Blender, same approach as the v3 heroes; the Substance Painter
 project (`Substance\Cradle\LAB_HERO_Cradle_v01_baked.spp`) stays untouched. Script `cradle_v2_tex.py`
@@ -507,6 +507,61 @@ are overwritten with the C-T1b set (`-- bake reuse` 7.3 min).
   previews `cradle_ct1b_map_*.jpg`.
 - *Open for the owner:* the rest-plate tops stay fairly clean (rust 1.0 %, wear 0.5 %: large flat faces, wear only
   on their edges); the pin caps read light because metal albedo must stay >= 180.
+
+### Unity (Step C-T2, 2026-11-13) — imported and verified in the Editor; Quest check next
+
+Owner approved the C-T1b look (2026-11-13). Gate / Terminal pattern.
+- *FBX export* `Tools/Blender/heroes/cradle_v2_export.py` (`-- [export] [check]`): source = the export-identical
+  triangulated bake lows in `LAB_HERO_Cradle_v2_bake.blend` (the meshes the 6g maps and the textures were baked on), hero
+  mode (`env_kit_generator.export_fbx(mode="hero")`), one material slot, identity roots, to
+  `Assets/Environment/Heroes/Cradle/`:
+
+  | FBX | Origin (Unity world, closed) | Tris |
+  |---|---|---|
+  | `LAB_HERO_Cradle_Base_01` | floor centre (0, 0, 4.69) | 2,800 |
+  | `LAB_HERO_Cradle_Arm_L_01` | left pin axis (−0.385, 0.637, 4.69); a real x-mirror of Arm_R (winding reversed, normals mirrored, same UVs) | 500 |
+  | `LAB_HERO_Cradle_Arm_R_01` | right pin axis (+0.385, 0.637, 4.69) | 500 |
+  | `LAB_HERO_Cradle_Pad_01` | own bottom centre; Pad_R (0.5, 1.6991, 4.69), Pad_L (−0.5, 1.7535, 4.69) on the riser | 38 |
+  | `LAB_HERO_Cradle_Riser_L_01` | own bottom centre (−0.5, 1.6991, 4.69) | 38 |
+
+  Re-import check RESULT PASS: tris, one mesh / slot, node name = asset ID, bounds, custom normals (worst 0.028°),
+  one UV map, Arm_L = Arm_R mirrored (0 unmatched corners, normals 0.063°, UVs exact).
+- *Textures* `Cradle/Textures/T_LAB_HERO_Cradle_{BaseColor,Normal,Mask,Emission}.png` (C-T1b set, Git LFS): BaseColor /
+  Emission sRGB ASTC 6x6, Normal (normal map) ASTC 4x4, Mask linear ASTC 6x6, mipmaps, max 2048.
+- *Builder* `Assets/Environment/Editor/CradleBuilder.cs` (rewritten for v2; menu Tools > Labyrinth > Cradle: Apply Import
+  Settings / Build Cradle / Verify Cradle). `HERO_Cradle` (0, 0, 4.69) → `Base`, `Arm_L` (−0.385, 0.637, 0) →
+  `Riser_L` (−0.115, 1.0621, 0), `Pad_L` (−0.115, 1.1165, 0); `Arm_R` (0.385, 0.637, 0) → `Pad_R` (0.115, 1.0621, 0).
+  One material `M_LAB_HERO_Cradle` (URP Lit; Mask in Metallic + Occlusion, smoothness from its alpha; emission map x1).
+  Prefab `Cradle/HERO_Cradle.prefab`. Colliders primitives only (20): plinth tier 1 and tier 2 / turntable as
+  axis + 45° box pairs, column, beam, hub boxes, drum capsules (Z); per arm a plate box and a limb box from the mesh,
+  pad / riser boxes; the arms carry a kinematic Rigidbody.
+- *Motion* `Assets/Scripts/Facility/HingeDriver.cs` (generic, `LabyrinthVR.Gameplay`): closed pose = localRotation at
+  Awake, open = closed · AngleAxis(openAngle, axis); duration, easeInOut (smoothstep), startOpen; Open / Close / Toggle
+  (also in the context menu, reversible mid-move), events onOpenStarted / onOpened / onCloseStarted / onClosed. Builder:
+  both arms axis Z, Arm_L **+75°**, Arm_R **−75°**, **1.2 s**, eased. For FacilitySequence to call; no wiring yet.
+- *Verify* RESULT PASS (Editor, BasicScene; the drone moved to the docking pose (−0.032, 2.000, 4.754) yaw −28.3 only for
+  the check, then restored): parts / origins / tris / material / textures / HingeDrivers; closed pad tops 1.7091 /
+  1.7635; pads under the drone, mesh gap **3.04 (R) / 2.97 (L) mm** = the Blender values; opening sweep 1–75°: ≥ 3.3 mm
+  from the drone (> 60 mm from 20–25° on); arms / pads / riser vs Base ≥ 3.2 mm (at 5°); released 75°: highest y 1.011
+  (< 1.19), lowest 0.164; ServiceArm (scene pose): > 100 mm from the closed and the opened cradle, 54.1 mm from the
+  docked drone (rule ≥ 50 mm, = H1b); no collider overlaps (the drone has no colliders).
+- *Hero-mode import comparison* (`hero_import_dump.cs` now includes the Cradle and skips `Part1/`;
+  `hero_import_compare.py`): positions and normals match both ways on all five parts (0 unmatched, worst 0.0001 mm,
+  normal ≤ 6e-4). Tangent direction: Pad, Riser ≤ 0.06° (PASS); Arm_L 6.2°, Arm_R 2.8°, Base 2.1° at 1–2 vertex groups
+  each where Unity's import weld merged FBX corners with the same position / normal / UV: the known weld effect
+  (EXPORT_CONTRACT), accepted as negligible. Tangent w: Arm_L +1 (mirrored), the rest −1.
+- *Play Mode*: HingeDriver Open → Arm_L +75.00°, Arm_R −75.00° in **1.201 s**; Close → 0 in 1.205 s; Toggle mid-move
+  reverses; no errors, no freeze.
+- *BasicScene* (saved): the Part 1 `HERO_Cradle` replaced by the v2 prefab instance. The drone stays at its scene pose
+  (0, 2.000, 4.760), yaw 0: 13 mm clear of the closed cradle, but not on the pads; the docking pose (−28.3°) is still
+  the FacilitySequence / drone step (§10).
+- *Part 1 assets kept* (owner decision pending): FBX `Cradle/Part1/LAB_HERO_Cradle_{Base,Arm,Pad}_01.fbx` (moved there
+  with their .meta, GUIDs unchanged; their names collided with v2's Base_01 / Pad_01), `Materials/M_Greybox_Amber.mat`
+  (created by the Part 1 builder; used only by the Part 1 pads), `Editor/CradlePart1Builder.cs` (the old CradleBuilder,
+  retargeted to `Part1/`, root `HERO_Cradle_Part1`, menu Tools > Labyrinth > Superseded). References after the swap:
+  none in any scene or prefab (BasicScene was the only one), apart from the Part 1 builder itself; text mentions in
+  `cradle.py`, EXPORT_CONTRACT (Part 1 hero-mode verification), DEVLOG, Docs_Consistency_Report, §3a.
+- *Next*: Quest check (headset); FacilitySequence (release = both HingeDrivers Open; drone docking pose).
 
 ## 3a. Superseded Part 1 design (2026-09-26)
 

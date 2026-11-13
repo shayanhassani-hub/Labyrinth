@@ -70,8 +70,9 @@ Concept ─► Spec ─► Blender generator (Python, headless) ─► Automated
    - **Export:** triangulated export copy with preserved custom normals and MikkTSpace tangents, so
      the same file goes to texturing and to Unity.
    - Review renders (shaded, wireframe, UV layout, texel checker) for the artistic review.
-4. **Texture bakes.** Cradle: clean high-poly bake, textured in Substance Painter. Later heroes
-   ("hero workflow v3"): procedural Blender materials baked in Cycles onto the low-poly itself —
+4. **Texture bakes.** Cradle: clean high-poly bake (normal, AO, ID), then textured in Blender like the
+   later heroes (owner decision 2026-11-12). Later heroes ("hero workflow v3") and the Cradle:
+   procedural Blender materials baked in Cycles onto the low-poly itself —
    BaseColor (sRGB), Normal (OpenGL), Mask (R metallic, G AO, A smoothness), Emission.
 5. **Unity import** per [`EXPORT_CONTRACT.md`](Documentation/EXPORT_CONTRACT.md): 1 unit = 1 m,
    axis conversion baked into the mesh (Unity's X mirror cancelled in authoring), identity root
@@ -128,7 +129,7 @@ The Quest performance baseline (FPS, GPU time, thermals) is planned but not yet 
 |---|---|
 | Greybox room + corridor, teleport floor | Built, tested on Quest |
 | Labyrinth v2 (panel, handle, stand, tilt control) | Built, tested on Quest; tuning backlog L1–L3 |
-| **Cradle** (docking cradle) | Low-poly, UVs, high-poly and final bake done; texturing in Substance Painter and Unity import of v2 next |
+| **Cradle** (docking cradle) | Modelled, baked, textured in Blender (C-T1b), FBX, builder and HingeDriver done; imported and verified in Unity (Editor, C-T2), in BasicScene; Quest check next |
 | **Gate** (facility gate) | Modelled, textured (G2c), FBX, builder and runtime scripts done; imported and verified in Unity (Editor); Quest check next |
 | **Terminal** (control terminal) | Modelled, textured (H2b), FBX, builder and runtime scripts done; imported and verified in Unity (Editor); Quest check next |
 | **LeverStand** (release lever) | Modelled, textured, FBX, builder and runtime scripts done; imported and verified in Unity (Editor); Quest check next |

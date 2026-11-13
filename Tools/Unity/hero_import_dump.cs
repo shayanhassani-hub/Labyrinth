@@ -5,11 +5,12 @@ var outDir = "Temp/claude/hero_dump";
 System.IO.Directory.CreateDirectory(outDir);
 var sb = new System.Text.StringBuilder();
 var ci = System.Globalization.CultureInfo.InvariantCulture;
-foreach (var hero in new[] { "Gate", "Terminal", "LeverStand", "ServiceArm" })
+foreach (var hero in new[] { "Gate", "Terminal", "LeverStand", "ServiceArm", "Cradle" })
 {
     foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:Model", new[] { "Assets/Environment/Heroes/" + hero }))
     {
         var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+        if (path.Contains("/Part1/")) continue;                          // superseded Cradle Part 1 (kept, not verified)
         var root = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(path);
         var mfs = root.GetComponentsInChildren<UnityEngine.MeshFilter>(true);
         var name = System.IO.Path.GetFileNameWithoutExtension(path);

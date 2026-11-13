@@ -369,3 +369,17 @@ Short entries, newest at the bottom. Date, done, decisions, problems, next, hour
   the owner restarted with Hub. Eval stalls give one 0.33 s frame, which makes DroneHoverAIV2's Lerp drift lurch.
 - Next: install the APK and run the headset checklist; FacilitySequence; commit.
   Hours: ~4
+
+## 2026-11-13 (Cradle C-T2, Unity import of Cradle v2)
+- Done: cradle_v2_export.py (hero-mode FBX from the export-identical bake lows: Base, Arm_L mirrored, Arm_R, Pad,
+  Riser_L; re-import check PASS); C-T1b maps into Cradle/Textures; CradleBuilder rewritten for v2 (URP Lit material,
+  prefab, 20 primitive colliders, Verify with docking-pose mesh distances); new generic HingeDriver (+-75 deg, 1.2 s
+  eased). Verify RESULT PASS (pad gaps 3.04 / 2.97 mm, opening >= 3.3 mm, base >= 3.2 mm, ServiceArm 54.1 mm); Play
+  Mode open / close 1.20 s; import compare: positions / normals exact, known weld tangent spots on Arm_L / Arm_R / Base.
+  BasicScene saved with the v2 cradle.
+- Decisions: Part 1 FBX moved to Cradle/Part1/ (name clash, GUIDs kept), old builder kept as CradlePart1Builder; drone
+  left at its scene pose (docking pose stays with FacilitySequence); weld tangent differences accepted as before.
+- Problems: Claude launched the Editor itself (`unity open`); owner rule now: never launch Unity. Long evals exceed the
+  Pipeline's 5 s main-thread reply limit, so Build / Verify ran detached and wrote a report file.
+- Next: owner decision on the Part 1 assets; Quest check; FacilitySequence.
+  Hours: ~3
