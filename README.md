@@ -25,7 +25,12 @@ a standalone VR headset needs.
   UV and texel-density targets, bake and texture rules, the export contract, and per-hero specs with
   exact sizes, pivots and clearances. The documents are drafted with AI assistance; I review and
   approve every rule.
-- **Texturing** in Substance Painter (docking cradle).
+- **Gameplay code (C#, written by me):** the drone behaviour (`DroneHoverAIV2.cs`): random-point
+  flight inside a bounds box with a sine-wave hover, smooth aiming at the ball with
+  `Quaternion.Slerp`, timed shooting, and a ring flash through a `MaterialPropertyBlock` (no material
+  copies). All motion is scaled by `Time.deltaTime`, so it is frame-rate independent.
+- **Drone model and textures (made by me, without AI):** modelled in Blender and textured in
+  Substance Painter.
 - **Directing an AI-assisted pipeline:** AI tools write code and drafts under my direction. I set
   the design, the rules and the acceptance criteria, and I review every step before it is accepted.
 
